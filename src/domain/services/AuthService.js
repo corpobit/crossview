@@ -1,0 +1,64 @@
+export class AuthService {
+  constructor(apiBaseUrl = '/api') {
+    this.apiBaseUrl = apiBaseUrl;
+  }
+
+  async request(endpoint, options = {}) {
+    const response = await fetch(`${this.apiBaseUrl}${endpoint}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      credentials: 'include',
+      ...options,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(error.error || error.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  async checkAuth() {
+    try {
+      return await this.request('/auth/check');
+    } catch (error) {
+      throw new Error(`Failed to check authentication: ${error.message}`);
+    }
+  }
+
+  async login({ username, password }) {
+    try {
+      return await this.request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ username, password }),
+      });
+    } catch (error) {
+      throw new Error(`Login failed: ${error.message}`);
+    }
+  }
+
+  async register({ username, email, password }) {
+    try {
+      return await this.request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ username, email, password }),
+      });
+    } catch (error) {
+      throw new Error(`Registration failed: ${error.message}`);
+    }
+  }
+
+  async logout() {
+    try {
+      return await this.request('/auth/logout', {
+        method: 'POST',
+      });
+    } catch (error) {
+      throw new Error(`Logout failed: ${error.message}`);
+    }
+  }
+}
+
