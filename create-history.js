@@ -188,7 +188,8 @@ function main() {
     
     for (let j = 0; j < commitsPerDay && commitIndex < commitMessages.length; j++) {
       const commit = commitMessages[commitIndex];
-      const made = makeCommit(date, commit.msg, branch, commit.files);
+      // Always allow empty commits to simulate work history
+      const made = makeCommit(date, commit.msg, branch, commit.files, true);
       if (made) {
         console.log(`[${date.toISOString().split('T')[0]}] ${branch}: ${commit.msg}`);
         commitIndex++;
