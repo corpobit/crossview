@@ -123,7 +123,7 @@ function formatDate(date) {
   return iso.substring(0, 19) + ' ' + date.toTimeString().substring(9, 15);
 }
 
-function makeCommit(date, message, branch, files = null) {
+function makeCommit(date, message, branch, files = null, allowEmpty = false) {
   const dateStr = formatDate(date);
   const env = {
     ...process.env,
@@ -152,10 +152,11 @@ function makeCommit(date, message, branch, files = null) {
       execSync('git add -A', { stdio: 'ignore' });
     }
     
-    // Check if there are changes to commit
+    // Check if there are changes to commit or if empty commits are allowed
     const status = execSync('git status --porcelain', { encoding: 'utf-8' });
-    if (status.trim()) {
-      execSync(`git commit -m "${message}"`, { 
+    if (status.trim() || allowEmpty) {
+      const emptyFlag = allowEmpty && !status.trim() ? '--allow-empty' : '';
+      execSync(`git commit ${emptyFlag} -m "${message}"`, { 
         env,
         stdio: 'ignore'
       });
