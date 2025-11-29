@@ -8,16 +8,20 @@ import { useParams } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
+import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
+import { Dropdown } from '../components/common/Dropdown.jsx';
 import { GetResourcesUseCase } from '../../domain/usecases/GetResourcesUseCase.js';
 
 export const ResourceKind = () => {
   const { kind } = useParams();
   const { kubernetesRepository, selectedContext } = useAppContext();
   const [resources, setResources] = useState([]);
+  const [filteredResources, setFilteredResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     const loadResources = async () => {
@@ -44,12 +48,21 @@ export const ResourceKind = () => {
     loadResources();
   }, [selectedContext, kubernetesRepository, kind]);
 
+  useEffect(() => {
+    let filtered = resources;
+    
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(r => {
+        const statusText = getStatusText(r.conditions, r.kind);
+        return statusText === statusFilter;
+      });
+    }
+    
+    setFilteredResources(filtered);
+  }, [resources, statusFilter]);
+
   if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minH="400px">
-        <Text>Loading {kind}...</Text>
-      </Box>
-    );
+    return <LoadingSpinner message={`Loading ${kind}...`} />;
   }
 
   if (error) {
@@ -215,7 +228,7 @@ export const ResourceKind = () => {
       <HStack justify="space-between" mb={6} flexShrink={0}>
         <Text fontSize="2xl" fontWeight="bold">{kind}</Text>
         <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-          {resources.length} resource{resources.length !== 1 ? 's' : ''}
+          {filteredResources.length} resource{filteredResources.length !== 1 ? 's' : ''}
         </Text>
       </HStack>
 
@@ -229,11 +242,30 @@ export const ResourceKind = () => {
         mt={4}
       >
         <DataTable
-          data={resources}
+          data={filteredResources}
           columns={columns}
           searchableFields={['name', 'kind']}
           itemsPerPage={20}
           onRowClick={handleRowClick}
+          filters={
+            <Dropdown
+              minW="150px"
+              placeholder="All Statuses"
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={[
+                { value: 'all', label: 'All Statuses' },
+                { value: 'Ready', label: 'Ready' },
+                { value: 'Not Ready', label: 'Not Ready' },
+                { value: 'Pending', label: 'Pending' },
+                { value: 'Unknown', label: 'Unknown' },
+                { value: 'Healthy', label: 'Healthy' },
+                { value: 'Unhealthy', label: 'Unhealthy' },
+                { value: 'Active', label: 'Active' },
+                { value: 'Inactive', label: 'Inactive' }
+              ]}
+            />
+          }
         />
       </Box>
       

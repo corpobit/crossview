@@ -1,15 +1,27 @@
 import {
   Box,
-  VStack,
   Text,
   HStack,
+  Button,
 } from '@chakra-ui/react';
-import { Container } from '../components/common/Container.jsx';
-import { FiMoon, FiSun } from 'react-icons/fi';
-import { useAppContext } from '../providers/AppProvider.jsx';
+import { useNavigate, useLocation, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { UserManagement } from './UserManagement.jsx';
+import { Appearance } from './Appearance.jsx';
 
 export const Settings = () => {
-  const { user, colorMode, setColorMode } = useAppContext();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isUserManagement = location.pathname.includes('/user-management');
+  const isAppearance = location.pathname.includes('/appearance');
+
+  // Default to appearance if no sub-route is specified
+  useEffect(() => {
+    if (location.pathname === '/settings' || location.pathname === '/settings/') {
+      navigate('/settings/appearance', { replace: true });
+    }
+  }, [location.pathname, navigate]);
 
   return (
     <Box>
@@ -17,81 +29,36 @@ export const Settings = () => {
         Settings
       </Text>
 
-      <VStack spacing={6} align="stretch">
-        <Container p={6}>
-          <Text fontSize="lg" fontWeight="semibold" mb={4}>
-            User Information
-          </Text>
-          <VStack align="stretch" spacing={3}>
-            <Box>
-              <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }} mb={1}>
-                Username
-              </Text>
-              <Text fontSize="md" fontWeight="medium">
-                {user?.username}
-              </Text>
-            </Box>
-            <Box>
-              <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }} mb={1}>
-                Email
-              </Text>
-              <Text fontSize="md" fontWeight="medium">
-                {user?.email}
-              </Text>
-            </Box>
-            <Box>
-              <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }} mb={1}>
-                Role
-              </Text>
-              <Text fontSize="md" fontWeight="medium">
-                {user?.role}
-              </Text>
-            </Box>
-          </VStack>
-        </Container>
-
-        <Container p={6}>
-          <HStack justify="space-between" align="center">
-            <VStack align="start" spacing={1}>
-              <Text fontSize="lg" fontWeight="semibold">Appearance</Text>
-              <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-                Switch between light and dark mode
-              </Text>
-            </VStack>
-            <HStack spacing={3}>
-              <Box
-                as="button"
-                p={2}
-                borderRadius="md"
-                bg={colorMode === 'light' ? 'blue.500' : 'gray.200'}
-                _dark={{ bg: colorMode === 'light' ? 'blue.600' : 'gray.700', color: colorMode === 'light' ? 'white' : 'gray.300' }}
-                color={colorMode === 'light' ? 'white' : 'gray.600'}
-                onClick={() => setColorMode('light')}
-                cursor="pointer"
-                _hover={{ opacity: 0.8 }}
-                transition="all 0.2s"
-              >
-                <FiSun size={20} />
-              </Box>
-              <Box
-                as="button"
-                p={2}
-                borderRadius="md"
-                bg={colorMode === 'dark' ? 'blue.500' : 'gray.200'}
-                _dark={{ bg: colorMode === 'dark' ? 'blue.600' : 'gray.700', color: colorMode === 'dark' ? 'white' : 'gray.300' }}
-                color={colorMode === 'dark' ? 'white' : 'gray.600'}
-                onClick={() => setColorMode('dark')}
-                cursor="pointer"
-                _hover={{ opacity: 0.8 }}
-                transition="all 0.2s"
-              >
-                <FiMoon size={20} />
-              </Box>
+      <HStack spacing={4} mb={6} borderBottom="1px solid" borderColor="gray.200" _dark={{ borderColor: 'gray.700' }} pb={4}>
+        <Button
+          variant={isAppearance ? 'solid' : 'ghost'}
+          onClick={() => navigate('/settings/appearance')}
+          size="sm"
+          bg={isAppearance ? 'gray.900' : 'transparent'}
+          _dark={{ bg: isAppearance ? 'white' : 'transparent', color: isAppearance ? 'gray.900' : 'gray.300' }}
+          color={isAppearance ? 'white' : 'gray.700'}
+          _hover={{ bg: isAppearance ? 'gray.800' : 'gray.100', _dark: { bg: isAppearance ? 'gray.100' : 'gray.700' } }}
+        >
+          Appearance
+        </Button>
+        <Button
+          variant={isUserManagement ? 'solid' : 'ghost'}
+          onClick={() => navigate('/settings/user-management')}
+          size="sm"
+          bg={isUserManagement ? 'gray.900' : 'transparent'}
+          _dark={{ bg: isUserManagement ? 'white' : 'transparent', color: isUserManagement ? 'gray.900' : 'gray.300' }}
+          color={isUserManagement ? 'white' : 'gray.700'}
+          _hover={{ bg: isUserManagement ? 'gray.800' : 'gray.100', _dark: { bg: isUserManagement ? 'gray.100' : 'gray.700' } }}
+        >
+          User Management
+        </Button>
             </HStack>
-          </HStack>
-        </Container>
-      </VStack>
+
+      <Routes>
+        <Route path="appearance" element={<Appearance />} />
+        <Route path="user-management" element={<UserManagement />} />
+        <Route path="*" element={<Appearance />} />
+      </Routes>
     </Box>
   );
 };
-

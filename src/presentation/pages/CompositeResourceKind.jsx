@@ -8,6 +8,8 @@ import { useParams } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
+import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
+import { Dropdown } from '../components/common/Dropdown.jsx';
 import { GetCompositeResourcesUseCase } from '../../domain/usecases/GetCompositeResourcesUseCase.js';
 import { GetCompositionsUseCase } from '../../domain/usecases/GetCompositionsUseCase.js';
 import { GetCompositeResourceDefinitionsUseCase } from '../../domain/usecases/GetCompositeResourceDefinitionsUseCase.js';
@@ -16,10 +18,12 @@ export const CompositeResourceKind = () => {
   const { kind } = useParams();
   const { kubernetesRepository, selectedContext } = useAppContext();
   const [resources, setResources] = useState([]);
+  const [filteredResources, setFilteredResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     const loadResources = async () => {
@@ -57,12 +61,30 @@ export const CompositeResourceKind = () => {
     loadResources();
   }, [selectedContext, kubernetesRepository, kind]);
 
+  const getStatusText = (conditions) => {
+    if (!conditions || conditions.length === 0) return 'Unknown';
+    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
+    if (readyCondition && readyCondition.status === 'True') return 'Ready';
+    if (readyCondition && readyCondition.status === 'False') return 'Not Ready';
+    return 'Pending';
+  };
+
+  useEffect(() => {
+    let filtered = resources;
+    
+    // Only apply status filter if the resource type has status (not for Composition or CompositeResourceDefinition)
+    if (statusFilter !== 'all' && kind !== 'Composition' && kind !== 'CompositeResourceDefinition') {
+      filtered = filtered.filter(r => {
+        const statusText = getStatusText(r.conditions);
+        return statusText === statusFilter;
+      });
+    }
+    
+    setFilteredResources(filtered);
+  }, [resources, statusFilter, kind]);
+
   if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minH="400px">
-        <Text>Loading {kind}...</Text>
-      </Box>
-    );
+    return <LoadingSpinner message={`Loading ${kind}...`} />;
   }
 
   if (error) {
@@ -91,14 +113,6 @@ export const CompositeResourceKind = () => {
     if (readyCondition && readyCondition.status === 'True') return 'green';
     if (readyCondition && readyCondition.status === 'False') return 'red';
     return 'yellow';
-  };
-
-  const getStatusText = (conditions) => {
-    if (!conditions || conditions.length === 0) return 'Unknown';
-    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
-    if (readyCondition && readyCondition.status === 'True') return 'Ready';
-    if (readyCondition && readyCondition.status === 'False') return 'Not Ready';
-    return 'Pending';
   };
 
   const handleRowClick = (item) => {
@@ -279,11 +293,28 @@ export const CompositeResourceKind = () => {
         mt={4}
       >
         <DataTable
-          data={resources}
+          data={filteredResources}
           columns={getColumns()}
           searchableFields={['name']}
           itemsPerPage={20}
           onRowClick={handleRowClick}
+          filters={
+            kind !== 'Composition' && kind !== 'CompositeResourceDefinition' ? (
+              <Dropdown
+                minW="150px"
+                placeholder="All Statuses"
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={[
+                  { value: 'all', label: 'All Statuses' },
+                  { value: 'Ready', label: 'Ready' },
+                  { value: 'Not Ready', label: 'Not Ready' },
+                  { value: 'Pending', label: 'Pending' },
+                  { value: 'Unknown', label: 'Unknown' }
+                ]}
+              />
+            ) : undefined
+          }
         />
       </Box>
       

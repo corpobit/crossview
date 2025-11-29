@@ -7,15 +7,21 @@ import { useEffect, useState } from 'react';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
+import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
+import { Dropdown } from '../components/common/Dropdown.jsx';
 import { GetCompositeResourcesUseCase } from '../../domain/usecases/GetCompositeResourcesUseCase.js';
 
 export const CompositeResources = () => {
   const { kubernetesRepository, selectedContext } = useAppContext();
   const [compositeResources, setCompositeResources] = useState([]);
+  const [filteredResources, setFilteredResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
+  const [kindFilter, setKindFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [compositionFilter, setCompositionFilter] = useState('all');
 
   useEffect(() => {
     const loadCompositeResources = async () => {
@@ -40,12 +46,37 @@ export const CompositeResources = () => {
     loadCompositeResources();
   }, [selectedContext, kubernetesRepository]);
 
+  const getStatusText = (conditions) => {
+    if (!conditions || conditions.length === 0) return 'Unknown';
+    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
+    if (readyCondition && readyCondition.status === 'True') return 'Ready';
+    if (readyCondition && readyCondition.status === 'False') return 'Not Ready';
+    return 'Pending';
+  };
+
+  useEffect(() => {
+    let filtered = compositeResources;
+    
+    if (kindFilter !== 'all') {
+      filtered = filtered.filter(r => r.kind === kindFilter);
+    }
+    
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(r => {
+        const statusText = getStatusText(r.conditions);
+        return statusText === statusFilter;
+      });
+    }
+    
+    if (compositionFilter !== 'all') {
+      filtered = filtered.filter(r => (r.compositionRef?.name || '') === compositionFilter);
+    }
+    
+    setFilteredResources(filtered);
+  }, [compositeResources, kindFilter, statusFilter, compositionFilter]);
+
   if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minH="400px">
-        <Text>Loading composite resources...</Text>
-      </Box>
-    );
+    return <LoadingSpinner message="Loading composite resources..." />;
   }
 
   if (error) {
@@ -74,14 +105,6 @@ export const CompositeResources = () => {
     if (readyCondition && readyCondition.status === 'True') return 'green';
     if (readyCondition && readyCondition.status === 'False') return 'red';
     return 'yellow';
-  };
-
-  const getStatusText = (conditions) => {
-    if (!conditions || conditions.length === 0) return 'Unknown';
-    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
-    if (readyCondition && readyCondition.status === 'True') return 'Ready';
-    if (readyCondition && readyCondition.status === 'False') return 'Not Ready';
-    return 'Pending';
   };
 
   const columns = [
@@ -206,7 +229,7 @@ export const CompositeResources = () => {
       <HStack justify="space-between" mb={6} flexShrink={0}>
         <Text fontSize="2xl" fontWeight="bold">Composite Resources</Text>
         <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-          {compositeResources.length} resource{compositeResources.length !== 1 ? 's' : ''}
+          {filteredResources.length} resource{filteredResources.length !== 1 ? 's' : ''}
         </Text>
       </HStack>
 
@@ -220,11 +243,54 @@ export const CompositeResources = () => {
         mt={4}
       >
         <DataTable
-          data={compositeResources}
+          data={filteredResources}
           columns={columns}
           searchableFields={['name', 'kind', 'compositionRef.name']}
           itemsPerPage={20}
           onRowClick={handleRowClick}
+          filters={
+            <HStack spacing={3}>
+              <Dropdown
+                minW="180px"
+                placeholder="All Kinds"
+                value={kindFilter}
+                onChange={setKindFilter}
+                options={[
+                  { value: 'all', label: 'All Kinds' },
+                  ...Array.from(new Set(compositeResources.map(r => r.kind).filter(Boolean))).sort().map(kind => ({
+                    value: kind,
+                    label: kind
+                  }))
+                ]}
+              />
+              <Dropdown
+                minW="150px"
+                placeholder="All Statuses"
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={[
+                  { value: 'all', label: 'All Statuses' },
+                  { value: 'Ready', label: 'Ready' },
+                  { value: 'Not Ready', label: 'Not Ready' },
+                  { value: 'Pending', label: 'Pending' },
+                  { value: 'Unknown', label: 'Unknown' }
+                ]}
+              />
+              <Dropdown
+                minW="200px"
+                placeholder="All Compositions"
+                value={compositionFilter}
+                onChange={setCompositionFilter}
+                options={[
+                  { value: 'all', label: 'All Compositions' },
+                  ...Array.from(new Set(compositeResources.map(r => r.compositionRef?.name).filter(Boolean))).sort().map(comp => ({
+                    value: comp,
+                    label: comp
+                  }))
+                ]}
+              />
+            </HStack>
+          }
         />
       </Box>
       

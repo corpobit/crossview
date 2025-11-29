@@ -7,15 +7,21 @@ import { useEffect, useState } from 'react';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
+import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
+import { Dropdown } from '../components/common/Dropdown.jsx';
 import { GetClaimsUseCase } from '../../domain/usecases/GetClaimsUseCase.js';
 
 export const Claims = () => {
   const { kubernetesRepository, selectedContext } = useAppContext();
   const [claims, setClaims] = useState([]);
+  const [filteredClaims, setFilteredClaims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
+  const [namespaceFilter, setNamespaceFilter] = useState('all');
+  const [kindFilter, setKindFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     let isMounted = true;
@@ -54,12 +60,46 @@ export const Claims = () => {
     };
   }, [selectedContext, kubernetesRepository]);
 
+  const getStatusColor = (conditions) => {
+    if (!conditions || conditions.length === 0) return 'gray';
+    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
+    if (readyCondition && readyCondition.status === 'True') return 'green';
+    if (readyCondition && readyCondition.status === 'False') return 'red';
+    return 'yellow';
+  };
+
+  const getStatusText = (conditions) => {
+    if (!conditions || conditions.length === 0) return 'Unknown';
+    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
+    if (readyCondition && readyCondition.status === 'True') return 'Ready';
+    if (readyCondition && readyCondition.status === 'False') return 'Not Ready';
+    return 'Pending';
+  };
+
+  useEffect(() => {
+    let filtered = claims;
+    
+    if (namespaceFilter !== 'all') {
+      filtered = filtered.filter(c => (c.namespace || '') === namespaceFilter);
+    }
+    
+    if (kindFilter !== 'all') {
+      filtered = filtered.filter(c => c.kind === kindFilter);
+    }
+    
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(c => {
+        const statusText = getStatusText(c.conditions);
+        return statusText === statusFilter;
+      });
+    }
+    
+    setFilteredClaims(filtered);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [claims, namespaceFilter, kindFilter, statusFilter]);
+
   if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minH="400px">
-        <Text>Loading claims...</Text>
-      </Box>
-    );
+    return <LoadingSpinner message="Loading claims..." subMessage="Fetching data from cluster" />;
   }
 
   if (error) {
@@ -82,27 +122,17 @@ export const Claims = () => {
     );
   }
 
-  const getStatusColor = (conditions) => {
-    if (!conditions || conditions.length === 0) return 'gray';
-    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
-    if (readyCondition && readyCondition.status === 'True') return 'green';
-    if (readyCondition && readyCondition.status === 'False') return 'red';
-    return 'yellow';
-  };
-
-  const getStatusText = (conditions) => {
-    if (!conditions || conditions.length === 0) return 'Unknown';
-    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
-    if (readyCondition && readyCondition.status === 'True') return 'Ready';
-    if (readyCondition && readyCondition.status === 'False') return 'Not Ready';
-    return 'Pending';
-  };
-
   const columns = [
     {
       header: 'Name',
       accessor: 'name',
       minWidth: '200px',
+    },
+    {
+      header: 'Namespace',
+      accessor: 'namespace',
+      minWidth: '150px',
+      render: (row) => row.namespace || '-',
     },
     {
       header: 'Kind',
@@ -214,7 +244,7 @@ export const Claims = () => {
       <HStack justify="space-between" mb={6} flexShrink={0}>
         <Text fontSize="2xl" fontWeight="bold">Claims</Text>
         <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-          {claims.length} claim{claims.length !== 1 ? 's' : ''}
+          {filteredClaims.length} claim{filteredClaims.length !== 1 ? 's' : ''}
         </Text>
       </HStack>
 
@@ -228,11 +258,55 @@ export const Claims = () => {
         mt={4}
       >
         <DataTable
-          data={claims}
+          data={filteredClaims}
           columns={columns}
-          searchableFields={['name', 'kind', 'compositionRef.name']}
+          searchableFields={['name', 'namespace', 'kind', 'compositionRef.name']}
           itemsPerPage={20}
           onRowClick={handleRowClick}
+          filters={
+            <HStack spacing={3}>
+              <Dropdown
+                minW="180px"
+                placeholder="All Namespaces"
+                value={namespaceFilter}
+                onChange={setNamespaceFilter}
+                options={[
+                  { value: 'all', label: 'All Namespaces' },
+                  ...Array.from(new Set(claims.map(c => c.namespace).filter(Boolean))).sort().map(ns => ({
+                    value: ns,
+                    label: ns
+                  })),
+                  { value: '', label: '(No Namespace)' }
+                ]}
+              />
+              <Dropdown
+                minW="180px"
+                placeholder="All Kinds"
+                value={kindFilter}
+                onChange={setKindFilter}
+                options={[
+                  { value: 'all', label: 'All Kinds' },
+                  ...Array.from(new Set(claims.map(c => c.kind).filter(Boolean))).sort().map(kind => ({
+                    value: kind,
+                    label: kind
+                  }))
+                ]}
+              />
+              <Dropdown
+                minW="150px"
+                placeholder="All Statuses"
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={[
+                  { value: 'all', label: 'All Statuses' },
+                  { value: 'Ready', label: 'Ready' },
+                  { value: 'Not Ready', label: 'Not Ready' },
+                  { value: 'Pending', label: 'Pending' },
+                  { value: 'Unknown', label: 'Unknown' }
+                ]}
+              />
+            </HStack>
+          }
         />
       </Box>
       
