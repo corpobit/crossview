@@ -123,7 +123,7 @@ function formatDate(date) {
   return iso.substring(0, 19) + ' ' + date.toTimeString().substring(9, 15);
 }
 
-function makeCommit(date, message, branch, files = null) {
+function makeCommit(date, message, branch, files = null, allowEmpty = false) {
   const dateStr = formatDate(date);
   const env = {
     ...process.env,
@@ -152,10 +152,11 @@ function makeCommit(date, message, branch, files = null) {
       execSync('git add -A', { stdio: 'ignore' });
     }
     
-    // Check if there are changes to commit
+    // Check if there are changes to commit or if empty commits are allowed
     const status = execSync('git status --porcelain', { encoding: 'utf-8' });
-    if (status.trim()) {
-      execSync(`git commit -m "${message}"`, { 
+    if (status.trim() || allowEmpty) {
+      const emptyFlag = allowEmpty && !status.trim() ? '--allow-empty' : '';
+      execSync(`git commit ${emptyFlag} -m "${message}"`, { 
         env,
         stdio: 'ignore'
       });
@@ -171,12 +172,15 @@ function makeCommit(date, message, branch, files = null) {
 function main() {
   console.log('Creating git history...');
   
-  // First, stage all current files
-  execSync('git add -A', { stdio: 'inherit' });
+  // Reset to initial commit and remove all current changes from staging
+  try {
+    execSync('git reset --soft HEAD', { stdio: 'ignore' });
+  } catch {}
   
   const dates = generateDates();
   let commitIndex = 0;
   let branchIndex = 0;
+  const committedFiles = new Set();
   
   // Make commits
   for (let i = 0; i < dates.length && commitIndex < commitMessages.length; i++) {
@@ -188,7 +192,21 @@ function main() {
     
     for (let j = 0; j < commitsPerDay && commitIndex < commitMessages.length; j++) {
       const commit = commitMessages[commitIndex];
-      const made = makeCommit(date, commit.msg, branch, commit.files);
+      
+      // Check if we have new files to commit
+      let hasNewFiles = false;
+      if (commit.files) {
+        for (const file of commit.files) {
+          if (fs.existsSync(file) && !committedFiles.has(file)) {
+            hasNewFiles = true;
+            committedFiles.add(file);
+          }
+        }
+      }
+      
+      // Make commit (allow empty for some commits to simulate work-in-progress)
+      const allowEmpty = !hasNewFiles && Math.random() < 0.4;
+      const made = makeCommit(date, commit.msg, branch, commit.files, allowEmpty);
       if (made) {
         console.log(`[${date.toISOString().split('T')[0]}] ${branch}: ${commit.msg}`);
         commitIndex++;
@@ -197,6 +215,23 @@ function main() {
     
     branchIndex++;
   }
+  
+  // Commit any remaining files
+  try {
+    execSync('git add -A', { stdio: 'ignore' });
+    const status = execSync('git status --porcelain', { encoding: 'utf-8' });
+    if (status.trim()) {
+      const lastDate = dates[dates.length - 1];
+      const dateStr = formatDate(lastDate);
+      const env = {
+        ...process.env,
+        GIT_AUTHOR_DATE: dateStr,
+        GIT_COMMITTER_DATE: dateStr
+      };
+      execSync('git commit -m "Finalize project setup"', { env, stdio: 'ignore' });
+      commitIndex++;
+    }
+  } catch {}
   
   // Return to main branch
   execSync('git checkout main', { stdio: 'ignore' });
