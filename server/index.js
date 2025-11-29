@@ -580,6 +580,36 @@ app.get('/api/resource', requireAuth, async (req, res) => {
   }
 });
 
+app.get('/api/events', requireAuth, async (req, res) => {
+  try {
+    const { kind, name, namespace, context: contextParam } = req.query;
+    const context = contextParam;
+    if (!context) {
+      return res.status(400).json({ error: 'Context parameter is required' });
+    }
+    if (!kind || !name) {
+      return res.status(400).json({ error: 'Kind and name parameters are required' });
+    }
+    const kubeConfigPath = path.join(homedir(), '.kube', 'config');
+    if (!fs.existsSync(kubeConfigPath)) {
+      return res.status(500).json({ error: 'Kubeconfig file not found' });
+    }
+    kubernetesRepository.kubeConfig.loadFromFile(kubeConfigPath);
+    kubernetesRepository.kubeConfig.setCurrentContext(context);
+    kubernetesRepository.initialized = false;
+    kubernetesRepository.coreApi = null;
+    kubernetesRepository.customObjectsApi = null;
+    await kubernetesRepository.initialize();
+    
+    const events = await kubernetesRepository.getEvents(kind, name, namespace || null, context);
+    res.json(events);
+  } catch (error) {
+    console.error('Error getting events:', error);
+    // Return empty array instead of error to not break the UI
+    res.json([]);
+  }
+});
+
 const startServer = async () => {
   try {
     await initDatabase();
