@@ -1,10 +1,5 @@
 import pg from 'pg';
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { getConfig } from '../../config/loader.js';
 
 const { Pool } = pg;
 
@@ -13,8 +8,7 @@ let pool = null;
 export const getPool = () => {
   if (!pool) {
     try {
-      const configPath = join(__dirname, '../../config/database.json');
-      const config = JSON.parse(readFileSync(configPath, 'utf8'));
+      const config = getConfig('database');
       
       pool = new Pool({
         host: config.host,
@@ -33,6 +27,13 @@ export const getPool = () => {
     }
   }
   return pool;
+};
+
+export const resetPool = () => {
+  if (pool) {
+    pool.end();
+    pool = null;
+  }
 };
 
 export const initDatabase = async () => {
