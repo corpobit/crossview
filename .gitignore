@@ -23,5 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Database config (contains sensitive info)
+# Configuration files (contain sensitive info)
 config/database.json
+config/config.yaml

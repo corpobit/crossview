@@ -7,15 +7,19 @@ import { useEffect, useState } from 'react';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
+import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
+import { Dropdown } from '../components/common/Dropdown.jsx';
 import { GetCompositeResourceDefinitionsUseCase } from '../../domain/usecases/GetCompositeResourceDefinitionsUseCase.js';
 
 export const CompositeResourceDefinitions = () => {
   const { kubernetesRepository, selectedContext } = useAppContext();
   const [xrds, setXrds] = useState([]);
+  const [filteredXrds, setFilteredXrds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
+  const [groupFilter, setGroupFilter] = useState('all');
 
   useEffect(() => {
     const loadXrds = async () => {
@@ -40,12 +44,18 @@ export const CompositeResourceDefinitions = () => {
     loadXrds();
   }, [selectedContext, kubernetesRepository]);
 
+  useEffect(() => {
+    let filtered = xrds;
+    
+    if (groupFilter !== 'all') {
+      filtered = filtered.filter(x => x.group === groupFilter);
+    }
+    
+    setFilteredXrds(filtered);
+  }, [xrds, groupFilter]);
+
   if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minH="400px">
-        <Text>Loading composite resource definitions...</Text>
-      </Box>
-    );
+    return <LoadingSpinner message="Loading composite resource definitions..." />;
   }
 
   if (error) {
@@ -166,7 +176,7 @@ export const CompositeResourceDefinitions = () => {
       <HStack justify="space-between" mb={6} flexShrink={0}>
         <Text fontSize="2xl" fontWeight="bold">Composite Resource Definitions</Text>
         <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-          {xrds.length} definition{xrds.length !== 1 ? 's' : ''}
+          {filteredXrds.length} definition{filteredXrds.length !== 1 ? 's' : ''}
         </Text>
       </HStack>
 
@@ -180,11 +190,26 @@ export const CompositeResourceDefinitions = () => {
         mt={4}
       >
         <DataTable
-          data={xrds}
+          data={filteredXrds}
           columns={columns}
           searchableFields={['name', 'group', 'names.kind', 'claimNames.kind']}
           itemsPerPage={20}
           onRowClick={handleRowClick}
+          filters={
+            <Dropdown
+              minW="250px"
+              placeholder="All Groups"
+              value={groupFilter}
+              onChange={setGroupFilter}
+              options={[
+                { value: 'all', label: 'All Groups' },
+                ...Array.from(new Set(xrds.map(x => x.group).filter(Boolean))).sort().map(group => ({
+                  value: group,
+                  label: group
+                }))
+              ]}
+            />
+          }
         />
       </Box>
       

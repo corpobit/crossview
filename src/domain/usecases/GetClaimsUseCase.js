@@ -34,37 +34,36 @@ export class GetClaimsUseCase {
         return [];
       }
       
-      const namespaces = await this.kubernetesRepository.getNamespaces(context);
-      const MAX_NAMESPACES = 200;
-      const namespacesToCheck = namespaces.slice(0, MAX_NAMESPACES);
-      
-      const BATCH_SIZE = 3;
-      const DELAY_MS = 50;
-      const PAGE_SIZE = 500; // Fetch claims in pages of 500
-      
-      const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-      
-      // Helper function to fetch all claims from a namespace with pagination
-      const fetchAllClaimsFromNamespace = async (claimDef, namespace, context) => {
-        const allClaims = [];
+      // Try to fetch all claims at cluster level first (namespace = null)
+      // Even though Claims are namespaced, the Kubernetes API might support
+      // listing them across all namespaces in a single call
+      for (const claimDef of claimDefinitions) {
+        try {
+          // Try cluster-level query first - this should work for namespaced custom resources
+          // The API will return all instances across all namespaces
+          // Use a very large limit - Kubernetes API servers will cap it at their maximum (usually 50000)
+          // This minimizes the number of pagination requests needed
         let continueToken = null;
+          let pageCount = 0;
+          const MAX_PAGES = 5; // Safety limit - with large page size, we shouldn't need many pages
+          const PAGE_SIZE = 50000; // Very large page size - API server will cap at its maximum
         
         do {
           const result = await this.kubernetesRepository.getResources(
             claimDef.apiVersion,
             claimDef.kind,
-            namespace.name,
+              null, // null namespace = query across all namespaces
             context,
-            PAGE_SIZE,
+              PAGE_SIZE, // Large limit to minimize pagination
             continueToken
           );
           
           const claimResources = result.items || [];
           const claimsArray = Array.isArray(claimResources) ? claimResources : [];
           
-          allClaims.push(...claimsArray.map(claim => ({
+            claims.push(...claimsArray.map(claim => ({
             name: claim.metadata?.name || 'unknown',
-            namespace: claim.metadata?.namespace || namespace.name,
+              namespace: claim.metadata?.namespace || null,
             uid: claim.metadata?.uid || '',
             kind: claimDef.kind,
             apiVersion: claimDef.apiVersion,
@@ -78,24 +77,66 @@ export class GetClaimsUseCase {
           })));
           
           continueToken = result.continueToken || null;
+            pageCount++;
+            
+            // Safety check to prevent infinite pagination loops
+            if (pageCount >= MAX_PAGES) {
+              console.warn(`Reached maximum page limit (${MAX_PAGES}) for ${claimDef.kind}. Some claims may be missing.`);
+              break;
+            }
         } while (continueToken);
-        
-        return allClaims;
-      };
-      
-      for (const claimDef of claimDefinitions) {
-        for (let i = 0; i < namespacesToCheck.length; i += BATCH_SIZE) {
-          const namespaceBatch = namespacesToCheck.slice(i, i + BATCH_SIZE);
-          const batchPromises = namespaceBatch.map(namespace =>
-            fetchAllClaimsFromNamespace(claimDef, namespace, context).catch(() => [])
+        } catch (error) {
+          // If cluster-level query fails (e.g., resource is strictly namespaced),
+          // fall back to querying each namespace individually
+          if (error.message && (error.message.includes('404') || error.message.includes('NotFound') || error.message.includes('does not exist'))) {
+            // Resource type doesn't exist, skip it
+            continue;
+          }
+          
+          // If cluster-level query doesn't work, fall back to namespace-by-namespace
+          // This should rarely happen, but we handle it gracefully
+          console.warn(`Cluster-level query failed for ${claimDef.kind}, falling back to namespace-by-namespace:`, error.message);
+          
+          const namespaces = await this.kubernetesRepository.getNamespaces(context);
+          const MAX_NAMESPACES = 500;
+          const namespacesToCheck = namespaces.slice(0, MAX_NAMESPACES);
+          
+          const namespacePromises = namespacesToCheck.map(async (namespace) => {
+            try {
+              const result = await this.kubernetesRepository.getResources(
+                claimDef.apiVersion,
+                claimDef.kind,
+                namespace.name,
+                context,
+                50000, // Very large page size - API server will cap at its maximum
+                null
           );
           
-          const batchResults = await Promise.all(batchPromises);
-          claims.push(...batchResults.flat());
+              const claimResources = result.items || [];
+              const claimsArray = Array.isArray(claimResources) ? claimResources : [];
+              
+              return claimsArray.map(claim => ({
+                name: claim.metadata?.name || 'unknown',
+                namespace: claim.metadata?.namespace || namespace.name,
+                uid: claim.metadata?.uid || '',
+                kind: claimDef.kind,
+                apiVersion: claimDef.apiVersion,
+                creationTimestamp: claim.metadata?.creationTimestamp || '',
+                labels: claim.metadata?.labels || {},
+                resourceRef: claim.spec?.resourceRef || null,
+                compositionRef: claim.spec?.compositionRef || null,
+                writeConnectionSecretToRef: claim.spec?.writeConnectionSecretToRef || null,
+                status: claim.status || {},
+                conditions: claim.status?.conditions || [],
+              }));
+            } catch (nsError) {
+              // Ignore errors for individual namespaces
+              return [];
+            }
+          });
           
-          if (i + BATCH_SIZE < namespacesToCheck.length) {
-            await delay(DELAY_MS);
-          }
+          const namespaceResults = await Promise.all(namespacePromises);
+          claims.push(...namespaceResults.flat());
         }
       }
       

@@ -7,15 +7,19 @@ import { useEffect, useState } from 'react';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
+import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
+import { Dropdown } from '../components/common/Dropdown.jsx';
 import { GetProvidersUseCase } from '../../domain/usecases/GetProvidersUseCase.js';
 
 export const Providers = () => {
   const { kubernetesRepository, selectedContext } = useAppContext();
   const [providers, setProviders] = useState([]);
+  const [filteredProviders, setFilteredProviders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     const loadProviders = async () => {
@@ -40,12 +44,26 @@ export const Providers = () => {
     loadProviders();
   }, [selectedContext, kubernetesRepository]);
 
+  useEffect(() => {
+    let filtered = providers;
+    
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(p => {
+        const isHealthy = p.healthy;
+        const isInstalled = p.installed;
+        let status = 'Not Installed';
+        if (isInstalled) {
+          status = isHealthy ? 'Healthy' : 'Unhealthy';
+        }
+        return status === statusFilter;
+      });
+    }
+    
+    setFilteredProviders(filtered);
+  }, [providers, statusFilter]);
+
   if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minH="400px">
-        <Text>Loading providers...</Text>
-      </Box>
-    );
+    return <LoadingSpinner message="Loading providers..." />;
   }
 
   if (error) {
@@ -183,7 +201,7 @@ export const Providers = () => {
       <HStack justify="space-between" mb={6} flexShrink={0}>
         <Text fontSize="2xl" fontWeight="bold">Providers</Text>
         <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-          {providers.length} provider{providers.length !== 1 ? 's' : ''}
+          {filteredProviders.length} provider{filteredProviders.length !== 1 ? 's' : ''}
         </Text>
       </HStack>
 
@@ -197,11 +215,25 @@ export const Providers = () => {
         mt={4}
       >
         <DataTable
-          data={providers}
+          data={filteredProviders}
           columns={columns}
           searchableFields={['name', 'package', 'revision', 'controllerConfigRef']}
           itemsPerPage={20}
           onRowClick={handleRowClick}
+          filters={
+            <Dropdown
+              minW="180px"
+              placeholder="All Statuses"
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={[
+                { value: 'all', label: 'All Statuses' },
+                { value: 'Healthy', label: 'Healthy' },
+                { value: 'Unhealthy', label: 'Unhealthy' },
+                { value: 'Not Installed', label: 'Not Installed' }
+              ]}
+            />
+          }
         />
       </Box>
       

@@ -40,14 +40,32 @@ export class AuthService {
     }
   }
 
-  async register({ username, email, password }) {
+  async register({ username, email, password, database }) {
     try {
       return await this.request('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({ username, email, password, database }),
       });
     } catch (error) {
       throw new Error(`Registration failed: ${error.message}`);
+    }
+  }
+
+  async getDatabaseConfig() {
+    try {
+      const result = await this.request('/config/database');
+      console.log('AuthService.getDatabaseConfig result:', result);
+      return result;
+    } catch (error) {
+      console.error('AuthService.getDatabaseConfig error:', error);
+      // Don't throw - return empty config so form can still be shown
+      return {
+        host: '',
+        port: 5432,
+        database: '',
+        username: '',
+        password: '',
+      };
     }
   }
 

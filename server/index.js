@@ -4,26 +4,28 @@ import session from 'express-session';
 import { KubernetesRepository } from '../src/data/repositories/KubernetesRepository.js';
 import { initDatabase } from './db/connection.js';
 import { User } from './models/User.js';
+import { getConfig, updateConfig, resetConfig } from '../config/loader.js';
 import path from 'path';
 import { homedir } from 'os';
 import fs from 'fs';
 
 const app = express();
-const port = process.env.PORT || 3001;
+const serverConfig = getConfig('server');
+const port = process.env.PORT || serverConfig.port || 3001;
 
 app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true,
+  origin: serverConfig.cors?.origin || 'http://localhost:5173',
+  credentials: serverConfig.cors?.credentials !== false,
 }));
 app.use(express.json());
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'crossview-secret-key-change-in-production',
+  secret: process.env.SESSION_SECRET || serverConfig.session?.secret || 'crossview-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false,
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000,
+    secure: serverConfig.session?.cookie?.secure !== false,
+    httpOnly: serverConfig.session?.cookie?.httpOnly !== false,
+    maxAge: serverConfig.session?.cookie?.maxAge || 24 * 60 * 60 * 1000,
   },
 }));
 
@@ -45,6 +47,95 @@ const requireAdmin = async (req, res, next) => {
 };
 
 const kubernetesRepository = new KubernetesRepository();
+
+// Get database configuration (only when no users exist)
+app.get('/api/config/database', async (req, res) => {
+  try {
+    // Try to check if users exist, but don't fail if database connection fails
+    // (user might be setting up database for the first time)
+    let hasUsers = false;
+    try {
+      hasUsers = (await User.count()) > 0;
+      if (hasUsers) {
+        return res.status(403).json({ error: 'Database configuration can only be viewed during initial setup' });
+      }
+    } catch (dbError) {
+      // Database connection might fail if config is wrong - that's okay during setup
+      // We'll allow access to config in this case since user is likely setting up
+      console.warn('Could not check for existing users (database may not be configured yet):', dbError.message);
+    }
+    
+    // Reset config cache to ensure we get fresh data
+    resetConfig();
+    const dbConfig = getConfig('database');
+    console.log('=== DATABASE CONFIG DEBUG ===');
+    console.log('Full dbConfig object:', JSON.stringify(dbConfig, null, 2));
+    console.log('dbConfig.port value:', dbConfig.port);
+    console.log('dbConfig.port type:', typeof dbConfig.port);
+    
+    // Don't return password in response
+    const response = {
+      host: dbConfig.host ?? '',
+      port: dbConfig.port ?? 5432,
+      database: dbConfig.database ?? '',
+      username: dbConfig.username ?? '',
+      password: '', // Never return actual password
+    };
+    console.log('Final response object:', JSON.stringify(response, null, 2));
+    console.log('=== END DEBUG ===');
+    res.json(response);
+  } catch (error) {
+    console.error('Error getting database config:', error);
+    // Even on error, try to return what we can from config
+    try {
+      resetConfig();
+      const dbConfig = getConfig('database');
+      res.json({
+        host: dbConfig.host ?? '',
+        port: dbConfig.port ?? 5432,
+        database: dbConfig.database ?? '',
+        username: dbConfig.username ?? '',
+        password: '',
+      });
+    } catch (fallbackError) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+});
+
+// Update database configuration (only when no users exist)
+app.post('/api/config/database', async (req, res) => {
+  try {
+    const hasUsers = (await User.count()) > 0;
+    if (hasUsers) {
+      return res.status(403).json({ error: 'Database configuration can only be updated during initial setup' });
+    }
+    
+    const { host, port, database, username, password } = req.body;
+    
+    if (!host || !database || !username || !password) {
+      return res.status(400).json({ error: 'Host, database, username, and password are required' });
+    }
+    
+    updateConfig('database', {
+      host,
+      port: port || 5432,
+      database,
+      username,
+      password,
+    });
+    
+    // Reset config cache and database pool to use new config
+    resetConfig();
+    const { resetPool } = await import('./db/connection.js');
+    resetPool();
+    
+    res.json({ success: true, message: 'Database configuration updated' });
+  } catch (error) {
+    console.error('Error updating database config:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.get('/api/auth/check', async (req, res) => {
   try {
@@ -125,7 +216,7 @@ app.post('/api/auth/logout', (req, res) => {
 
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, database } = req.body;
     
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'Username, email, and password are required' });
@@ -136,6 +227,29 @@ app.post('/api/auth/register', async (req, res) => {
     
     if (hasUsers) {
       return res.status(403).json({ error: 'Registration is disabled. Please contact an administrator.' });
+    }
+    
+    // If database config is provided, update it before creating user
+    if (database && database.host && database.database && database.username && database.password) {
+      try {
+        updateConfig('database', {
+          host: database.host,
+          port: database.port || 5432,
+          database: database.database,
+          username: database.username,
+          password: database.password,
+        });
+        
+        // Reset config cache and database pool to use new config
+        resetConfig();
+        const { resetPool } = await import('./db/connection.js');
+        if (resetPool) {
+          resetPool();
+        }
+      } catch (dbError) {
+        console.error('Error updating database config:', dbError);
+        return res.status(500).json({ error: `Failed to update database configuration: ${dbError.message}` });
+      }
     }
     
     const existingUser = await User.findByUsername(username);
@@ -163,6 +277,110 @@ app.post('/api/auth/register', async (req, res) => {
     });
   } catch (error) {
     console.error('Error during registration:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// User Management Endpoints (Admin only)
+app.get('/api/users', requireAuth, async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.session.userId);
+    if (!currentUser || currentUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const users = await User.findAll();
+    res.json(users);
+  } catch (error) {
+    console.error('Error getting users:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/users', requireAuth, async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.session.userId);
+    if (!currentUser || currentUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { username, email, password, role = 'user' } = req.body;
+
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: 'Username, email, and password are required' });
+    }
+
+    if (role !== 'admin' && role !== 'user') {
+      return res.status(400).json({ error: 'Role must be either "admin" or "user"' });
+    }
+
+    const existingUser = await User.findByUsername(username);
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username already exists' });
+    }
+
+    const existingEmail = await User.findByEmail(email);
+    if (existingEmail) {
+      return res.status(400).json({ error: 'Email already exists' });
+    }
+
+    const user = await User.create({ username, email, password, role });
+    res.json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      created_at: user.created_at,
+    });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/users/:id', requireAuth, async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.session.userId);
+    if (!currentUser || currentUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const userId = parseInt(req.params.id, 10);
+    const { username, email, role, password } = req.body;
+
+    if (role && role !== 'admin' && role !== 'user') {
+      return res.status(400).json({ error: 'Role must be either "admin" or "user"' });
+    }
+
+    // Check if username or email already exists (excluding current user)
+    if (username) {
+      const existingUser = await User.findByUsername(username);
+      if (existingUser && existingUser.id !== userId) {
+        return res.status(400).json({ error: 'Username already exists' });
+      }
+    }
+
+    if (email) {
+      const existingEmail = await User.findByEmail(email);
+      if (existingEmail && existingEmail.id !== userId) {
+        return res.status(400).json({ error: 'Email already exists' });
+      }
+    }
+
+    const updatedUser = await User.update(userId, { username, email, role, password });
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      id: updatedUser.id,
+      username: updatedUser.username,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      created_at: updatedUser.created_at,
+    });
+  } catch (error) {
+    console.error('Error updating user:', error);
     res.status(500).json({ error: error.message });
   }
 });

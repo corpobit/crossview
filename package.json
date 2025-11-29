@@ -22,6 +22,7 @@
     "express": "^4.21.2",
     "express-session": "^1.18.2",
     "framer-motion": "^12.23.24",
+    "js-yaml": "^4.1.1",
     "pg": "^8.16.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

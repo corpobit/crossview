@@ -8,6 +8,7 @@ import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 import { Dropdown } from '../components/common/Dropdown.jsx';
+import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
 import { GetResourcesUseCase } from '../../domain/usecases/GetResourcesUseCase.js';
 
 export const Resources = () => {
@@ -57,11 +58,7 @@ export const Resources = () => {
   }, [resources, kindFilter]);
 
   if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minH="400px">
-        <Text>Loading resources...</Text>
-      </Box>
-    );
+    return <LoadingSpinner message="Loading resources..." />;
   }
 
   if (error) {

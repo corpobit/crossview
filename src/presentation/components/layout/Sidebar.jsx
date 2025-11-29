@@ -5,7 +5,7 @@ import {
   IconButton,
   Text,
 } from '@chakra-ui/react';
-import { FiChevronLeft, FiChevronRight, FiChevronDown, FiChevronUp, FiLayout, FiSettings, FiLogOut, FiPackage, FiFileText, FiDatabase, FiLayers, FiBox, FiBook, FiServer } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiChevronDown, FiChevronUp, FiLayout, FiSettings, FiLogOut, FiPackage, FiFileText, FiDatabase, FiLayers, FiBox, FiBook } from 'react-icons/fi';
 import { useState, useEffect, useRef } from 'react';
 import { ContextSelector } from './ContextSelector.jsx';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -133,7 +133,6 @@ export const Sidebar = ({ onToggle, onResize }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: FiLayout, path: '/' },
     { id: 'providers', label: 'Providers', icon: FiPackage, path: '/providers' },
-    { id: 'provider-configs', label: 'Provider Configs', icon: FiServer, path: '/provider-configs' },
     { id: 'compositions', label: 'Compositions', icon: FiLayers, path: '/compositions' },
     { id: 'xrds', label: 'XRDs', icon: FiBook, path: '/xrds' },
     { 
