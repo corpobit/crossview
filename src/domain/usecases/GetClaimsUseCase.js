@@ -16,7 +16,7 @@ export class GetClaimsUseCase {
       const claimDefinitions = [];
       for (const xrd of xrdsArray) {
         const claimNames = xrd.spec?.claimNames;
-        if (claimNames && claimNames.kind) {
+        if (claimNames?.kind) {
           const claimKind = claimNames.kind;
           const claimGroup = xrd.spec?.group || 'apiextensions.crossplane.io';
           const claimVersion = xrd.spec?.versions?.[0]?.name || xrd.spec?.version || 'v1';
@@ -34,19 +34,18 @@ export class GetClaimsUseCase {
         return [];
       }
       
-      // Try to fetch all claims at cluster level first (namespace = null)
-      // Even though Claims are namespaced, the Kubernetes API might support
-      // listing them across all namespaces in a single call
-      for (const claimDef of claimDefinitions) {
+      // Fetch all claim types in parallel
+      const claimPromises = claimDefinitions.map(async (claimDef) => {
         try {
           // Try cluster-level query first - this should work for namespaced custom resources
           // The API will return all instances across all namespaces
           // Use a very large limit - Kubernetes API servers will cap it at their maximum (usually 50000)
           // This minimizes the number of pagination requests needed
-        let continueToken = null;
+          let continueToken = null;
           let pageCount = 0;
           const MAX_PAGES = 5; // Safety limit - with large page size, we shouldn't need many pages
           const PAGE_SIZE = 50000; // Very large page size - API server will cap at its maximum
+          const claimResults = [];
         
         do {
           const result = await this.kubernetesRepository.getResources(
@@ -61,9 +60,9 @@ export class GetClaimsUseCase {
           const claimResources = result.items || [];
           const claimsArray = Array.isArray(claimResources) ? claimResources : [];
           
-            claims.push(...claimsArray.map(claim => ({
+          claimResults.push(...claimsArray.map(claim => ({
             name: claim.metadata?.name || 'unknown',
-              namespace: claim.metadata?.namespace || null,
+            namespace: claim.metadata?.namespace || null,
             uid: claim.metadata?.uid || '',
             kind: claimDef.kind,
             apiVersion: claimDef.apiVersion,
@@ -77,20 +76,22 @@ export class GetClaimsUseCase {
           })));
           
           continueToken = result.continueToken || null;
-            pageCount++;
-            
-            // Safety check to prevent infinite pagination loops
-            if (pageCount >= MAX_PAGES) {
-              console.warn(`Reached maximum page limit (${MAX_PAGES}) for ${claimDef.kind}. Some claims may be missing.`);
-              break;
-            }
+          pageCount++;
+          
+          // Safety check to prevent infinite pagination loops
+          if (pageCount >= MAX_PAGES) {
+            console.warn(`Reached maximum page limit (${MAX_PAGES}) for ${claimDef.kind}. Some claims may be missing.`);
+            break;
+          }
         } while (continueToken);
+        
+        return claimResults;
         } catch (error) {
           // If cluster-level query fails (e.g., resource is strictly namespaced),
           // fall back to querying each namespace individually
           if (error.message && (error.message.includes('404') || error.message.includes('NotFound') || error.message.includes('does not exist'))) {
             // Resource type doesn't exist, skip it
-            continue;
+            return [];
           }
           
           // If cluster-level query doesn't work, fall back to namespace-by-namespace
@@ -110,7 +111,7 @@ export class GetClaimsUseCase {
                 context,
                 50000, // Very large page size - API server will cap at its maximum
                 null
-          );
+              );
           
               const claimResources = result.items || [];
               const claimsArray = Array.isArray(claimResources) ? claimResources : [];
@@ -131,14 +132,18 @@ export class GetClaimsUseCase {
               }));
             } catch (nsError) {
               // Ignore errors for individual namespaces
+              // eslint-disable-next-line no-unused-vars
               return [];
             }
           });
           
           const namespaceResults = await Promise.all(namespacePromises);
-          claims.push(...namespaceResults.flat());
+          return namespaceResults.flat();
         }
-      }
+      });
+      
+      const claimResults = await Promise.all(claimPromises);
+      claims.push(...claimResults.flat());
       
       return claims;
     } catch (error) {
