@@ -209,7 +209,8 @@ export const Claims = () => {
     }
 
     // Otherwise, open/update the slideout with the new resource
-    setNavigationHistory([clickedResource]);
+    // Clear navigation history when opening from table (not from another resource)
+    setNavigationHistory([]);
     setSelectedResource(clickedResource);
   };
 

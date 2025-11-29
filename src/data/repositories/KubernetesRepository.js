@@ -220,6 +220,17 @@ export class KubernetesRepository extends IKubernetesRepository {
         return response.body;
       }
     } catch (error) {
+      const statusCode = error.statusCode || error.code || error.response?.statusCode || error.body?.code;
+      if (statusCode === 404) {
+        throw new Error(`Resource not found: ${kind}/${name}${namespace ? ` in namespace ${namespace}` : ''}`);
+      }
+      if (error.message && (error.message.includes('404') || error.message.includes('NotFound') || error.message.includes('does not exist') || error.message.includes('not found'))) {
+        throw new Error(`Resource not found: ${kind}/${name}${namespace ? ` in namespace ${namespace}` : ''}`);
+      }
+      const errorBody = error.body || error.response?.body || {};
+      if (errorBody.code === 404 || errorBody.reason === 'NotFound') {
+        throw new Error(`Resource not found: ${kind}/${name}${namespace ? ` in namespace ${namespace}` : ''}`);
+      }
       throw new Error(`Failed to get resource: ${error.message}`);
     }
   }
@@ -277,6 +288,118 @@ export class KubernetesRepository extends IKubernetesRepository {
       return resources;
     } catch (error) {
       throw new Error(`Failed to get Crossplane resources: ${error.message}`);
+    }
+  }
+
+  async getEvents(kind, name, namespace = null, context = null) {
+    if (context && this.kubeConfig) {
+      const currentContext = this.kubeConfig.getCurrentContext();
+      if (currentContext !== context) {
+        this.kubeConfig.setCurrentContext(context);
+        this.initialized = false;
+      }
+    }
+    await this.ensureInitialized();
+    try {
+      // Events are always namespaced, so we need a namespace
+      // If the resource is cluster-scoped, we can't get events for it
+      if (!namespace) {
+        return [];
+      }
+
+      // Build field selector to filter events by involvedObject
+      // Include namespace in the selector to ensure we match correctly
+      const fieldSelector = `involvedObject.kind=${kind},involvedObject.name=${name},involvedObject.namespace=${namespace}`;
+      
+      console.log('[KubernetesRepository] Fetching events with:', { kind, name, namespace, fieldSelector });
+      
+      let response;
+      try {
+        response = await this.coreApi.listNamespacedEvent(
+          namespace,
+          undefined, // pretty
+          undefined, // allowWatchBookmarks
+          undefined, // _continue
+          fieldSelector, // fieldSelector
+          undefined, // labelSelector
+          undefined, // limit
+          undefined, // resourceVersion
+          undefined, // resourceVersionMatch
+          undefined, // timeoutSeconds
+          undefined // watch
+        );
+        console.log('[KubernetesRepository] Events API response:', response.body.items?.length || 0, 'events');
+      } catch (fieldSelectorError) {
+        // If field selector fails, try without namespace in selector (some clusters might not support it)
+        console.warn('[KubernetesRepository] Field selector with namespace failed, trying without:', fieldSelectorError.message);
+        const fallbackSelector = `involvedObject.kind=${kind},involvedObject.name=${name}`;
+        response = await this.coreApi.listNamespacedEvent(
+          namespace,
+          undefined, // pretty
+          undefined, // allowWatchBookmarks
+          undefined, // _continue
+          fallbackSelector, // fieldSelector
+          undefined, // labelSelector
+          undefined, // limit
+          undefined, // resourceVersion
+          undefined, // resourceVersionMatch
+          undefined, // timeoutSeconds
+          undefined // watch
+        );
+        console.log('[KubernetesRepository] Fallback events API response:', response.body.items?.length || 0, 'events');
+      }
+
+      // Get all events and filter manually to ensure we match correctly
+      // This handles cases where field selector might not work perfectly
+      let allEvents = response.body.items || [];
+      
+      console.log('[KubernetesRepository] Total events before filtering:', allEvents.length);
+      
+      // Filter events to match the resource exactly
+      const filteredEvents = allEvents.filter(event => {
+        const involvedObject = event.involvedObject || {};
+        const matches = involvedObject.kind === kind && 
+               involvedObject.name === name &&
+               (involvedObject.namespace === namespace || !involvedObject.namespace);
+        if (!matches && involvedObject.kind === kind && involvedObject.name === name) {
+          console.log('[KubernetesRepository] Event filtered out due to namespace mismatch:', {
+            eventNamespace: involvedObject.namespace,
+            expectedNamespace: namespace
+          });
+        }
+        return matches;
+      });
+      
+      console.log('[KubernetesRepository] Events after filtering:', filteredEvents.length);
+
+      // Sort by lastTimestamp (most recent first)
+      const sortedEvents = [...filteredEvents].sort((a, b) => {
+        const timeA = a.lastTimestamp || a.eventTime || a.firstTimestamp || '';
+        const timeB = b.lastTimestamp || b.eventTime || b.firstTimestamp || '';
+        return timeB.localeCompare(timeA);
+      });
+      const events = sortedEvents;
+
+      return events.map(event => ({
+        type: event.type || 'Normal',
+        reason: event.reason || '',
+        message: event.message || '',
+        count: event.count || 1,
+        firstTimestamp: event.firstTimestamp || '',
+        lastTimestamp: event.lastTimestamp || event.eventTime || event.firstTimestamp || '',
+        involvedObject: {
+          kind: event.involvedObject?.kind || kind,
+          name: event.involvedObject?.name || name,
+          namespace: event.involvedObject?.namespace || namespace,
+        },
+        source: event.source || {},
+        reportingController: event.reportingController || '',
+        reportingInstance: event.reportingInstance || '',
+      }));
+    } catch (error) {
+      // If events can't be fetched, return empty array (don't break the UI)
+      console.warn('Failed to get events:', error.message);
+      return [];
     }
   }
 }
