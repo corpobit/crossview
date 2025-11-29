@@ -141,5 +141,22 @@ export class KubernetesApiRepository extends IKubernetesRepository {
       throw new Error(`Failed to get Crossplane resources: ${error.message}`);
     }
   }
+
+  async getEvents(kind, name, namespace = null, context = null) {
+    try {
+      const params = new URLSearchParams({ kind, name });
+      if (namespace) {
+        params.append('namespace', namespace);
+      }
+      if (context) {
+        params.append('context', context);
+      }
+      return await this.request(`/events?${params.toString()}`);
+    } catch (error) {
+      // Return empty array if events can't be fetched
+      console.warn('Failed to get events:', error.message);
+      return [];
+    }
+  }
 }
 
