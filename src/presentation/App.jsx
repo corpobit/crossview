@@ -4,7 +4,6 @@ import { Dashboard } from './pages/Dashboard.jsx';
 import { Login } from './pages/Login.jsx';
 import { Settings } from './pages/Settings.jsx';
 import { Providers } from './pages/Providers.jsx';
-import { ProviderConfigs } from './pages/ProviderConfigs.jsx';
 import { Compositions } from './pages/Compositions.jsx';
 import { CompositeResourceDefinitions } from './pages/CompositeResourceDefinitions.jsx';
 import { CompositeResources } from './pages/CompositeResources.jsx';
@@ -70,7 +69,6 @@ function App() {
               <Routes>
                 <Route index element={<Dashboard />} />
                 <Route path="providers" element={<Providers />} />
-                <Route path="provider-configs" element={<ProviderConfigs />} />
                 <Route path="compositions" element={<Compositions />} />
                 <Route path="xrds" element={<CompositeResourceDefinitions />} />
                 <Route path="composite-resources" element={<CompositeResources />} />
@@ -78,7 +76,7 @@ function App() {
                 <Route path="claims" element={<Claims />} />
                 <Route path="resources" element={<Resources />} />
                 <Route path="resources/:kind" element={<ResourceKind />} />
-                <Route path="settings" element={<Settings />} />
+                <Route path="settings/*" element={<Settings />} />
               </Routes>
             </Layout>
           </ProtectedRoute>

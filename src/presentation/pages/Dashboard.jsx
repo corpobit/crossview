@@ -5,6 +5,7 @@ import {
   HStack,
 } from '@chakra-ui/react';
 import { Container } from '../components/common/Container.jsx';
+import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
 import { useEffect, useState } from 'react';
 import { useAppContext } from '../providers/AppProvider.jsx';
 
@@ -37,25 +38,7 @@ export const Dashboard = () => {
   }, [selectedContext]);
 
   if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minH="400px">
-        <VStack spacing={4}>
-          <Box
-            as="div"
-            w="40px"
-            h="40px"
-            border="4px solid"
-            borderColor="gray.300"
-            borderTopColor="blue.500"
-            borderRadius="50%"
-            style={{
-              animation: 'spin 1s linear infinite',
-            }}
-          />
-          <Text>Loading dashboard data...</Text>
-        </VStack>
-      </Box>
-    );
+    return <LoadingSpinner message="Loading dashboard data..." />;
   }
 
   if (error) {

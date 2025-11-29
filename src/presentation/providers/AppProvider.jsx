@@ -4,6 +4,7 @@ import { KubernetesApiRepository } from '../../data/repositories/KubernetesApiRe
 import { GetDashboardDataUseCase } from '../../domain/usecases/GetDashboardDataUseCase.js';
 import { GetKubernetesContextsUseCase } from '../../domain/usecases/GetKubernetesContextsUseCase.js';
 import { AuthService } from '../../domain/services/AuthService.js';
+import { UserService } from '../../domain/services/UserService.js';
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 
 const AppContext = createContext(null);
@@ -21,6 +22,7 @@ export const AppProvider = ({ children }) => {
   const getDashboardDataUseCase = useMemo(() => new GetDashboardDataUseCase(kubernetesRepository), [kubernetesRepository]);
   const getKubernetesContextsUseCase = useMemo(() => new GetKubernetesContextsUseCase(kubernetesRepository), [kubernetesRepository]);
   const authService = useMemo(() => new AuthService(), []);
+  const userService = useMemo(() => new UserService(), []);
   const [selectedContext, setSelectedContext] = useState(null);
   const [contexts, setContexts] = useState([]);
   const [user, setUser] = useState(null);
@@ -116,6 +118,7 @@ export const AppProvider = ({ children }) => {
     getDashboardDataUseCase,
     getKubernetesContextsUseCase,
     authService,
+    userService,
     selectedContext,
     contexts,
     setSelectedContext: handleContextChange,
@@ -126,7 +129,7 @@ export const AppProvider = ({ children }) => {
     logout: handleLogout,
     colorMode,
     setColorMode: handleColorModeChange,
-  }), [kubernetesRepository, getDashboardDataUseCase, getKubernetesContextsUseCase, authService, selectedContext, contexts, user, authChecked, colorMode]);
+  }), [kubernetesRepository, getDashboardDataUseCase, getKubernetesContextsUseCase, authService, userService, selectedContext, contexts, user, authChecked, colorMode]);
 
   return (
     <ChakraProvider value={defaultSystem}>
