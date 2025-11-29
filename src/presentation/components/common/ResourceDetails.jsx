@@ -12,7 +12,125 @@ import { useEffect, useState, useMemo } from 'react';
 import { useAppContext } from '../../providers/AppProvider.jsx';
 import { ReactFlow, Background } from '@xyflow/react';
 import { DataTable } from './DataTable.jsx';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import '@xyflow/react/dist/style.css';
+
+// Custom stone theme for dark mode - warmer colors that complement stone background
+// Uses gray.800 (#1A202C) which is lighter than the main gray.900 background
+const stoneDarkTheme = {
+  ...oneDark,
+  'code[class*="language-"]': {
+    ...oneDark['code[class*="language-"]'],
+    background: '#1A202C',
+    backgroundColor: '#1A202C',
+    color: '#e8e6e3',
+  },
+  'pre[class*="language-"]': {
+    ...oneDark['pre[class*="language-"]'],
+    background: '#1A202C',
+    backgroundColor: '#1A202C',
+    color: '#e8e6e3',
+  },
+  'pre': {
+    background: '#1A202C',
+    backgroundColor: '#1A202C',
+  },
+  'code': {
+    background: '#1A202C',
+    backgroundColor: '#1A202C',
+  },
+  '.token.comment': {
+    color: '#8b8680',
+    fontStyle: 'italic',
+  },
+  '.token.prolog': {
+    color: '#8b8680',
+  },
+  '.token.doctype': {
+    color: '#8b8680',
+  },
+  '.token.cdata': {
+    color: '#8b8680',
+  },
+  '.token.punctuation': {
+    color: '#d4a574',
+  },
+  '.token.property': {
+    color: '#d4a574',
+  },
+  '.token.tag': {
+    color: '#d4a574',
+  },
+  '.token.boolean': {
+    color: '#d4a574',
+  },
+  '.token.number': {
+    color: '#d4a574',
+  },
+  '.token.constant': {
+    color: '#d4a574',
+  },
+  '.token.symbol': {
+    color: '#d4a574',
+  },
+  '.token.deleted': {
+    color: '#d4a574',
+  },
+  '.token.selector': {
+    color: '#a8a29e',
+  },
+  '.token.attr-name': {
+    color: '#a8a29e',
+  },
+  '.token.string': {
+    color: '#a8a29e',
+  },
+  '.token.char': {
+    color: '#a8a29e',
+  },
+  '.token.builtin': {
+    color: '#a8a29e',
+  },
+  '.token.inserted': {
+    color: '#a8a29e',
+  },
+  '.token.operator': {
+    color: '#e8e6e3',
+  },
+  '.token.entity': {
+    color: '#e8e6e3',
+    cursor: 'help',
+  },
+  '.token.url': {
+    color: '#e8e6e3',
+  },
+  '.token.atrule': {
+    color: '#d4a574',
+  },
+  '.token.attr-value': {
+    color: '#a8a29e',
+  },
+  '.token.keyword': {
+    color: '#d4a574',
+  },
+  '.token.function': {
+    color: '#d4a574',
+  },
+  '.token.class-name': {
+    color: '#d4a574',
+  },
+  '.token.regex': {
+    color: '#a8a29e',
+  },
+  '.token.important': {
+    color: '#d4a574',
+    fontWeight: 'bold',
+  },
+  '.token.variable': {
+    color: '#d4a574',
+  },
+};
 
 export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
   const { kubernetesRepository, selectedContext, colorMode } = useAppContext();
@@ -288,8 +406,7 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
   };
 
   const jsonToYaml = (obj, indent = 0) => {
-    const spaces = '  '.repeat(indent);
-    let yaml = '';
+    const indentStr = '  '.repeat(indent);
     
     if (obj === null || obj === undefined) {
       return 'null';
@@ -311,18 +428,22 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
       if (obj.length === 0) {
         return '[]';
       }
+      let yaml = '';
       obj.forEach((item) => {
-        const value = jsonToYaml(item, indent + 1);
         if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
-          const lines = value.split('\n');
-          yaml += `${spaces}- ${lines[0]}\n`;
-          lines.slice(1).forEach(line => {
-            if (line.trim()) {
-              yaml += `${spaces}  ${line}\n`;
-            }
-          });
+          // Array of objects - first property on same line as '-', rest indented
+          const itemYaml = jsonToYaml(item, 0);
+          const lines = itemYaml.split('\n').filter(line => line.trim());
+          if (lines.length > 0) {
+            yaml += `${indentStr}- ${lines[0]}\n`;
+            lines.slice(1).forEach(line => {
+              yaml += `${indentStr}  ${line}\n`;
+            });
+          }
         } else {
-          yaml += `${spaces}- ${value}\n`;
+          // Array of primitives or arrays
+          const itemYaml = jsonToYaml(item, 0);
+          yaml += `${indentStr}- ${itemYaml}\n`;
         }
       });
       return yaml.trimEnd();
@@ -333,41 +454,49 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
       if (keys.length === 0) {
         return '{}';
       }
+      let yaml = '';
       keys.forEach((key) => {
         const value = obj[key];
         if (value === null || value === undefined) {
-          yaml += `${spaces}${key}: null\n`;
+          yaml += `${indentStr}${key}: null\n`;
         } else if (Array.isArray(value)) {
           if (value.length === 0) {
-            yaml += `${spaces}${key}: []\n`;
+            yaml += `${indentStr}${key}: []\n`;
           } else {
-            yaml += `${spaces}${key}:\n`;
+            yaml += `${indentStr}${key}:\n`;
             value.forEach((item) => {
-              const itemYaml = jsonToYaml(item, indent + 1);
               if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
-                const lines = itemYaml.split('\n');
-                yaml += `${spaces}  - ${lines[0]}\n`;
-                lines.slice(1).forEach(line => {
-                  if (line.trim()) {
-                    yaml += `${spaces}    ${line}\n`;
-                  }
-                });
+                // Array of objects - first property on same line as '-', rest indented
+                // Generate YAML with base indentation, then adjust for array item format
+                const itemYaml = jsonToYaml(item, 0);
+                const lines = itemYaml.split('\n').filter(line => line.trim());
+                if (lines.length > 0) {
+                  // First line: '- key: value' at indent + 2
+                  yaml += `${indentStr}  - ${lines[0]}\n`;
+                  // Subsequent lines: '  key: value' at indent + 4
+                  lines.slice(1).forEach(line => {
+                    yaml += `${indentStr}    ${line}\n`;
+                  });
+                }
               } else {
-                yaml += `${spaces}  - ${itemYaml}\n`;
+                // Array of primitives
+                const itemYaml = jsonToYaml(item, 0);
+                yaml += `${indentStr}  - ${itemYaml}\n`;
               }
             });
           }
         } else if (typeof value === 'object') {
+          // Nested object
+          yaml += `${indentStr}${key}:\n`;
           const valueYaml = jsonToYaml(value, indent + 1);
-          yaml += `${spaces}${key}:\n`;
-          valueYaml.split('\n').forEach(line => {
-            if (line.trim()) {
-              yaml += `${spaces}  ${line}\n`;
-            }
+          const lines = valueYaml.split('\n').filter(line => line.trim());
+          lines.forEach(line => {
+            yaml += `${indentStr}  ${line}\n`;
           });
         } else {
-          const valueYaml = jsonToYaml(value, indent);
-          yaml += `${spaces}${key}: ${valueYaml}\n`;
+          // Primitive value
+          const valueYaml = jsonToYaml(value, 0);
+          yaml += `${indentStr}${key}: ${valueYaml}\n`;
         }
       });
       return yaml.trimEnd();
@@ -1111,20 +1240,32 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
                 p={4}
                 h="100%"
                 flex={1}
+                overflow="auto"
               >
                 <Box
-                  p={4}
+                  borderRadius="md"
+                  overflow="hidden"
+                  border="1px solid"
+                  borderColor="gray.200"
+                  _dark={{ borderColor: 'gray.700', bg: 'gray.800' }}
+                  bg="white"
                 >
-                  <Text
-                    fontSize="xs"
-                    fontFamily="mono"
-                    color="gray.700"
-                    _dark={{ color: 'gray.300' }}
-                    whiteSpace="pre-wrap"
-                    overflowX="auto"
+                  <SyntaxHighlighter
+                    language="yaml"
+                    style={colorMode === 'dark' ? stoneDarkTheme : oneLight}
+                    customStyle={{
+                      margin: 0,
+                      padding: '1rem',
+                      fontSize: '0.75rem',
+                      lineHeight: '1.5',
+                      background: colorMode === 'dark' ? '#1A202C' : '#ffffff',
+                      backgroundColor: colorMode === 'dark' ? '#1A202C' : '#ffffff',
+                    }}
+                    showLineNumbers
+                    wrapLines
                   >
                     {jsonToYaml(fullResource)}
-                  </Text>
+                  </SyntaxHighlighter>
                 </Box>
               </Box>
             )}
