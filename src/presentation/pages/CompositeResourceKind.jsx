@@ -133,7 +133,8 @@ export const CompositeResourceKind = () => {
       return;
     }
 
-    setNavigationHistory([clickedResource]);
+    // Clear navigation history when opening from table (not from another resource)
+    setNavigationHistory([]);
     setSelectedResource(clickedResource);
   };
 

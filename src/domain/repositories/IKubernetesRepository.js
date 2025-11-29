@@ -30,5 +30,9 @@ export class IKubernetesRepository {
   async isConnected(context = null) {
     throw new Error('isConnected must be implemented');
   }
+
+  async getEvents(kind, name, namespace = null, context = null) {
+    throw new Error('getEvents must be implemented');
+  }
 }
 

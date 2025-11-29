@@ -7,10 +7,11 @@ import {
   Badge,
   SimpleGrid,
 } from '@chakra-ui/react';
-import { FiArrowLeft, FiExternalLink, FiClock, FiTag, FiUser, FiLayers, FiZap, FiSettings, FiInfo } from 'react-icons/fi';
+import { FiArrowLeft, FiExternalLink, FiClock, FiTag, FiUser, FiLayers, FiZap, FiSettings, FiInfo, FiActivity, FiMinus } from 'react-icons/fi';
 import { useEffect, useState, useMemo } from 'react';
 import { useAppContext } from '../../providers/AppProvider.jsx';
 import { ReactFlow, Background } from '@xyflow/react';
+import { DataTable } from './DataTable.jsx';
 import '@xyflow/react/dist/style.css';
 
 export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
@@ -18,6 +19,8 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
   const [loading, setLoading] = useState(false);
   const [fullResource, setFullResource] = useState(resource);
   const [relatedResources, setRelatedResources] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
@@ -29,7 +32,9 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
         const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
         
         if (resource.apiVersion && resource.kind && resource.name) {
-          const full = await kubernetesRepository.getResource(
+          let full = resource; // Default to resource if fetch fails
+          try {
+            full = await kubernetesRepository.getResource(
             resource.apiVersion,
             resource.kind,
             resource.name,
@@ -37,6 +42,12 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
             contextName
           );
           setFullResource(full);
+          } catch (error) {
+            // If resource fetch fails, still try to load events with the resource we have
+            console.warn('[ResourceDetails] Failed to load full resource, using provided resource:', error.message);
+            setFullResource(resource);
+            full = resource;
+          }
           
           const related = [];
           
@@ -105,6 +116,49 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
           }
           
           setRelatedResources(related);
+
+          // Load events if resource has a namespace (events are namespaced)
+          // Use fullResource metadata if available, fallback to resource
+          // Check both full.metadata.namespace and resource.namespace
+          const resourceNamespace = full.metadata?.namespace || resource.namespace;
+          const resourceKind = full.kind || resource.kind;
+          const resourceName = full.metadata?.name || resource.name;
+          
+          console.log('[ResourceDetails] Checking events for:', {
+            kind: resourceKind,
+            name: resourceName,
+            namespace: resourceNamespace,
+            fullMetadataNamespace: full.metadata?.namespace,
+            resourceNamespace: resource.namespace,
+            hasFullMetadata: !!full.metadata
+          });
+          
+          if (resourceNamespace && resourceKind && resourceName) {
+            try {
+              setEventsLoading(true);
+              console.log('[ResourceDetails] Fetching events for:', { resourceKind, resourceName, resourceNamespace });
+              const eventsData = await kubernetesRepository.getEvents(
+                resourceKind,
+                resourceName,
+                resourceNamespace,
+                contextName
+              );
+              console.log('[ResourceDetails] Received events:', eventsData.length);
+              setEvents(eventsData);
+            } catch (error) {
+              console.warn('[ResourceDetails] Failed to load events:', error);
+              setEvents([]);
+            } finally {
+              setEventsLoading(false);
+            }
+          } else {
+            console.log('[ResourceDetails] Skipping events - missing required fields:', {
+              namespace: resourceNamespace,
+              kind: resourceKind,
+              name: resourceName
+            });
+            setEvents([]);
+          }
         }
       } catch (error) {
         console.error('Error loading full resource:', error);
@@ -409,26 +463,38 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
         p={4}
         pt={6}
         flexShrink={0}
+        position="relative"
       >
-        <HStack spacing={3} mb={3}>
-          {onBack && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={onBack}
-              leftIcon={<FiArrowLeft />}
-            >
-              Back
-            </Button>
-          )}
+        <Button
+          size="sm"
+          variant="ghost"
+          position="absolute"
+          top={2}
+          right={2}
+          onClick={onClose}
+          aria-label="Minimize"
+          minW="auto"
+          w="32px"
+          h="32px"
+          p={0}
+        >
+          <FiMinus />
+        </Button>
+        {onBack && (
           <Button
             size="sm"
             variant="ghost"
-            onClick={onClose}
+            onClick={onBack}
+            aria-label="Back"
+            minW="auto"
+            w="32px"
+            h="32px"
+            p={0}
+            mb={3}
           >
-            Close
+            <FiArrowLeft />
           </Button>
-        </HStack>
+        )}
         <HStack spacing={2} align="center">
           <Text fontSize="lg" fontWeight="bold" color="gray.700" _dark={{ color: 'gray.300' }}>
             {resource.kind || 'Resource'}
@@ -502,6 +568,25 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
                   _hover={{ bg: 'gray.100', _dark: { bg: 'gray.700' } }}
                 >
                   Relations
+                </Button>
+              )}
+              {(fullResource.metadata?.namespace || resource.namespace) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  borderRadius="none"
+                  borderBottom="2px solid"
+                  borderBottomColor={activeTab === 'events' ? 'blue.500' : 'transparent'}
+                  color={activeTab === 'events' ? 'blue.600' : 'gray.600'}
+                  _dark={{
+                    color: activeTab === 'events' ? 'blue.400' : 'gray.400',
+                    borderBottomColor: activeTab === 'events' ? 'blue.400' : 'transparent',
+                  }}
+                  onClick={() => setActiveTab('events')}
+                  _hover={{ bg: 'gray.100', _dark: { bg: 'gray.700' } }}
+                  leftIcon={<FiActivity />}
+                >
+                  Events
                 </Button>
               )}
             </HStack>
@@ -1041,6 +1126,80 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
                     {jsonToYaml(fullResource)}
                   </Text>
                 </Box>
+              </Box>
+            )}
+
+            {activeTab === 'events' && (
+              <Box p={4} flex={1} overflowY="auto">
+                {eventsLoading ? (
+                  <Box display="flex" justifyContent="center" alignItems="center" minH="200px">
+                    <Text color="gray.700" _dark={{ color: 'gray.300' }}>Loading events...</Text>
+                  </Box>
+                ) : events.length === 0 ? (
+                  <Box
+                    p={6}
+                    textAlign="center"
+                    bg="gray.50"
+                    _dark={{ bg: 'gray.800' }}
+                    borderRadius="md"
+                  >
+                    <Text color="gray.600" _dark={{ color: 'gray.400' }}>
+                      No events found for this resource
+                    </Text>
+                  </Box>
+                ) : (
+                  <DataTable
+                    data={events}
+                    columns={[
+                      {
+                        header: 'Type',
+                        accessor: 'type',
+                        minWidth: '100px',
+                        render: (row) => (
+                          <Badge
+                            colorScheme={row.type === 'Normal' ? 'green' : 'red'}
+                            fontSize="xs"
+                          >
+                            {row.type}
+                          </Badge>
+                        ),
+                      },
+                      {
+                        header: 'Reason',
+                        accessor: 'reason',
+                        minWidth: '150px',
+                      },
+                      {
+                        header: 'Message',
+                        accessor: 'message',
+                        minWidth: '300px',
+                      },
+                      {
+                        header: 'Count',
+                        accessor: 'count',
+                        minWidth: '80px',
+                      },
+                      {
+                        header: 'Last Seen',
+                        accessor: 'lastTimestamp',
+                        minWidth: '150px',
+                        render: (row) => row.lastTimestamp 
+                          ? new Date(row.lastTimestamp).toLocaleString() 
+                          : '-',
+                      },
+                      {
+                        header: 'First Seen',
+                        accessor: 'firstTimestamp',
+                        minWidth: '150px',
+                        render: (row) => row.firstTimestamp 
+                          ? new Date(row.firstTimestamp).toLocaleString() 
+                          : '-',
+                      },
+                    ]}
+                    searchableFields={['type', 'reason', 'message']}
+                    itemsPerPage={20}
+                  />
+                )}
               </Box>
             )}
 
