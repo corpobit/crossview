@@ -137,7 +137,7 @@ export const DataTable = ({
   };
 
   return (
-    <Box display="flex" flexDirection="column" h="100%" minH={0}>
+    <Box display="flex" flexDirection="column" minH={0}>
       <HStack spacing={3} align="center" flexWrap="wrap" mb={4} flexShrink={0}>
         <Box position="relative" flex={1} minW="250px" maxW="400px">
           <Box
@@ -181,10 +181,8 @@ export const DataTable = ({
         bg="white"
         _dark={{ bg: 'gray.800' }}
         overflow="hidden"
-        flex={1}
         display="flex"
         flexDirection="column"
-        minH={0}
         css={{
           borderColor: 'rgba(0, 0, 0, 0.08) !important',
           '.dark &': {
@@ -192,7 +190,7 @@ export const DataTable = ({
           }
         }}
       >
-      <Box overflowX="auto" overflowY="auto" flex={1} minH={0}>
+      <Box overflowX="auto" overflowY="auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
         <Box 
           as="table" 
           w="100%" 
