@@ -7,7 +7,7 @@ import {
   Badge,
   SimpleGrid,
 } from '@chakra-ui/react';
-import { FiArrowLeft, FiExternalLink, FiClock, FiTag, FiUser, FiLayers, FiZap, FiSettings, FiInfo, FiActivity, FiMinus } from 'react-icons/fi';
+import { FiArrowLeft, FiExternalLink, FiClock, FiTag, FiUser, FiLayers, FiZap, FiSettings, FiInfo, FiActivity, FiMinus, FiCopy } from 'react-icons/fi';
 import { useEffect, useState, useMemo } from 'react';
 import { useAppContext } from '../../providers/AppProvider.jsx';
 import { ReactFlow, Background } from '@xyflow/react';
@@ -16,7 +16,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import '@xyflow/react/dist/style.css';
 
-// Custom light theme for YAML - neutral gray colors
+// Custom light theme for YAML - white background
 const customLightTheme = {
   ...oneLight,
   'code[class*="language-"]': {
@@ -81,29 +81,28 @@ const customLightTheme = {
   },
 };
 
-// Custom dark theme for YAML - neutral gray colors matching app theme
-// Uses gray.800 (#1A202C) to match the app's dark mode background
+// Custom dark theme for YAML - same color as related resources container
 const stoneDarkTheme = {
   ...oneDark,
   'code[class*="language-"]': {
     ...oneDark['code[class*="language-"]'],
-    background: '#1A202C',
-    backgroundColor: '#1A202C',
+    background: '#27272A',
+    backgroundColor: '#27272A',
     color: '#e2e8f0',
   },
   'pre[class*="language-"]': {
     ...oneDark['pre[class*="language-"]'],
-    background: '#1A202C',
-    backgroundColor: '#1A202C',
+    background: '#27272A',
+    backgroundColor: '#27272A',
     color: '#e2e8f0',
   },
   'pre': {
-    background: '#1A202C',
-    backgroundColor: '#1A202C',
+    background: '#27272A',
+    backgroundColor: '#27272A',
   },
   'code': {
-    background: '#1A202C',
-    backgroundColor: '#1A202C',
+    background: '#27272A',
+    backgroundColor: '#27272A',
   },
   '.token.comment': {
     color: '#718096',
@@ -205,6 +204,7 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
   const [events, setEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const loadFullResource = async () => {
@@ -1401,10 +1401,49 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
                   borderRadius="md"
                   overflow="hidden"
                   border="1px solid"
-                  borderColor="gray.200"
-                  _dark={{ borderColor: 'gray.700', bg: 'gray.800' }}
-                  bg="white"
+                  position="relative"
+                  css={{
+                    borderColor: 'rgba(0, 0, 0, 0.08)',
+                    backgroundColor: '#ffffff',
+                    '.dark &': {
+                      borderColor: 'rgba(255, 255, 255, 0.1)',
+                      backgroundColor: '#27272A',
+                    }
+                  }}
                 >
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    position="absolute"
+                    top={2}
+                    right={2}
+                    zIndex={10}
+                    onClick={async () => {
+                      try {
+                        const yamlContent = jsonToYaml(fullResource);
+                        await navigator.clipboard.writeText(yamlContent);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      } catch (err) {
+                        console.error('Failed to copy:', err);
+                      }
+                    }}
+                    aria-label="Copy YAML"
+                    minW="auto"
+                    h="32px"
+                    px={2}
+                    bg={colorMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}
+                    _hover={{
+                      bg: colorMode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+                    }}
+                    color={colorMode === 'dark' ? 'gray.300' : 'gray.700'}
+                  >
+                    {copied ? (
+                      <Text fontSize="xs" mr={1}>Copied!</Text>
+                    ) : (
+                      <FiCopy size={16} />
+                    )}
+                  </Button>
                   <SyntaxHighlighter
                     language="yaml"
                     style={colorMode === 'dark' ? stoneDarkTheme : customLightTheme}
@@ -1413,8 +1452,8 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
                       padding: '1rem',
                       fontSize: '0.75rem',
                       lineHeight: '1.5',
-                      background: colorMode === 'dark' ? '#1A202C' : '#ffffff',
-                      backgroundColor: colorMode === 'dark' ? '#1A202C' : '#ffffff',
+                      background: colorMode === 'dark' ? '#27272A' : '#ffffff',
+                      backgroundColor: colorMode === 'dark' ? '#27272A' : '#ffffff',
                     }}
                     showLineNumbers
                     wrapLines

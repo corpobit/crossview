@@ -2,8 +2,9 @@ import {
   Box,
   Text,
 } from '@chakra-ui/react';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { useAppContext } from '../providers/AppProvider.jsx';
+import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 
 // Lazy load widgets - each widget loads independently
 const ProvidersStatusWidget = lazy(() => import('../components/widgets/ProvidersStatusWidget.jsx').then(module => ({ default: module.ProvidersStatusWidget })));
@@ -27,6 +28,45 @@ const WidgetSuspense = ({ children }) => (
 
 export const Dashboard = () => {
   const { selectedContext } = useAppContext();
+  const [selectedResource, setSelectedResource] = useState(null);
+  const [navigationHistory, setNavigationHistory] = useState([]);
+
+  const handleResourceClick = (resource) => {
+    // If clicking the same resource that's already open, close the slideout
+    if (selectedResource && 
+        selectedResource.name === resource.name &&
+        selectedResource.kind === resource.kind &&
+        selectedResource.apiVersion === resource.apiVersion &&
+        selectedResource.namespace === resource.namespace) {
+      setSelectedResource(null);
+      setNavigationHistory([]);
+      return;
+    }
+
+    // Otherwise, open/update the slideout with the new resource
+    setNavigationHistory([]);
+    setSelectedResource(resource);
+  };
+
+  const handleNavigate = (resource) => {
+    setNavigationHistory(prev => [...prev, selectedResource]);
+    setSelectedResource(resource);
+  };
+
+  const handleBack = () => {
+    if (navigationHistory.length > 0) {
+      const previous = navigationHistory[navigationHistory.length - 1];
+      setNavigationHistory(prev => prev.slice(0, -1));
+      setSelectedResource(previous);
+    } else {
+      setSelectedResource(null);
+    }
+  };
+
+  const handleClose = () => {
+    setSelectedResource(null);
+    setNavigationHistory([]);
+  };
 
   if (!selectedContext) {
     return (
@@ -42,7 +82,7 @@ export const Dashboard = () => {
   }
 
   return (
-    <Box>
+    <Box position="relative">
       <Text fontSize="2xl" fontWeight="bold" mb={6}>
         Dashboard
       </Text>
@@ -83,9 +123,18 @@ export const Dashboard = () => {
         </WidgetSuspense>
         
         <WidgetSuspense>
-          <CompositeResourcesWidget />
+          <CompositeResourcesWidget onResourceClick={handleResourceClick} />
         </WidgetSuspense>
       </Box>
+
+      {selectedResource && (
+        <ResourceDetails
+          resource={selectedResource}
+          onClose={handleClose}
+          onNavigate={handleNavigate}
+          onBack={navigationHistory.length > 0 ? handleBack : undefined}
+        />
+      )}
     </Box>
   );
 };
