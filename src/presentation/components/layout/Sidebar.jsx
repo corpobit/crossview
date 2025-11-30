@@ -21,7 +21,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
   const sidebarRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, kubernetesRepository, selectedContext } = useAppContext();
+  const { user, logout, kubernetesRepository, selectedContext, colorMode } = useAppContext();
 
   useEffect(() => {
     const currentWidth = isCollapsed ? 60 : width;
@@ -249,18 +249,28 @@ export const Sidebar = ({ onToggle, onResize }) => {
               p={2}
               borderRadius="md"
               bg="transparent"
-              _hover={{ bg: 'gray.100', _dark: { bg: 'gray.700' } }}
               display="flex"
               alignItems="center"
               justifyContent="center"
               minW="40px"
               minH="40px"
               aria-label="Toggle sidebar"
+              transition="all 0.2s"
+              color="gray.600"
+              _dark={{ color: 'gray.300' }}
+              _hover={{ 
+                bg: 'gray.100', 
+                _dark: { 
+                  bg: 'gray.800',
+                  color: 'gray.200'
+                },
+                color: 'gray.700'
+              }}
             >
               {isCollapsed ? (
-                <FiChevronRight size={20} style={{ color: '#374151' }} />
+                <FiChevronRight size={20} />
               ) : (
-                <FiChevronLeft size={20} style={{ color: '#374151' }} />
+                <FiChevronLeft size={20} />
               )}
             </Box>
           </HStack>
@@ -297,8 +307,8 @@ export const Sidebar = ({ onToggle, onResize }) => {
                       borderRadius="md"
                       textAlign="left"
                       bg={isActive ? 'blue.50' : 'transparent'}
-                      _dark={{ bg: isActive ? 'blue.900' : 'transparent' }}
-                      _hover={{ bg: isActive ? 'blue.100' : 'gray.100', _dark: { bg: isActive ? 'blue.800' : 'gray.800' } }}
+                      _dark={{ bg: isActive ? '#27272A' : 'transparent' }}
+                      _hover={{ bg: isActive ? 'blue.100' : 'gray.100', _dark: { bg: isActive ? '#3f3f46' : 'gray.800' } }}
                       onClick={() => {
                         if (hasSubMenu) {
                           toggleMenu(item.id);
@@ -312,12 +322,19 @@ export const Sidebar = ({ onToggle, onResize }) => {
                       justifyContent="space-between"
                     >
                       <HStack spacing={3}>
-                        <Icon size={18} color={isActive ? '#2563eb' : '#6b7280'} />
+                        <Icon 
+                          size={18} 
+                          style={{ 
+                            color: isActive 
+                              ? (colorMode === 'dark' ? '#e4e4e7' : '#2563eb')
+                              : (colorMode === 'dark' ? '#d1d5db' : '#6b7280')
+                          }} 
+                        />
                         <Text
                           fontSize="sm"
                           fontWeight={isActive ? 'semibold' : 'normal'}
                           color={isActive ? 'blue.700' : 'gray.700'}
-                          _dark={{ color: isActive ? 'blue.200' : 'gray.300' }}
+                          _dark={{ color: isActive ? '#e4e4e7' : 'gray.300' }}
                         >
                           {item.label}
                         </Text>
@@ -364,8 +381,8 @@ export const Sidebar = ({ onToggle, onResize }) => {
                                 borderRadius="md"
                                 textAlign="left"
                                 bg={isSubActive ? 'blue.50' : 'transparent'}
-                                _dark={{ bg: isSubActive ? 'blue.900' : 'transparent' }}
-                                _hover={{ bg: isSubActive ? 'blue.100' : 'gray.100', _dark: { bg: isSubActive ? 'blue.800' : 'gray.800' } }}
+                                _dark={{ bg: isSubActive ? '#27272A' : 'transparent' }}
+                                _hover={{ bg: isSubActive ? 'blue.100' : 'gray.100', _dark: { bg: isSubActive ? '#3f3f46' : 'gray.800' } }}
                                 onClick={() => navigate(subItem.path)}
                                 transition="all 0.2s"
                               >
@@ -373,7 +390,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
                                   fontSize="sm"
                                   fontWeight={isSubActive ? 'semibold' : 'normal'}
                                   color={isSubActive ? 'blue.700' : 'gray.600'}
-                                  _dark={{ color: isSubActive ? 'blue.200' : 'gray.400' }}
+                                  _dark={{ color: isSubActive ? '#e4e4e7' : 'gray.400' }}
                                 >
                                   {subItem.label}
                                 </Text>
@@ -405,15 +422,17 @@ export const Sidebar = ({ onToggle, onResize }) => {
                     alignItems="center"
                     justifyContent="center"
                     bg={isActive ? 'blue.100' : 'transparent'}
-                    _dark={{ bg: isActive ? 'blue.900' : 'transparent' }}
-                    _hover={{ bg: isActive ? 'blue.200' : 'gray.100', _dark: { bg: isActive ? 'blue.800' : 'gray.700' } }}
+                    _dark={{ bg: isActive ? '#27272A' : 'transparent' }}
+                    _hover={{ bg: isActive ? 'blue.200' : 'gray.100', _dark: { bg: isActive ? '#3f3f46' : 'gray.700' } }}
                     aria-label={item.label}
                     transition="all 0.2s"
                   >
                     <Icon 
                       size={20} 
                       style={{ 
-                        color: isActive ? '#2563eb' : '#6b7280'
+                        color: isActive 
+                          ? (colorMode === 'dark' ? '#e4e4e7' : '#2563eb')
+                          : (colorMode === 'dark' ? '#d1d5db' : '#6b7280')
                       }} 
                     />
                   </Box>
