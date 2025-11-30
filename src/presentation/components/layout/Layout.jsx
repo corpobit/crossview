@@ -22,8 +22,10 @@ export const Layout = ({ children }) => {
         transition="margin-left 0.2s"
       >
         <Header sidebarWidth={sidebarWidth} />
-        <Box pt="64px" p={6} bg="gray.50" _dark={{ bg: 'gray.900' }} minH="calc(100vh - 64px)">
-          {children}
+        <Box pt="64px" px={6} pb={0} mb={0} bg="gray.50" _dark={{ bg: 'gray.900' }} minH="calc(100vh - 64px)">
+          <Box pt={6} pb={0} mb={0}>
+            {children}
+          </Box>
         </Box>
       </Box>
     </Box>
