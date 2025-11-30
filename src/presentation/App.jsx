@@ -11,6 +11,7 @@ import { Claims } from './pages/Claims.jsx';
 import { Resources } from './pages/Resources.jsx';
 import { ResourceKind } from './pages/ResourceKind.jsx';
 import { CompositeResourceKind } from './pages/CompositeResourceKind.jsx';
+import { Search } from './pages/Search.jsx';
 import { useAppContext } from './providers/AppProvider.jsx';
 import { Box, Text } from '@chakra-ui/react';
 
@@ -76,6 +77,7 @@ function App() {
                 <Route path="claims" element={<Claims />} />
                 <Route path="resources" element={<Resources />} />
                 <Route path="resources/:kind" element={<ResourceKind />} />
+                <Route path="search" element={<Search />} />
                 <Route path="settings/*" element={<Settings />} />
               </Routes>
             </Layout>

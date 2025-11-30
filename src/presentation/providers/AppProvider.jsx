@@ -31,6 +31,14 @@ export const AppProvider = ({ children }) => {
     const saved = localStorage.getItem('colorMode');
     return saved || 'light';
   });
+  const [savedSearches, setSavedSearches] = useState(() => {
+    try {
+      const saved = localStorage.getItem('savedSearches');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -113,6 +121,22 @@ export const AppProvider = ({ children }) => {
     }
   }, [colorMode]);
 
+  const handleSaveSearch = (searchQuery) => {
+    const updated = [...savedSearches, { ...searchQuery, id: Date.now() }];
+    setSavedSearches(updated);
+    localStorage.setItem('savedSearches', JSON.stringify(updated));
+  };
+
+  const handleLoadSearch = (searchQuery) => {
+    // This is handled by the Search component
+  };
+
+  const handleDeleteSearch = (searchId) => {
+    const updated = savedSearches.filter(s => s.id !== searchId);
+    setSavedSearches(updated);
+    localStorage.setItem('savedSearches', JSON.stringify(updated));
+  };
+
   const value = useMemo(() => ({
     kubernetesRepository,
     getDashboardDataUseCase,
@@ -129,7 +153,11 @@ export const AppProvider = ({ children }) => {
     logout: handleLogout,
     colorMode,
     setColorMode: handleColorModeChange,
-  }), [kubernetesRepository, getDashboardDataUseCase, getKubernetesContextsUseCase, authService, userService, selectedContext, contexts, user, authChecked, colorMode]);
+    savedSearches,
+    saveSearch: handleSaveSearch,
+    loadSearch: handleLoadSearch,
+    deleteSearch: handleDeleteSearch,
+  }), [kubernetesRepository, getDashboardDataUseCase, getKubernetesContextsUseCase, authService, userService, selectedContext, contexts, user, authChecked, colorMode, savedSearches]);
 
   return (
     <ChakraProvider value={defaultSystem}>
