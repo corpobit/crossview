@@ -3,6 +3,7 @@ import {
   HStack,
   Text,
 } from '@chakra-ui/react';
+import { SearchBar } from '../common/SearchBar.jsx';
 
 export const Header = ({ sidebarWidth }) => {
   return (
@@ -33,6 +34,7 @@ export const Header = ({ sidebarWidth }) => {
         <Text fontSize="lg" fontWeight="semibold" color="gray.800" _dark={{ color: 'gray.100' }}>
           Crossplane Dashboard
         </Text>
+        <SearchBar />
       </HStack>
     </Box>
   );

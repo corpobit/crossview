@@ -16,21 +16,86 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import '@xyflow/react/dist/style.css';
 
-// Custom stone theme for dark mode - warmer colors that complement stone background
-// Uses gray.800 (#1A202C) which is lighter than the main gray.900 background
+// Custom light theme for YAML - neutral gray colors
+const customLightTheme = {
+  ...oneLight,
+  'code[class*="language-"]': {
+    ...oneLight['code[class*="language-"]'],
+    background: '#ffffff',
+    backgroundColor: '#ffffff',
+    color: '#1a202c',
+  },
+  'pre[class*="language-"]': {
+    ...oneLight['pre[class*="language-"]'],
+    background: '#ffffff',
+    backgroundColor: '#ffffff',
+    color: '#1a202c',
+  },
+  'pre': {
+    background: '#ffffff',
+    backgroundColor: '#ffffff',
+  },
+  'code': {
+    background: '#ffffff',
+    backgroundColor: '#ffffff',
+  },
+  '.token.comment': {
+    color: '#718096',
+    fontStyle: 'italic',
+  },
+  '.token.punctuation': {
+    color: '#4a5568',
+  },
+  '.token.property': {
+    color: '#2d3748',
+  },
+  '.token.tag': {
+    color: '#2d3748',
+  },
+  '.token.boolean': {
+    color: '#805ad5',
+  },
+  '.token.number': {
+    color: '#805ad5',
+  },
+  '.token.string': {
+    color: '#38a169',
+  },
+  '.token.operator': {
+    color: '#4a5568',
+  },
+  '.token.keyword': {
+    color: '#2c5282',
+  },
+  '.token.function': {
+    color: '#2c5282',
+  },
+  '.token.class-name': {
+    color: '#2c5282',
+  },
+  '.token.attr-name': {
+    color: '#2d3748',
+  },
+  '.token.attr-value': {
+    color: '#38a169',
+  },
+};
+
+// Custom dark theme for YAML - neutral gray colors matching app theme
+// Uses gray.800 (#1A202C) to match the app's dark mode background
 const stoneDarkTheme = {
   ...oneDark,
   'code[class*="language-"]': {
     ...oneDark['code[class*="language-"]'],
     background: '#1A202C',
     backgroundColor: '#1A202C',
-    color: '#e8e6e3',
+    color: '#e2e8f0',
   },
   'pre[class*="language-"]': {
     ...oneDark['pre[class*="language-"]'],
     background: '#1A202C',
     backgroundColor: '#1A202C',
-    color: '#e8e6e3',
+    color: '#e2e8f0',
   },
   'pre': {
     background: '#1A202C',
@@ -41,94 +106,94 @@ const stoneDarkTheme = {
     backgroundColor: '#1A202C',
   },
   '.token.comment': {
-    color: '#8b8680',
+    color: '#718096',
     fontStyle: 'italic',
   },
   '.token.prolog': {
-    color: '#8b8680',
+    color: '#718096',
   },
   '.token.doctype': {
-    color: '#8b8680',
+    color: '#718096',
   },
   '.token.cdata': {
-    color: '#8b8680',
+    color: '#718096',
   },
   '.token.punctuation': {
-    color: '#d4a574',
+    color: '#cbd5e0',
   },
   '.token.property': {
-    color: '#d4a574',
+    color: '#cbd5e0',
   },
   '.token.tag': {
-    color: '#d4a574',
+    color: '#cbd5e0',
   },
   '.token.boolean': {
-    color: '#d4a574',
+    color: '#b794f4',
   },
   '.token.number': {
-    color: '#d4a574',
+    color: '#b794f4',
   },
   '.token.constant': {
-    color: '#d4a574',
+    color: '#b794f4',
   },
   '.token.symbol': {
-    color: '#d4a574',
+    color: '#b794f4',
   },
   '.token.deleted': {
-    color: '#d4a574',
+    color: '#cbd5e0',
   },
   '.token.selector': {
-    color: '#a8a29e',
+    color: '#9ae6b4',
   },
   '.token.attr-name': {
-    color: '#a8a29e',
+    color: '#cbd5e0',
   },
   '.token.string': {
-    color: '#a8a29e',
+    color: '#9ae6b4',
   },
   '.token.char': {
-    color: '#a8a29e',
+    color: '#9ae6b4',
   },
   '.token.builtin': {
-    color: '#a8a29e',
+    color: '#9ae6b4',
   },
   '.token.inserted': {
-    color: '#a8a29e',
+    color: '#9ae6b4',
   },
   '.token.operator': {
-    color: '#e8e6e3',
+    color: '#e2e8f0',
   },
   '.token.entity': {
-    color: '#e8e6e3',
+    color: '#e2e8f0',
     cursor: 'help',
   },
   '.token.url': {
-    color: '#e8e6e3',
+    color: '#e2e8f0',
   },
   '.token.atrule': {
-    color: '#d4a574',
+    color: '#90cdf4',
   },
   '.token.attr-value': {
-    color: '#a8a29e',
+    color: '#9ae6b4',
   },
   '.token.keyword': {
-    color: '#d4a574',
+    color: '#90cdf4',
   },
   '.token.function': {
-    color: '#d4a574',
+    color: '#90cdf4',
   },
   '.token.class-name': {
-    color: '#d4a574',
+    color: '#90cdf4',
   },
   '.token.regex': {
-    color: '#a8a29e',
+    color: '#9ae6b4',
   },
   '.token.important': {
-    color: '#d4a574',
+    color: '#90cdf4',
     fontWeight: 'bold',
   },
   '.token.variable': {
-    color: '#d4a574',
+    color: '#90cdf4',
   },
 };
 
@@ -436,9 +501,9 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
           const lines = itemYaml.split('\n').filter(line => line.trim());
           if (lines.length > 0) {
             yaml += `${indentStr}- ${lines[0]}\n`;
-            lines.slice(1).forEach(line => {
+          lines.slice(1).forEach(line => {
               yaml += `${indentStr}  ${line}\n`;
-            });
+          });
           }
         } else {
           // Array of primitives or arrays
@@ -474,9 +539,9 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
                   // First line: '- key: value' at indent + 2
                   yaml += `${indentStr}  - ${lines[0]}\n`;
                   // Subsequent lines: '  key: value' at indent + 4
-                  lines.slice(1).forEach(line => {
+                lines.slice(1).forEach(line => {
                     yaml += `${indentStr}    ${line}\n`;
-                  });
+                });
                 }
               } else {
                 // Array of primitives
@@ -681,6 +746,25 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
               >
                 YAML
               </Button>
+              {fullResource.status && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  borderRadius="none"
+                  borderBottom="2px solid"
+                  borderBottomColor={activeTab === 'status' ? 'blue.500' : 'transparent'}
+                  color={activeTab === 'status' ? 'blue.600' : 'gray.600'}
+                  _dark={{
+                    color: activeTab === 'status' ? 'blue.400' : 'gray.400',
+                    borderBottomColor: activeTab === 'status' ? 'blue.400' : 'transparent',
+                  }}
+                  onClick={() => setActiveTab('status')}
+                  _hover={{ bg: 'gray.100', _dark: { bg: 'gray.700' } }}
+                  leftIcon={<FiActivity />}
+                >
+                  Status
+                </Button>
+              )}
               {relatedResources.length > 0 && (
                 <Button
                   variant="ghost"
@@ -722,114 +806,148 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
 
             {/* Tab Content */}
             {activeTab === 'overview' && (
-              <Box p={4} flex={1}>
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+              <Box p={4} flex={1} overflowY="auto">
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
             {fullResource.metadata && (
-              <Box>
-                <HStack spacing={2} mb={3}>
-                  <Box color="gray.600" _dark={{ color: 'gray.400' }}>
-                    <FiTag />
+                    <Box
+                      p={5}
+                    >
+                      <HStack spacing={2} mb={4}>
+                        <Box color="blue.500" _dark={{ color: 'blue.400' }}>
+                          <FiTag size={18} />
                   </Box>
-                  <Text fontSize="md" fontWeight="bold" color="gray.700" _dark={{ color: 'gray.300' }}>Summary</Text>
+                        <Text fontSize="md" fontWeight="bold" color="gray.800" _dark={{ color: 'gray.100' }}>Summary</Text>
                 </HStack>
-                <Box
-                >
-                  <VStack align="stretch" spacing={3}>
+                <VStack align="stretch" spacing={4}>
                     {fullResource.metadata.name && (
-                      <Box>
-                        <Text fontSize="xs" fontWeight="semibold" color="gray.600" _dark={{ color: 'gray.400' }} mb={1}>
+                <Box
+                        p={3}
+                        bg="gray.50"
+                        _dark={{ bg: 'gray.700' }}
+                        borderRadius="md"
+                >
+                        <Text fontSize="xs" fontWeight="semibold" color="gray.500" _dark={{ color: 'gray.400' }} mb={1}>
                           Name
                         </Text>
-                        <Text fontSize="sm" fontWeight="medium" color="gray.700" _dark={{ color: 'gray.300' }}>{fullResource.metadata.name}</Text>
+                        <Text fontSize="sm" fontWeight="medium" color="gray.900" _dark={{ color: 'gray.100' }}>{fullResource.metadata.name}</Text>
                       </Box>
                     )}
                     {fullResource.metadata.namespace && (
-                      <Box>
-                        <Text fontSize="xs" fontWeight="semibold" color="gray.600" _dark={{ color: 'gray.400' }} mb={1}>
+                      <Box
+                        p={3}
+                        bg="gray.50"
+                        _dark={{ bg: 'gray.700' }}
+                        borderRadius="md"
+                      >
+                        <Text fontSize="xs" fontWeight="semibold" color="gray.500" _dark={{ color: 'gray.400' }} mb={1}>
                           Namespace
                         </Text>
-                        <Text fontSize="sm" color="gray.700" _dark={{ color: 'gray.300' }}>{fullResource.metadata.namespace}</Text>
+                        <Text fontSize="sm" color="gray.900" _dark={{ color: 'gray.100' }}>{fullResource.metadata.namespace}</Text>
                       </Box>
                     )}
                     {fullResource.metadata.uid && (
-                      <Box>
-                        <Text fontSize="xs" fontWeight="semibold" color="gray.600" _dark={{ color: 'gray.400' }} mb={1}>
+                      <Box
+                        p={3}
+                        bg="gray.50"
+                        _dark={{ bg: 'gray.700' }}
+                        borderRadius="md"
+                      >
+                        <Text fontSize="xs" fontWeight="semibold" color="gray.500" _dark={{ color: 'gray.400' }} mb={1}>
                           UID
                         </Text>
-                        <Text fontSize="xs" fontFamily="mono" color="gray.500" _dark={{ color: 'gray.500' }}>
+                        <Text fontSize="xs" fontFamily="mono" color="gray.600" _dark={{ color: 'gray.300' }}>
                           {fullResource.metadata.uid}
                         </Text>
                       </Box>
                     )}
                     {fullResource.metadata.creationTimestamp && (
-                      <Box>
-                        <HStack spacing={1} mb={1}>
-                          <Box color="gray.600" _dark={{ color: 'gray.400' }}>
-                            <FiClock size={12} />
+                      <Box
+                        p={3}
+                        bg="gray.50"
+                        _dark={{ bg: 'gray.700' }}
+                        borderRadius="md"
+                      >
+                        <HStack spacing={2} mb={1}>
+                          <Box color="blue.500" _dark={{ color: 'blue.400' }}>
+                            <FiClock size={14} />
                           </Box>
-                          <Text fontSize="xs" fontWeight="semibold" color="gray.600" _dark={{ color: 'gray.400' }}>
+                          <Text fontSize="xs" fontWeight="semibold" color="gray.500" _dark={{ color: 'gray.400' }}>
                             Created
                           </Text>
                         </HStack>
-                        <Text fontSize="sm" color="gray.700" _dark={{ color: 'gray.300' }}>
+                        <Text fontSize="sm" color="gray.900" _dark={{ color: 'gray.100' }}>
                           {new Date(fullResource.metadata.creationTimestamp).toLocaleString()}
                         </Text>
                       </Box>
                     )}
                     {fullResource.metadata.labels && Object.keys(fullResource.metadata.labels).length > 0 && (
                       <Box>
-                        <Text fontSize="xs" fontWeight="semibold" color="gray.600" _dark={{ color: 'gray.400' }} mb={2}>
+                        <Text fontSize="xs" fontWeight="semibold" color="gray.500" _dark={{ color: 'gray.400' }} mb={2}>
                           Labels
                         </Text>
+                        <Box
+                          p={3}
+                          bg="gray.50"
+                          _dark={{ bg: 'gray.700' }}
+                          borderRadius="md"
+                        >
                         <HStack spacing={2} flexWrap="wrap">
                           {Object.entries(fullResource.metadata.labels).map(([key, value]) => (
-                            <Badge key={key} fontSize="xs" colorScheme="blue">
+                              <Badge key={key} fontSize="xs" colorScheme="blue" px={2} py={1}>
                               {key}={value}
                             </Badge>
                           ))}
                         </HStack>
+                        </Box>
                       </Box>
                     )}
                     {fullResource.metadata.annotations && Object.keys(fullResource.metadata.annotations).length > 0 && (
                       <Box>
-                        <Text fontSize="xs" fontWeight="semibold" color="gray.600" _dark={{ color: 'gray.400' }} mb={2}>
+                        <Text fontSize="xs" fontWeight="semibold" color="gray.500" _dark={{ color: 'gray.400' }} mb={2}>
                           Annotations
                         </Text>
-                        <VStack align="stretch" spacing={1}>
+                        <Box
+                          p={3}
+                          bg="gray.50"
+                          _dark={{ bg: 'gray.700' }}
+                          borderRadius="md"
+                        >
+                          <VStack align="stretch" spacing={2}>
                           {Object.entries(fullResource.metadata.annotations).slice(0, 5).map(([key, value]) => (
-                            <Box key={key}>
-                              <Text fontSize="xs" fontWeight="medium" color="gray.700" _dark={{ color: 'gray.300' }}>
+                              <Box key={key} pb={2} borderBottom="1px solid" borderColor="gray.200" _dark={{ borderColor: 'gray.600' }} _last={{ borderBottom: 'none', pb: 0 }}>
+                                <Text fontSize="xs" fontWeight="medium" color="gray.700" _dark={{ color: 'gray.300' }} mb={1}>
                                 {key}
                               </Text>
-                              <Text fontSize="xs" color="gray.600" _dark={{ color: 'gray.400' }} isTruncated>
+                                <Text fontSize="xs" color="gray.600" _dark={{ color: 'gray.400' }} wordBreak="break-word">
                                 {String(value).length > 100 ? String(value).substring(0, 100) + '...' : String(value)}
                               </Text>
                             </Box>
                           ))}
                           {Object.keys(fullResource.metadata.annotations).length > 5 && (
-                            <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.500' }}>
+                              <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.500' }} pt={1}>
                               +{Object.keys(fullResource.metadata.annotations).length - 5} more
                             </Text>
                           )}
                         </VStack>
+                        </Box>
                       </Box>
                     )}
                   </VStack>
-                </Box>
               </Box>
             )}
 
             {/* Properties section for CompositeResourceDefinitions */}
             {fullResource.kind === 'CompositeResourceDefinition' && (
-              <Box>
-                <HStack spacing={2} mb={3}>
-                  <Box color="gray.600" _dark={{ color: 'gray.400' }}>
-                    <FiInfo />
-                  </Box>
-                  <Text fontSize="md" fontWeight="bold" color="gray.700" _dark={{ color: 'gray.300' }}>Properties</Text>
-                </HStack>
-                <Box
-                >
+                    <Box
+                      p={5}
+                    >
+                      <HStack spacing={2} mb={4}>
+                        <Box color="cyan.500" _dark={{ color: 'cyan.400' }}>
+                          <FiInfo size={18} />
+                        </Box>
+                        <Text fontSize="md" fontWeight="bold" color="gray.800" _dark={{ color: 'gray.100' }}>Properties</Text>
+                      </HStack>
+                      <Box>
                   <VStack align="stretch" spacing={3}>
                     {fullResource.metadata?.creationTimestamp && (
                       <Box>
@@ -1032,128 +1150,99 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
               </Box>
             )}
 
-            {fullResource.status && (
-              <Box>
-                <HStack spacing={2} mb={3}>
-                  <Box color="gray.600" _dark={{ color: 'gray.400' }}>
-                    <FiLayers />
-                  </Box>
-                  <Text fontSize="md" fontWeight="bold" color="gray.700" _dark={{ color: 'gray.300' }}>Status</Text>
-                </HStack>
+            {(() => {
+              const hasConfig = fullResource.spec && (
+                fullResource.spec.compositionRef ||
+                fullResource.spec.claimRef ||
+                fullResource.spec.resourceRef ||
+                fullResource.spec.writeConnectionSecretToRef ||
+                (fullResource.spec.resourceRefs && fullResource.spec.resourceRefs.length > 0)
+              );
+              
+              return hasConfig ? (
                 <Box
+                  p={5}
                 >
-                  {fullResource.status.conditions && fullResource.status.conditions.length > 0 && (
-                    <VStack align="stretch" spacing={2}>
-                      {fullResource.status.conditions.map((condition, idx) => {
-                        const isReady = condition.status === 'True';
-                        const isFalse = condition.status === 'False';
-                        return (
-                          <Box
-                            key={idx}
-                            p={3}
-                            bg={isReady ? 'green.50' : isFalse ? 'red.50' : 'yellow.50'}
-                            borderRadius="md"
-                            border="1px solid"
-                            borderColor={isReady ? 'green.200' : isFalse ? 'red.200' : 'yellow.200'}
-                            _dark={{
-                              bg: isReady ? 'green.900' : isFalse ? 'red.900' : 'yellow.900',
-                              borderColor: isReady ? 'green.700' : isFalse ? 'red.700' : 'yellow.700',
-                            }}
-                          >
-                            <HStack justify="space-between" mb={1}>
-                              <Text fontSize="sm" fontWeight="semibold" color={isReady ? 'green.700' : isFalse ? 'red.700' : 'yellow.700'} _dark={{ color: isReady ? 'green.300' : isFalse ? 'red.300' : 'yellow.300' }}>{condition.type}</Text>
-                              <Badge
-                                colorScheme={isReady ? 'green' : isFalse ? 'red' : 'yellow'}
-                                fontSize="xs"
-                              >
-                                {condition.status}
-                              </Badge>
-                            </HStack>
-                            {condition.reason && (
-                              <Text fontSize="xs" color="gray.600" _dark={{ color: 'gray.400' }} mb={1}>
-                                Reason: {condition.reason}
-                              </Text>
-                            )}
-                            {condition.message && (
-                              <Text fontSize="xs" color="gray.600" _dark={{ color: 'gray.400' }}>
-                                {condition.message}
-                              </Text>
-                            )}
-                            {condition.lastTransitionTime && (
-                              <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.500' }} mt={1}>
-                                {new Date(condition.lastTransitionTime).toLocaleString()}
-                              </Text>
-                            )}
-                          </Box>
-                        );
-                      })}
-                    </VStack>
-                  )}
-                  {(!fullResource.status.conditions || fullResource.status.conditions.length === 0) && (
-                    <Text fontSize="sm" color="gray.500" _dark={{ color: 'gray.400' }}>
-                      No status conditions available
-                    </Text>
-                  )}
-                </Box>
-              </Box>
-            )}
-
-            <Box>
-              <HStack spacing={2} mb={3}>
-                <Box color="gray.600" _dark={{ color: 'gray.400' }}>
-                  <FiSettings />
-                </Box>
-                <Text fontSize="md" fontWeight="bold" color="gray.700" _dark={{ color: 'gray.300' }}>Configuration</Text>
-              </HStack>
-              <Box>
-                {fullResource.spec && Object.keys(fullResource.spec).length > 0 ? (
-                  <VStack align="stretch" spacing={3}>
-                    {fullResource.spec.compositionRef && (
-                      <Box>
-                        <Text fontSize="xs" fontWeight="semibold" color="gray.600" _dark={{ color: 'gray.400' }} mb={1}>
+                  <HStack spacing={2} mb={4}>
+                    <Box color="purple.500" _dark={{ color: 'purple.400' }}>
+                      <FiSettings size={18} />
+                    </Box>
+                    <Text fontSize="md" fontWeight="bold" color="gray.800" _dark={{ color: 'gray.100' }}>Configuration</Text>
+                  </HStack>
+                  <Box>
+                    <VStack align="stretch" spacing={3}>
+                      {fullResource.spec.compositionRef && (
+                      <Box
+                        p={3}
+                        bg="gray.50"
+                        _dark={{ bg: 'gray.700' }}
+                        borderRadius="md"
+                      >
+                        <Text fontSize="xs" fontWeight="semibold" color="gray.500" _dark={{ color: 'gray.400' }} mb={1}>
                           Composition Reference
                         </Text>
-                        <Text fontSize="sm" color="gray.700" _dark={{ color: 'gray.300' }}>{fullResource.spec.compositionRef.name}</Text>
+                        <Text fontSize="sm" color="gray.900" _dark={{ color: 'gray.100' }}>{fullResource.spec.compositionRef.name}</Text>
                       </Box>
                     )}
                     {fullResource.spec.claimRef && (
-                      <Box>
-                        <Text fontSize="xs" fontWeight="semibold" color="gray.600" _dark={{ color: 'gray.400' }} mb={1}>
+                      <Box
+                        p={3}
+                        bg="gray.50"
+                        _dark={{ bg: 'gray.700' }}
+                        borderRadius="md"
+                      >
+                        <Text fontSize="xs" fontWeight="semibold" color="gray.500" _dark={{ color: 'gray.400' }} mb={1}>
                           Claim Reference
                         </Text>
-                        <Text fontSize="sm" color="gray.700" _dark={{ color: 'gray.300' }}>
+                        <Text fontSize="sm" color="gray.900" _dark={{ color: 'gray.100' }}>
                           {fullResource.spec.claimRef.namespace}/{fullResource.spec.claimRef.name}
                         </Text>
                       </Box>
                     )}
                     {fullResource.spec.resourceRef && (
-                      <Box>
-                        <Text fontSize="xs" fontWeight="semibold" color="gray.600" _dark={{ color: 'gray.400' }} mb={1}>
+                      <Box
+                        p={3}
+                        bg="gray.50"
+                        _dark={{ bg: 'gray.700' }}
+                        borderRadius="md"
+                      >
+                        <Text fontSize="xs" fontWeight="semibold" color="gray.500" _dark={{ color: 'gray.400' }} mb={1}>
                           Resource Reference
                         </Text>
-                        <Text fontSize="sm" color="gray.700" _dark={{ color: 'gray.300' }}>
+                        <Text fontSize="sm" color="gray.900" _dark={{ color: 'gray.100' }}>
                           {fullResource.spec.resourceRef.kind}/{fullResource.spec.resourceRef.name}
                         </Text>
                       </Box>
                     )}
                     {fullResource.spec.writeConnectionSecretToRef && (
-                      <Box>
-                        <Text fontSize="xs" fontWeight="semibold" color="gray.600" _dark={{ color: 'gray.400' }} mb={1}>
+                      <Box
+                        p={3}
+                        bg="gray.50"
+                        _dark={{ bg: 'gray.700' }}
+                        borderRadius="md"
+                      >
+                        <Text fontSize="xs" fontWeight="semibold" color="gray.500" _dark={{ color: 'gray.400' }} mb={1}>
                           Connection Secret
                         </Text>
-                        <Text fontSize="sm" color="gray.700" _dark={{ color: 'gray.300' }}>
+                        <Text fontSize="sm" color="gray.900" _dark={{ color: 'gray.100' }}>
                           {fullResource.spec.writeConnectionSecretToRef.namespace || 'default'}/{fullResource.spec.writeConnectionSecretToRef.name}
                         </Text>
                       </Box>
                     )}
                     {fullResource.spec.resourceRefs && fullResource.spec.resourceRefs.length > 0 && (
                       <Box>
-                        <Text fontSize="xs" fontWeight="semibold" color="gray.600" _dark={{ color: 'gray.400' }} mb={2}>
+                        <Text fontSize="xs" fontWeight="semibold" color="gray.500" _dark={{ color: 'gray.400' }} mb={2}>
                           Managed Resources ({fullResource.spec.resourceRefs.length})
                         </Text>
-                        <VStack align="stretch" spacing={1}>
+                        <Box
+                          p={3}
+                          bg="gray.50"
+                          _dark={{ bg: 'gray.700' }}
+                          borderRadius="md"
+                        >
+                          <VStack align="stretch" spacing={2}>
                           {fullResource.spec.resourceRefs.slice(0, 5).map((ref, idx) => (
-                            <Text key={idx} fontSize="xs" fontFamily="mono" color="gray.600" _dark={{ color: 'gray.400' }}>
+                              <Text key={idx} fontSize="xs" fontFamily="mono" color="gray.700" _dark={{ color: 'gray.300' }}>
                               {ref.kind}/{ref.name}
                             </Text>
                           ))}
@@ -1163,29 +1252,25 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
                             </Text>
                           )}
                         </VStack>
+                        </Box>
                       </Box>
                     )}
-                    {!fullResource.spec.compositionRef && !fullResource.spec.claimRef && !fullResource.spec.resourceRef && !fullResource.spec.writeConnectionSecretToRef && (!fullResource.spec.resourceRefs || fullResource.spec.resourceRefs.length === 0) && (
-                      <Text fontSize="sm" color="gray.500" _dark={{ color: 'gray.400' }}>
-                        No configuration details available
-                      </Text>
-                    )}
-                  </VStack>
-                ) : (
-                  <Text fontSize="sm" color="gray.500" _dark={{ color: 'gray.400' }}>
-                    No configuration details available
-                  </Text>
-                )}
-              </Box>
-            </Box>
+                    </VStack>
+                  </Box>
+                </Box>
+              ) : null;
+            })()}
 
             {relatedResources.length > 0 && (
-              <Box>
-                <HStack spacing={2} mb={3}>
-                  <Box color="gray.600" _dark={{ color: 'gray.400' }}>
-                    <FiLayers />
+                    <Box
+                      p={5}
+                      gridColumn={{ base: '1', md: '1 / -1' }}
+                    >
+                      <HStack spacing={2} mb={4}>
+                        <Box color="orange.500" _dark={{ color: 'orange.400' }}>
+                          <FiLayers size={18} />
                   </Box>
-                  <Text fontSize="md" fontWeight="bold" color="gray.700" _dark={{ color: 'gray.300' }}>Related Resources</Text>
+                        <Text fontSize="md" fontWeight="bold" color="gray.800" _dark={{ color: 'gray.100' }}>Related Resources</Text>
                 </HStack>
                 <VStack align="stretch" spacing={2}>
                   {relatedResources.map((related, idx) => (
@@ -1235,6 +1320,76 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
               </Box>
             )}
 
+            {activeTab === 'status' && (
+              <Box p={4} flex={1} overflowY="auto">
+                {fullResource.status && (
+                  <Box>
+                    {fullResource.status.conditions && fullResource.status.conditions.length > 0 ? (
+                      <VStack align="stretch" spacing={3}>
+                        {fullResource.status.conditions.map((condition, idx) => {
+                          const isReady = condition.status === 'True';
+                          const isFalse = condition.status === 'False';
+                          return (
+                            <Box
+                              key={idx}
+                              p={4}
+                              bg={isReady ? 'green.50' : isFalse ? 'red.50' : 'yellow.50'}
+                              borderRadius="md"
+                              border="1px solid"
+                              borderColor={isReady ? 'green.200' : isFalse ? 'red.200' : 'yellow.200'}
+                              _dark={{
+                                bg: isReady ? 'green.900' : isFalse ? 'red.900' : 'yellow.900',
+                                borderColor: isReady ? 'green.700' : isFalse ? 'red.700' : 'yellow.700',
+                              }}
+                            >
+                              <HStack justify="space-between" mb={2}>
+                                <Text fontSize="sm" fontWeight="semibold" color={isReady ? 'green.700' : isFalse ? 'red.700' : 'yellow.700'} _dark={{ color: isReady ? 'green.300' : isFalse ? 'red.300' : 'yellow.300' }}>
+                                  {condition.type}
+                                </Text>
+                                <Badge
+                                  colorScheme={isReady ? 'green' : isFalse ? 'red' : 'yellow'}
+                                  fontSize="xs"
+                                >
+                                  {condition.status}
+                                </Badge>
+                              </HStack>
+                              {condition.reason && (
+                                <Text fontSize="xs" color="gray.600" _dark={{ color: 'gray.400' }} mb={1}>
+                                  Reason: {condition.reason}
+                                </Text>
+                              )}
+                              {condition.message && (
+                                <Text fontSize="xs" color="gray.600" _dark={{ color: 'gray.400' }}>
+                                  {condition.message}
+                                </Text>
+                              )}
+                              {condition.lastTransitionTime && (
+                                <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.500' }} mt={2}>
+                                  Last Transition: {new Date(condition.lastTransitionTime).toLocaleString()}
+                                </Text>
+                              )}
+                            </Box>
+                          );
+                        })}
+                      </VStack>
+                    ) : (
+                      <Box
+                        p={6}
+                        textAlign="center"
+                        bg="gray.50"
+                        _dark={{ bg: 'gray.800' }}
+                        borderRadius="md"
+                      >
+                        <Text color="gray.600" _dark={{ color: 'gray.400' }}>
+                          No status conditions available
+                        </Text>
+                      </Box>
+                    )}
+                  </Box>
+                )}
+              </Box>
+            )}
+
             {activeTab === 'yaml' && (
               <Box
                 p={4}
@@ -1252,7 +1407,7 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
                 >
                   <SyntaxHighlighter
                     language="yaml"
-                    style={colorMode === 'dark' ? stoneDarkTheme : oneLight}
+                    style={colorMode === 'dark' ? stoneDarkTheme : customLightTheme}
                     customStyle={{
                       margin: 0,
                       padding: '1rem',
