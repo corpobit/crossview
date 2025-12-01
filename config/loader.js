@@ -1,5 +1,5 @@
 import yaml from 'js-yaml';
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -9,27 +9,73 @@ const __dirname = dirname(__filename);
 let config = null;
 
 /**
- * Loads configuration from YAML file
+ * Gets configuration from environment variables with fallback to YAML file
+ * Environment variables take precedence over YAML config
  * @param {string} configPath - Optional path to config file. Defaults to config/config.yaml
  * @returns {object} Configuration object
  */
 export const loadConfig = (configPath = null) => {
   if (config) {
-    console.log('Using cached config');
     return config;
   }
 
+  let fileConfig = {};
+  
   try {
     const configFilePath = configPath || join(__dirname, 'config.yaml');
-    console.log('Loading config from:', configFilePath);
-    const fileContents = readFileSync(configFilePath, 'utf8');
-    config = yaml.load(fileContents);
-    console.log('Loaded config database section:', JSON.stringify(config.database, null, 2));
-    return config;
+    if (existsSync(configFilePath)) {
+      console.log('Loading config from:', configFilePath);
+      const fileContents = readFileSync(configFilePath, 'utf8');
+      fileConfig = yaml.load(fileContents) || {};
+    }
   } catch (error) {
-    console.error('Failed to load configuration:', error);
-    throw error;
+    if (error.code !== 'ENOENT') {
+      console.error('Failed to load configuration file:', error);
+    }
   }
+
+  config = {
+    database: {
+      host: process.env.DB_HOST || fileConfig.database?.host || 'localhost',
+      port: parseInt(process.env.DB_PORT || fileConfig.database?.port || '5432', 10),
+      database: process.env.DB_NAME || fileConfig.database?.database || 'crossview',
+      username: process.env.DB_USER || fileConfig.database?.username || 'postgres',
+      password: process.env.DB_PASSWORD || fileConfig.database?.password || 'postgres',
+    },
+    server: {
+      port: parseInt(process.env.PORT || process.env.SERVER_PORT || fileConfig.server?.port || '3001', 10),
+      cors: {
+        origin: process.env.CORS_ORIGIN || fileConfig.server?.cors?.origin || 'http://localhost:5173',
+        credentials: process.env.CORS_CREDENTIALS !== 'false' && (fileConfig.server?.cors?.credentials !== false),
+      },
+      session: {
+        secret: process.env.SESSION_SECRET || fileConfig.server?.session?.secret || 'crossview-secret-key-change-in-production',
+        cookie: {
+          secure: process.env.SESSION_SECURE === 'true' || fileConfig.server?.session?.cookie?.secure === true,
+          httpOnly: process.env.SESSION_HTTP_ONLY !== 'false' && (fileConfig.server?.session?.cookie?.httpOnly !== false),
+          maxAge: parseInt(process.env.SESSION_MAX_AGE || fileConfig.server?.session?.cookie?.maxAge || '86400000', 10),
+        },
+      },
+    },
+    vite: fileConfig.vite || getDefaultConfig().vite,
+  };
+
+  return config;
+};
+
+const getDefaultConfig = () => {
+  return {
+    vite: {
+      server: {
+        proxy: {
+          api: {
+            target: 'http://localhost:3001',
+            changeOrigin: true,
+          },
+        },
+      },
+    },
+  };
 };
 
 /**

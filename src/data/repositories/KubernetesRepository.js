@@ -15,13 +15,43 @@ export class KubernetesRepository extends IKubernetesRepository {
     this.initialized = false;
   }
 
+  getKubeConfigPath() {
+    if (process.env.KUBECONFIG) {
+      return process.env.KUBECONFIG;
+    }
+    if (process.env.KUBE_CONFIG_PATH) {
+      return process.env.KUBE_CONFIG_PATH;
+    }
+    const defaultPath = path.join(homedir(), '.kube', 'config');
+    return defaultPath;
+  }
+
+  loadKubeConfig() {
+    // First, try to load from cluster (when running in a Kubernetes pod)
+    // This uses the service account token at /var/run/secrets/kubernetes.io/serviceaccount/
+    try {
+      this.kubeConfig.loadFromCluster();
+      console.log('Loaded Kubernetes config from cluster (service account)');
+      return;
+    } catch (clusterError) {
+      // Not running in a pod, fall back to file-based config
+      console.log('Not running in cluster, trying file-based config...');
+    }
+    
+    // Fall back to file-based config (for local development or mounted kubeconfig)
+    const kubeConfigPath = this.getKubeConfigPath();
+    
+    if (!fs.existsSync(kubeConfigPath)) {
+      throw new Error(`Kubernetes config file not found at ${kubeConfigPath}. Set KUBECONFIG or KUBE_CONFIG_PATH environment variable, or ensure ~/.kube/config exists. When running in a Kubernetes pod, ensure service account has proper permissions.`);
+    }
+    
+    this.kubeConfig.loadFromFile(kubeConfigPath);
+    console.log('Loaded Kubernetes config from file:', kubeConfigPath);
+  }
+
   getContexts() {
     try {
-      const kubeConfigPath = path.join(homedir(), '.kube', 'config');
-      if (!fs.existsSync(kubeConfigPath)) {
-        return [];
-      }
-      this.kubeConfig.loadFromFile(kubeConfigPath);
+      this.loadKubeConfig();
       return this.kubeConfig.getContexts().map(ctx => ({
         name: ctx.name,
         cluster: ctx.cluster,
@@ -29,17 +59,16 @@ export class KubernetesRepository extends IKubernetesRepository {
         namespace: ctx.namespace || 'default',
       }));
     } catch (error) {
+      if (error.message.includes('not found')) {
+        return [];
+      }
       throw new Error(`Failed to get contexts: ${error.message}`);
     }
   }
 
   getCurrentContext() {
     try {
-      const kubeConfigPath = path.join(homedir(), '.kube', 'config');
-      if (!fs.existsSync(kubeConfigPath)) {
-        return null;
-      }
-      this.kubeConfig.loadFromFile(kubeConfigPath);
+      this.loadKubeConfig();
       return this.kubeConfig.getCurrentContext();
     } catch (error) {
       return null;
@@ -48,11 +77,7 @@ export class KubernetesRepository extends IKubernetesRepository {
 
   setContext(contextName) {
     try {
-      const kubeConfigPath = path.join(homedir(), '.kube', 'config');
-      if (!fs.existsSync(kubeConfigPath)) {
-        throw new Error('Kubernetes config file not found');
-      }
-      this.kubeConfig.loadFromFile(kubeConfigPath);
+      this.loadKubeConfig();
       this.kubeConfig.setCurrentContext(contextName);
       this.initialized = false;
     } catch (error) {
@@ -66,18 +91,13 @@ export class KubernetesRepository extends IKubernetesRepository {
     }
 
     try {
-      const kubeConfigPath = path.join(homedir(), '.kube', 'config');
-      
-      if (!fs.existsSync(kubeConfigPath)) {
-        throw new Error('Kubernetes config file not found at ~/.kube/config');
-      }
-
       if (!this.kubeConfig.getCurrentContext()) {
-        this.kubeConfig.loadFromFile(kubeConfigPath);
+        this.loadKubeConfig();
       }
       this.coreApi = this.kubeConfig.makeApiClient(CoreV1Api);
       this.customObjectsApi = this.kubeConfig.makeApiClient(CustomObjectsApi);
       this.initialized = true;
+      console.log('Kubernetes client initialized successfully');
     } catch (error) {
       throw new Error(`Failed to initialize Kubernetes client: ${error.message}`);
     }
