@@ -27,7 +27,7 @@ export class KubernetesRepository extends IKubernetesRepository {
   }
 
   loadKubeConfig() {
-    // Check if we're actually running in a Kubernetes pod by checking for service account files
+    // Check if we're running in a Kubernetes pod by checking for service account files
     const serviceAccountPath = '/var/run/secrets/kubernetes.io/serviceaccount';
     const hasServiceAccount = fs.existsSync(serviceAccountPath) && 
                               fs.existsSync(`${serviceAccountPath}/token`) &&
@@ -35,20 +35,16 @@ export class KubernetesRepository extends IKubernetesRepository {
     
     if (hasServiceAccount) {
       // Running in a pod - use service account
-      try {
-        this.kubeConfig.loadFromCluster();
-        console.log('Loaded Kubernetes config from cluster (service account)');
-        return;
-      } catch (clusterError) {
-        console.warn('Failed to load from cluster, falling back to file config:', clusterError.message);
-      }
+      this.kubeConfig.loadFromCluster();
+      console.log('Loaded Kubernetes config from cluster (service account)');
+      return;
     }
     
-    // Not in a pod or cluster load failed - use file-based config (local development)
+    // Running locally - use file-based config
     const kubeConfigPath = this.getKubeConfigPath();
     
     if (!fs.existsSync(kubeConfigPath)) {
-      throw new Error(`Kubernetes config file not found at ${kubeConfigPath}. Set KUBECONFIG or KUBE_CONFIG_PATH environment variable, or ensure ~/.kube/config exists. When running in a Kubernetes pod, ensure service account has proper permissions.`);
+      throw new Error(`Kubernetes config file not found at ${kubeConfigPath}. Set KUBECONFIG or KUBE_CONFIG_PATH environment variable, or ensure ~/.kube/config exists.`);
     }
     
     this.kubeConfig.loadFromFile(kubeConfigPath);
@@ -103,7 +99,6 @@ export class KubernetesRepository extends IKubernetesRepository {
       this.coreApi = this.kubeConfig.makeApiClient(CoreV1Api);
       this.customObjectsApi = this.kubeConfig.makeApiClient(CustomObjectsApi);
       this.initialized = true;
-      console.log('Kubernetes client initialized successfully');
     } catch (error) {
       throw new Error(`Failed to initialize Kubernetes client: ${error.message}`);
     }
