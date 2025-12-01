@@ -1,24 +1,39 @@
 import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
 import { KubernetesRepository } from '../src/data/repositories/KubernetesRepository.js';
-import { initDatabase } from './db/connection.js';
+import { initDatabase, getPool } from './db/connection.js';
 import { User } from './models/User.js';
 import { getConfig, updateConfig, resetConfig } from '../config/loader.js';
 import path from 'path';
 import { homedir } from 'os';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const serverConfig = getConfig('server');
 const port = process.env.PORT || serverConfig.port || 3001;
+const isProduction = process.env.NODE_ENV === 'production';
+
+const PgSession = connectPgSimple(session);
 
 app.use(cors({
-  origin: serverConfig.cors?.origin || 'http://localhost:5173',
+  origin: isProduction ? undefined : (serverConfig.cors?.origin || 'http://localhost:5173'),
   credentials: serverConfig.cors?.credentials !== false,
 }));
 app.use(express.json());
+
 app.use(session({
+  store: new PgSession({
+    pool: getPool(),
+    tableName: 'session',
+    createTableIfMissing: true,
+  }),
   secret: process.env.SESSION_SECRET || serverConfig.session?.secret || 'crossview-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
@@ -613,8 +628,34 @@ app.get('/api/events', requireAuth, async (req, res) => {
 const startServer = async () => {
   try {
     await initDatabase();
+    
+    if (isProduction) {
+      const distPath = path.join(__dirname, '..', 'dist');
+      if (fs.existsSync(distPath)) {
+        app.use(express.static(distPath));
+        app.get('*', (req, res) => {
+          if (!req.path.startsWith('/api')) {
+            res.sendFile(path.join(distPath, 'index.html'));
+          } else {
+            res.status(404).json({ error: 'Not found' });
+          }
+        });
+        console.log('Serving frontend from:', distPath);
+      } else {
+        console.warn('Frontend dist folder not found. API-only mode.');
+      }
+    }
+    
     app.listen(port, () => {
-      console.log(`Backend API server running on http://localhost:${port}`);
+      console.log(`Server running on http://localhost:${port}`);
+      console.log('Session storage: PostgreSQL (cluster-ready)');
+      const kubeConfigPath = process.env.KUBECONFIG || process.env.KUBE_CONFIG_PATH || '~/.kube/config';
+      console.log(`Kubernetes config: ${kubeConfigPath}`);
+      if (isProduction) {
+        console.log('Mode: Production (serving frontend + API)');
+      } else {
+        console.log('Mode: Development (API only)');
+      }
     });
   } catch (error) {
     console.error('Failed to start server:', error);
