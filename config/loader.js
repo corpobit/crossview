@@ -2,6 +2,7 @@ import yaml from 'js-yaml';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import logger from '../server/utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,13 +25,13 @@ export const loadConfig = (configPath = null) => {
   try {
     const configFilePath = configPath || join(__dirname, 'config.yaml');
     if (existsSync(configFilePath)) {
-      console.log('Loading config from:', configFilePath);
+      logger.debug('Loading config from file', { path: configFilePath });
       const fileContents = readFileSync(configFilePath, 'utf8');
       fileConfig = yaml.load(fileContents) || {};
     }
   } catch (error) {
     if (error.code !== 'ENOENT') {
-      console.error('Failed to load configuration file:', error);
+      logger.error('Failed to load configuration file', { error: error.message, stack: error.stack, path: configPath });
     }
   }
 
@@ -87,7 +88,7 @@ export const getConfig = (section = null) => {
   const fullConfig = loadConfig();
   if (section) {
     const sectionConfig = fullConfig[section] || {};
-    console.log(`getConfig('${section}') returning:`, JSON.stringify(sectionConfig, null, 2));
+    logger.debug(`Config section retrieved: ${section}`, { section, hasData: Object.keys(sectionConfig).length > 0 });
     return sectionConfig;
   }
   return fullConfig;
