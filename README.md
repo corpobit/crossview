@@ -23,21 +23,64 @@ This project follows Clean Architecture principles with three main layers:
 
 ## Getting Started
 
+### Prerequisites
+
+- Node.js 20+
+- PostgreSQL database (port 8920 by default, or set via `DB_PORT` env var)
+- Kubernetes config file at `~/.kube/config` (or set `KUBECONFIG` env var)
+
 ### Install Dependencies
 
 ```bash
 npm install
 ```
 
+### Configuration
+
+Copy the example config file and update with your settings:
+
+```bash
+cp config/config.yaml.example config/config.yaml
+```
+
+Edit `config/config.yaml` with your database credentials:
+- Database port: `8920` (or your port)
+- Database password: `password` (or your password)
+
+Alternatively, use environment variables (they take precedence):
+```bash
+export DB_HOST=localhost
+export DB_PORT=8920
+export DB_NAME=crossview
+export DB_USER=postgres
+export DB_PASSWORD=password
+```
+
 ### Development
 
-Run the development server:
+**Option 1: Run both frontend and backend together (recommended)**
 
+```bash
+npm run dev:all
+```
+
+This starts:
+- Frontend dev server at `http://localhost:5173` (with hot reload)
+- Backend API server at `http://localhost:3001`
+
+**Option 2: Run separately**
+
+Terminal 1 - Frontend:
 ```bash
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173`
+Terminal 2 - Backend:
+```bash
+npm run dev:server
+```
+
+The app will be available at `http://localhost:5173` (frontend proxies `/api` requests to backend at `http://localhost:3001`)
 
 ### Build
 
@@ -47,17 +90,145 @@ Build for production:
 npm run build
 ```
 
+This creates a `dist/` folder with the compiled frontend.
+
+### Production Mode
+
+To run in production mode (serves both frontend and backend from one server):
+
+```bash
+NODE_ENV=production npm run build
+NODE_ENV=production npm start
+```
+
+The app will be available at `http://localhost:3001` (both frontend and API)
+
 ## Backend API
 
-The frontend expects a backend API at `/api` with the following endpoints:
+The backend API runs on port 3001 and provides the following endpoints:
 
 - `GET /api/health` - Health check and connection status
 - `GET /api/namespaces` - List all namespaces
 - `GET /api/resources?apiVersion=&kind=&namespace=` - List resources
 - `GET /api/resource?apiVersion=&kind=&name=&namespace=` - Get single resource
 - `GET /api/crossplane/resources?namespace=` - List Crossplane resources
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
+- `GET /api/auth/check` - Check authentication status
 
-The backend should use `KubernetesRepository` from `src/data/repositories/KubernetesRepository.js` to access Kubernetes clusters via `~/.kube/config` or service account tokens when deployed in Kubernetes.
+The backend uses `KubernetesRepository` from `src/data/repositories/KubernetesRepository.js` to access Kubernetes clusters:
+
+**When running in a Kubernetes pod:**
+- Automatically uses service account token (no config file needed)
+- Accesses the same cluster the pod is running in
+- Uses `/var/run/secrets/kubernetes.io/serviceaccount/`
+
+**When running locally or with mounted config:**
+- `~/.kube/config` (default)
+- `KUBECONFIG` environment variable
+- `KUBE_CONFIG_PATH` environment variable
+
+See `KUBERNETES_DEPLOYMENT.md` for deployment examples.
+
+## Docker
+
+### Build the Docker Image
+
+```bash
+docker build -t crossview:latest .
+```
+
+### Run with Environment Variables (Recommended)
+
+Environment variables take precedence over config files:
+
+```bash
+docker run -p 3001:3001 \
+  -e DB_HOST=host.docker.internal \
+  -e DB_PORT=8920 \
+  -e DB_NAME=crossview \
+  -e DB_USER=postgres \
+  -e DB_PASSWORD=password \
+  -e KUBECONFIG=/app/.kube/config \
+  -e SESSION_SECRET=your-secret-key-here \
+  -v ~/.kube/config:/app/.kube/config:ro \
+  crossview:latest
+```
+
+### Run with Config File
+
+Mount your config file as a volume:
+
+```bash
+docker run -p 3001:3001 \
+  -v $(pwd)/config/config.yaml:/app/config/config.yaml:ro \
+  -e KUBECONFIG=/app/.kube/config \
+  -v ~/.kube/config:/app/.kube/config:ro \
+  crossview:latest
+```
+
+### Run with Docker Compose
+
+Create a `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  crossview:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=crossview
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - KUBECONFIG=/app/.kube/config
+      - SESSION_SECRET=your-secret-key-here
+    volumes:
+      - ./config/config.yaml:/app/config/config.yaml:ro
+      - ~/.kube/config:/app/.kube/config:ro
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=crossview
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "8920:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+```
+
+Then run:
+```bash
+docker-compose up
+```
+
+### Configuration Priority
+
+The application loads configuration in this order (highest to lowest priority):
+1. **Environment variables** (e.g., `DB_HOST`, `DB_PORT`, `DB_PASSWORD`)
+2. **Config file** (`config/config.yaml` - mounted or included in image)
+3. **Default values** (fallback)
+
+### Required Environment Variables for Docker
+
+- `DB_HOST` - Database host (use `host.docker.internal` for local DB, or service name in Docker Compose)
+- `DB_PORT` - Database port (default: 5432)
+- `DB_NAME` - Database name
+- `DB_USER` - Database user
+- `DB_PASSWORD` - Database password
+- `KUBECONFIG` or `KUBE_CONFIG_PATH` - Path to Kubernetes config file inside container
+- `SESSION_SECRET` - Secret for session encryption (optional, has default)
 
 ## Tech Stack
 

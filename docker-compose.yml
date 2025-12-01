@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  crossview:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=crossview
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - KUBECONFIG=/app/.kube/config
+      - SESSION_SECRET=crossview-secret-key-change-in-production
+    volumes:
+      - ./config/config.yaml:/app/config/config.yaml:ro
+      - ~/.kube/config:/app/.kube/config:ro
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=crossview
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "8920:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
