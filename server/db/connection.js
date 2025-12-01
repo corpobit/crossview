@@ -1,5 +1,6 @@
 import pg from 'pg';
 import { getConfig } from '../../config/loader.js';
+import logger from '../utils/logger.js';
 
 const { Pool } = pg;
 
@@ -19,10 +20,10 @@ export const getPool = () => {
       });
 
       pool.on('error', (err) => {
-        console.error('Unexpected error on idle client', err);
+        logger.error('Unexpected error on idle database client', { error: err.message, stack: err.stack });
       });
     } catch (error) {
-      console.error('Failed to initialize database pool:', error);
+      logger.error('Failed to initialize database pool', { error: error.message, stack: error.stack });
       throw error;
     }
   }
@@ -57,9 +58,9 @@ export const initDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     `);
 
-    console.log('Database initialized successfully');
+    logger.info('Database initialized successfully');
   } catch (error) {
-    console.error('Error initializing database:', error);
+    logger.error('Error initializing database', { error: error.message, stack: error.stack });
     throw error;
   }
 };

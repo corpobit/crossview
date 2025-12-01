@@ -5,6 +5,7 @@ import { IKubernetesRepository } from '../../domain/repositories/IKubernetesRepo
 import * as fs from 'fs';
 import * as path from 'path';
 import { homedir } from 'os';
+import logger from '../../../server/utils/logger.js';
 
 export class KubernetesRepository extends IKubernetesRepository {
   constructor() {
@@ -36,7 +37,7 @@ export class KubernetesRepository extends IKubernetesRepository {
     if (hasServiceAccount) {
       // Running in a pod - use service account
       this.kubeConfig.loadFromCluster();
-      console.log('Loaded Kubernetes config from cluster (service account)');
+      logger.info('Loaded Kubernetes config from cluster (service account)');
       return;
     }
     
@@ -48,7 +49,7 @@ export class KubernetesRepository extends IKubernetesRepository {
     }
     
     this.kubeConfig.loadFromFile(kubeConfigPath);
-    console.log('Loaded Kubernetes config from file:', kubeConfigPath);
+    logger.info('Loaded Kubernetes config from file', { path: kubeConfigPath });
   }
 
   getContexts() {
@@ -357,7 +358,7 @@ export class KubernetesRepository extends IKubernetesRepository {
       // Include namespace in the selector to ensure we match correctly
       const fieldSelector = `involvedObject.kind=${kind},involvedObject.name=${name},involvedObject.namespace=${namespace}`;
       
-      console.log('[KubernetesRepository] Fetching events with:', { kind, name, namespace, fieldSelector });
+      logger.debug('Fetching Kubernetes events', { kind, name, namespace, fieldSelector });
       
       let response;
       try {
@@ -374,10 +375,15 @@ export class KubernetesRepository extends IKubernetesRepository {
           undefined, // timeoutSeconds
           undefined // watch
         );
-        console.log('[KubernetesRepository] Events API response:', response.body.items?.length || 0, 'events');
+        logger.debug('Events API response received', { kind, name, namespace, count: response.body.items?.length || 0 });
       } catch (fieldSelectorError) {
         // If field selector fails, try without namespace in selector (some clusters might not support it)
-        console.warn('[KubernetesRepository] Field selector with namespace failed, trying without:', fieldSelectorError.message);
+        logger.warn('Field selector with namespace failed, trying without', { 
+          error: fieldSelectorError.message, 
+          kind, 
+          name, 
+          namespace 
+        });
         const fallbackSelector = `involvedObject.kind=${kind},involvedObject.name=${name}`;
         response = await this.coreApi.listNamespacedEvent(
           namespace,
@@ -392,14 +398,14 @@ export class KubernetesRepository extends IKubernetesRepository {
           undefined, // timeoutSeconds
           undefined // watch
         );
-        console.log('[KubernetesRepository] Fallback events API response:', response.body.items?.length || 0, 'events');
+        logger.debug('Fallback events API response received', { kind, name, namespace, count: response.body.items?.length || 0 });
       }
 
       // Get all events and filter manually to ensure we match correctly
       // This handles cases where field selector might not work perfectly
       let allEvents = response.body.items || [];
       
-      console.log('[KubernetesRepository] Total events before filtering:', allEvents.length);
+      logger.debug('Total events before filtering', { kind, name, namespace, count: allEvents.length });
       
       // Filter events to match the resource exactly
       const filteredEvents = allEvents.filter(event => {
@@ -408,7 +414,9 @@ export class KubernetesRepository extends IKubernetesRepository {
                involvedObject.name === name &&
                (involvedObject.namespace === namespace || !involvedObject.namespace);
         if (!matches && involvedObject.kind === kind && involvedObject.name === name) {
-          console.log('[KubernetesRepository] Event filtered out due to namespace mismatch:', {
+          logger.debug('Event filtered out due to namespace mismatch', {
+            kind,
+            name,
             eventNamespace: involvedObject.namespace,
             expectedNamespace: namespace
           });
@@ -416,7 +424,7 @@ export class KubernetesRepository extends IKubernetesRepository {
         return matches;
       });
       
-      console.log('[KubernetesRepository] Events after filtering:', filteredEvents.length);
+      logger.debug('Events after filtering', { kind, name, namespace, count: filteredEvents.length });
 
       // Sort by lastTimestamp (most recent first)
       const sortedEvents = [...filteredEvents].sort((a, b) => {
@@ -444,7 +452,7 @@ export class KubernetesRepository extends IKubernetesRepository {
       }));
     } catch (error) {
       // If events can't be fetched, return empty array (don't break the UI)
-      console.warn('Failed to get events:', error.message);
+      logger.warn('Failed to get events', { error: error.message, stack: error.stack, kind, name, namespace });
       return [];
     }
   }
