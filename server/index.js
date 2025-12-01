@@ -481,12 +481,20 @@ app.get('/api/namespaces', requireAuth, async (req, res) => {
     if (!context) {
       return res.status(400).json({ error: 'Context parameter is required' });
     }
-    const kubeConfigPath = path.join(homedir(), '.kube', 'config');
-    if (!fs.existsSync(kubeConfigPath)) {
-      return res.status(500).json({ error: 'Kubeconfig file not found' });
+    // Try to load from cluster first (when running in a pod), fallback to file
+    try {
+      kubernetesRepository.kubeConfig.loadFromCluster();
+    } catch (clusterError) {
+      // Not in cluster, try file-based config
+      const kubeConfigPath = path.join(homedir(), '.kube', 'config');
+      if (!fs.existsSync(kubeConfigPath)) {
+        return res.status(500).json({ error: 'Kubeconfig file not found and not running in cluster' });
+      }
+      kubernetesRepository.kubeConfig.loadFromFile(kubeConfigPath);
     }
-    kubernetesRepository.kubeConfig.loadFromFile(kubeConfigPath);
-    kubernetesRepository.kubeConfig.setCurrentContext(context);
+    if (context) {
+      kubernetesRepository.kubeConfig.setCurrentContext(context);
+    }
     kubernetesRepository.initialized = false;
     kubernetesRepository.coreApi = null;
     kubernetesRepository.customObjectsApi = null;
@@ -506,12 +514,20 @@ app.get('/api/crossplane/resources', requireAuth, async (req, res) => {
     if (!context) {
       return res.status(400).json({ error: 'Context parameter is required' });
     }
-    const kubeConfigPath = path.join(homedir(), '.kube', 'config');
-    if (!fs.existsSync(kubeConfigPath)) {
-      return res.status(500).json({ error: 'Kubeconfig file not found' });
+    // Try to load from cluster first (when running in a pod), fallback to file
+    try {
+      kubernetesRepository.kubeConfig.loadFromCluster();
+    } catch (clusterError) {
+      // Not in cluster, try file-based config
+      const kubeConfigPath = path.join(homedir(), '.kube', 'config');
+      if (!fs.existsSync(kubeConfigPath)) {
+        return res.status(500).json({ error: 'Kubeconfig file not found and not running in cluster' });
+      }
+      kubernetesRepository.kubeConfig.loadFromFile(kubeConfigPath);
     }
-    kubernetesRepository.kubeConfig.loadFromFile(kubeConfigPath);
-    kubernetesRepository.kubeConfig.setCurrentContext(context);
+    if (context) {
+      kubernetesRepository.kubeConfig.setCurrentContext(context);
+    }
     kubernetesRepository.initialized = false;
     kubernetesRepository.coreApi = null;
     kubernetesRepository.customObjectsApi = null;
@@ -534,15 +550,26 @@ app.get('/api/resources', requireAuth, async (req, res) => {
   try {
     const { apiVersion, kind, namespace, context: contextParam, limit, continue: continueToken } = req.query;
     const context = contextParam;
-    if (!context) {
-      return res.status(400).json({ error: 'Context parameter is required' });
+    
+    // Try to load from cluster first (when running in a pod), fallback to file
+    let usingClusterConfig = false;
+    try {
+      kubernetesRepository.kubeConfig.loadFromCluster();
+      usingClusterConfig = true;
+      console.log('Using cluster service account for Kubernetes access');
+    } catch (clusterError) {
+      // Not in cluster, try file-based config
+      if (!context) {
+        return res.status(400).json({ error: 'Context parameter is required when not running in cluster' });
+      }
+      const kubeConfigPath = path.join(homedir(), '.kube', 'config');
+      if (!fs.existsSync(kubeConfigPath)) {
+        return res.status(500).json({ error: 'Kubeconfig file not found and not running in cluster' });
+      }
+      kubernetesRepository.kubeConfig.loadFromFile(kubeConfigPath);
+      kubernetesRepository.kubeConfig.setCurrentContext(context);
     }
-    const kubeConfigPath = path.join(homedir(), '.kube', 'config');
-    if (!fs.existsSync(kubeConfigPath)) {
-      return res.status(500).json({ error: 'Kubeconfig file not found' });
-    }
-    kubernetesRepository.kubeConfig.loadFromFile(kubeConfigPath);
-    kubernetesRepository.kubeConfig.setCurrentContext(context);
+    
     kubernetesRepository.initialized = false;
     kubernetesRepository.coreApi = null;
     kubernetesRepository.customObjectsApi = null;
@@ -580,12 +607,20 @@ app.get('/api/resource', requireAuth, async (req, res) => {
     if (!context) {
       return res.status(400).json({ error: 'Context parameter is required' });
     }
-    const kubeConfigPath = path.join(homedir(), '.kube', 'config');
-    if (!fs.existsSync(kubeConfigPath)) {
-      return res.status(500).json({ error: 'Kubeconfig file not found' });
+    // Try to load from cluster first (when running in a pod), fallback to file
+    try {
+      kubernetesRepository.kubeConfig.loadFromCluster();
+    } catch (clusterError) {
+      // Not in cluster, try file-based config
+      const kubeConfigPath = path.join(homedir(), '.kube', 'config');
+      if (!fs.existsSync(kubeConfigPath)) {
+        return res.status(500).json({ error: 'Kubeconfig file not found and not running in cluster' });
+      }
+      kubernetesRepository.kubeConfig.loadFromFile(kubeConfigPath);
     }
-    kubernetesRepository.kubeConfig.loadFromFile(kubeConfigPath);
-    kubernetesRepository.kubeConfig.setCurrentContext(context);
+    if (context) {
+      kubernetesRepository.kubeConfig.setCurrentContext(context);
+    }
     kubernetesRepository.initialized = false;
     kubernetesRepository.coreApi = null;
     kubernetesRepository.customObjectsApi = null;
@@ -612,12 +647,20 @@ app.get('/api/events', requireAuth, async (req, res) => {
     if (!kind || !name) {
       return res.status(400).json({ error: 'Kind and name parameters are required' });
     }
-    const kubeConfigPath = path.join(homedir(), '.kube', 'config');
-    if (!fs.existsSync(kubeConfigPath)) {
-      return res.status(500).json({ error: 'Kubeconfig file not found' });
+    // Try to load from cluster first (when running in a pod), fallback to file
+    try {
+      kubernetesRepository.kubeConfig.loadFromCluster();
+    } catch (clusterError) {
+      // Not in cluster, try file-based config
+      const kubeConfigPath = path.join(homedir(), '.kube', 'config');
+      if (!fs.existsSync(kubeConfigPath)) {
+        return res.status(500).json({ error: 'Kubeconfig file not found and not running in cluster' });
+      }
+      kubernetesRepository.kubeConfig.loadFromFile(kubeConfigPath);
     }
-    kubernetesRepository.kubeConfig.loadFromFile(kubeConfigPath);
-    kubernetesRepository.kubeConfig.setCurrentContext(context);
+    if (context) {
+      kubernetesRepository.kubeConfig.setCurrentContext(context);
+    }
     kubernetesRepository.initialized = false;
     kubernetesRepository.coreApi = null;
     kubernetesRepository.customObjectsApi = null;
