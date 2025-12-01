@@ -23,8 +23,8 @@ spec:
       serviceAccountName: crossview-sa
       containers:
       - name: crossview
-        image: crossview:latest
-        imagePullPolicy: Never
+        image: YOUR_DOCKERHUB_USERNAME/crossview:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 3001
           name: http
