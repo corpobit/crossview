@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crossview-config
+  namespace: crossview
+data:
+  NODE_ENV: "production"
+  PORT: "3001"
+  DB_HOST: "crossview-postgres"
+  DB_PORT: "5432"
+  DB_NAME: "crossview"
+  DB_USER: "postgres"
+  # DB_PASSWORD should be set via Secret
+  # SESSION_SECRET should be set via Secret
+  # KUBECONFIG is not needed - uses service account automatically
+
