@@ -6,11 +6,11 @@ import { KubernetesRepository } from '../src/data/repositories/KubernetesReposit
 import { initDatabase, getPool } from './db/connection.js';
 import { User } from './models/User.js';
 import { getConfig, updateConfig, resetConfig } from '../config/loader.js';
-import path from 'path';
+import path, { dirname } from 'path';
 import { homedir } from 'os';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import logger from './utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -21,6 +21,30 @@ const port = process.env.PORT || serverConfig.port || 3001;
 const isProduction = process.env.NODE_ENV === 'production';
 
 const PgSession = connectPgSimple(session);
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const logData = {
+      method: req.method,
+      url: req.url,
+      statusCode: res.statusCode,
+      duration: `${duration}ms`,
+      ip: req.ip || req.connection.remoteAddress,
+    };
+    
+    if (res.statusCode >= 500) {
+      logger.error('HTTP Request', logData);
+    } else if (res.statusCode >= 400) {
+      logger.warn('HTTP Request', logData);
+    } else {
+      logger.debug('HTTP Request', logData);
+    }
+  });
+  next();
+});
 
 app.use(cors({
   origin: isProduction ? undefined : (serverConfig.cors?.origin || 'http://localhost:5173'),
@@ -77,16 +101,18 @@ app.get('/api/config/database', async (req, res) => {
     } catch (dbError) {
       // Database connection might fail if config is wrong - that's okay during setup
       // We'll allow access to config in this case since user is likely setting up
-      console.warn('Could not check for existing users (database may not be configured yet):', dbError.message);
+      logger.warn('Could not check for existing users (database may not be configured yet)', { error: dbError.message });
     }
     
     // Reset config cache to ensure we get fresh data
     resetConfig();
     const dbConfig = getConfig('database');
-    console.log('=== DATABASE CONFIG DEBUG ===');
-    console.log('Full dbConfig object:', JSON.stringify(dbConfig, null, 2));
-    console.log('dbConfig.port value:', dbConfig.port);
-    console.log('dbConfig.port type:', typeof dbConfig.port);
+    logger.debug('Database config retrieved', {
+      host: dbConfig.host,
+      port: dbConfig.port,
+      database: dbConfig.database,
+      username: dbConfig.username,
+    });
     
     // Don't return password in response
     const response = {
@@ -96,11 +122,9 @@ app.get('/api/config/database', async (req, res) => {
       username: dbConfig.username ?? '',
       password: '', // Never return actual password
     };
-    console.log('Final response object:', JSON.stringify(response, null, 2));
-    console.log('=== END DEBUG ===');
     res.json(response);
   } catch (error) {
-    console.error('Error getting database config:', error);
+    logger.error('Error getting database config', { error: error.message, stack: error.stack });
     // Even on error, try to return what we can from config
     try {
       resetConfig();
@@ -145,9 +169,10 @@ app.post('/api/config/database', async (req, res) => {
     const { resetPool } = await import('./db/connection.js');
     resetPool();
     
+    logger.info('Database configuration updated successfully');
     res.json({ success: true, message: 'Database configuration updated' });
   } catch (error) {
-    console.error('Error updating database config:', error);
+    logger.error('Error updating database config', { error: error.message, stack: error.stack });
     res.status(500).json({ error: error.message });
   }
 });
@@ -180,7 +205,7 @@ app.get('/api/auth/check', async (req, res) => {
       hasUsers,
     });
   } catch (error) {
-    console.error('Error checking auth:', error);
+    logger.error('Error checking auth', { error: error.message, stack: error.stack });
     res.status(500).json({ error: error.message });
   }
 });
@@ -206,6 +231,8 @@ app.post('/api/auth/login', async (req, res) => {
     req.session.userId = user.id;
     req.session.userRole = user.role;
     
+    logger.info('User logged in successfully', { userId: user.id, username: user.username, role: user.role });
+    
     res.json({
       user: {
         id: user.id,
@@ -215,7 +242,7 @@ app.post('/api/auth/login', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error during login:', error);
+    logger.error('Error during login', { error: error.message, stack: error.stack, username: req.body.username });
     res.status(500).json({ error: error.message });
   }
 });
@@ -262,7 +289,7 @@ app.post('/api/auth/register', async (req, res) => {
           resetPool();
         }
       } catch (dbError) {
-        console.error('Error updating database config:', dbError);
+        logger.error('Error updating database config during registration', { error: dbError.message, stack: dbError.stack });
         return res.status(500).json({ error: `Failed to update database configuration: ${dbError.message}` });
       }
     }
@@ -282,6 +309,8 @@ app.post('/api/auth/register', async (req, res) => {
     req.session.userId = user.id;
     req.session.userRole = user.role;
     
+    logger.info('User registered successfully', { userId: user.id, username: user.username, email: user.email, role: user.role });
+    
     res.json({
       user: {
         id: user.id,
@@ -291,7 +320,7 @@ app.post('/api/auth/register', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error during registration:', error);
+    logger.error('Error during registration', { error: error.message, stack: error.stack, username: req.body.username, email: req.body.email });
     res.status(500).json({ error: error.message });
   }
 });
@@ -305,9 +334,10 @@ app.get('/api/users', requireAuth, async (req, res) => {
     }
 
     const users = await User.findAll();
+    logger.debug('Users retrieved', { count: users.length, userId: req.session.userId });
     res.json(users);
   } catch (error) {
-    console.error('Error getting users:', error);
+    logger.error('Error getting users', { error: error.message, stack: error.stack, userId: req.session.userId });
     res.status(500).json({ error: error.message });
   }
 });
@@ -340,6 +370,7 @@ app.post('/api/users', requireAuth, async (req, res) => {
     }
 
     const user = await User.create({ username, email, password, role });
+    logger.info('User created', { userId: user.id, username: user.username, role: user.role, createdBy: req.session.userId });
     res.json({
       id: user.id,
       username: user.username,
@@ -348,7 +379,7 @@ app.post('/api/users', requireAuth, async (req, res) => {
       created_at: user.created_at,
     });
   } catch (error) {
-    console.error('Error creating user:', error);
+    logger.error('Error creating user', { error: error.message, stack: error.stack, createdBy: req.session.userId });
     res.status(500).json({ error: error.message });
   }
 });
@@ -395,7 +426,7 @@ app.put('/api/users/:id', requireAuth, async (req, res) => {
       created_at: updatedUser.created_at,
     });
   } catch (error) {
-    console.error('Error updating user:', error);
+    logger.error('Error updating user', { error: error.message, stack: error.stack, userId: req.params.id, updatedBy: req.session.userId });
     res.status(500).json({ error: error.message });
   }
 });
@@ -410,9 +441,10 @@ app.get('/api/contexts', requireAuth, async (req, res) => {
       user: ctx.user,
       namespace: ctx.namespace || 'default',
     }));
+    logger.debug('Kubernetes contexts retrieved', { count: contexts.length });
     res.json(contexts);
   } catch (error) {
-    console.error('Error getting contexts:', error);
+    logger.error('Error getting contexts', { error: error.message, stack: error.stack });
     res.status(500).json({ error: error.message });
   }
 });
@@ -424,7 +456,7 @@ app.get('/api/contexts/current', requireAuth, async (req, res) => {
     const context = kubeConfig.getCurrentContext();
     res.json({ context });
   } catch (error) {
-    console.error('Error getting current context:', error);
+    logger.error('Error getting current context', { error: error.message, stack: error.stack });
     res.status(500).json({ error: error.message });
   }
 });
@@ -439,9 +471,10 @@ app.post('/api/contexts/current', requireAuth, async (req, res) => {
     kubernetesRepository.kubeConfig.setCurrentContext(context);
     kubernetesRepository.initialized = false;
     await kubernetesRepository.initialize();
+    logger.info('Kubernetes context changed', { context, userId: req.session.userId });
     res.json({ success: true, context });
   } catch (error) {
-    console.error('Error setting context:', error);
+    logger.error('Error setting context', { error: error.message, stack: error.stack, context });
     res.status(500).json({ error: error.message });
   }
 });
@@ -470,7 +503,7 @@ app.get('/api/health', async (req, res) => {
     // Simple health check - just return OK
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   } catch (error) {
-    console.error('Error checking health:', error);
+    logger.error('Error checking health', { error: error.message, stack: error.stack });
     res.status(500).json({ status: 'error', error: error.message });
   }
 });
@@ -491,9 +524,10 @@ app.get('/api/namespaces', requireAuth, async (req, res) => {
     kubernetesRepository.customObjectsApi = null;
     await kubernetesRepository.initialize();
     const namespaces = await kubernetesRepository.getNamespaces(context);
+    logger.debug('Namespaces retrieved', { context, count: namespaces.length });
     res.json(namespaces);
   } catch (error) {
-    console.error('Error getting namespaces:', error);
+    logger.error('Error getting namespaces', { error: error.message, stack: error.stack, context });
     res.status(500).json({ error: error.message });
   }
 });
@@ -522,8 +556,9 @@ app.get('/api/crossplane/resources', requireAuth, async (req, res) => {
       spec: r.spec,
       status: r.status,
     })));
+    logger.debug('Crossplane resources retrieved', { context, namespace, count: resources.length });
   } catch (error) {
-    console.error('Error getting Crossplane resources:', error);
+    logger.error('Error getting Crossplane resources', { error: error.message, stack: error.stack, context, namespace });
     res.status(500).json({ error: error.message });
   }
 });
@@ -571,9 +606,10 @@ app.get('/api/resources', requireAuth, async (req, res) => {
     });
   } catch (error) {
     if (error.message && (error.message.includes('404') || error.message.includes('NotFound') || error.message.includes('does not exist'))) {
+      logger.debug('Resource not found (404)', { apiVersion, kind, namespace, context });
       return res.json({ items: [], continueToken: null, remainingItemCount: null });
     }
-    console.error('Error getting resources:', error);
+    logger.error('Error getting resources', { error: error.message, stack: error.stack, apiVersion, kind, namespace, context });
     res.status(500).json({ error: error.message });
   }
 });
@@ -596,12 +632,14 @@ app.get('/api/resource', requireAuth, async (req, res) => {
     await kubernetesRepository.initialize();
     
     const resource = await kubernetesRepository.getResource(apiVersion, kind, name, namespace, context);
+    logger.debug('Resource retrieved', { apiVersion, kind, name, namespace, context });
     res.json(resource);
   } catch (error) {
     if (error.message && (error.message.includes('404') || error.message.includes('NotFound') || error.message.includes('does not exist'))) {
+      logger.debug('Resource not found (404)', { apiVersion, kind, name, namespace, context });
       return res.status(404).json({ error: 'Resource not found' });
     }
-    console.error('Error getting resource:', error);
+    logger.error('Error getting resource', { error: error.message, stack: error.stack, apiVersion, kind, name, namespace, context });
     res.status(500).json({ error: error.message });
   }
 });
@@ -627,9 +665,10 @@ app.get('/api/events', requireAuth, async (req, res) => {
     await kubernetesRepository.initialize();
     
     const events = await kubernetesRepository.getEvents(kind, name, namespace || null, context);
+    logger.debug('Events retrieved', { kind, name, namespace, context, count: events.length });
     res.json(events);
   } catch (error) {
-    console.error('Error getting events:', error);
+    logger.error('Error getting events', { error: error.message, stack: error.stack, kind, name, namespace, context });
     // Return empty array instead of error to not break the UI
     res.json([]);
   }
@@ -650,25 +689,23 @@ const startServer = async () => {
             res.status(404).json({ error: 'Not found' });
           }
         });
-        console.log('Serving frontend from:', distPath);
+        logger.info('Serving frontend from', { path: distPath });
       } else {
-        console.warn('Frontend dist folder not found. API-only mode.');
+        logger.warn('Frontend dist folder not found. API-only mode.');
       }
     }
     
     app.listen(port, () => {
-      console.log(`Server running on http://localhost:${port}`);
-      console.log('Session storage: PostgreSQL (cluster-ready)');
       const kubeConfigPath = process.env.KUBECONFIG || process.env.KUBE_CONFIG_PATH || '~/.kube/config';
-      console.log(`Kubernetes config: ${kubeConfigPath}`);
-      if (isProduction) {
-        console.log('Mode: Production (serving frontend + API)');
-      } else {
-        console.log('Mode: Development (API only)');
-      }
+      logger.info('Server started successfully', {
+        port,
+        mode: isProduction ? 'production' : 'development',
+        sessionStorage: 'PostgreSQL (cluster-ready)',
+        kubeConfigPath,
+      });
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logger.error('Failed to start server', { error: error.message, stack: error.stack });
     process.exit(1);
   }
 };
