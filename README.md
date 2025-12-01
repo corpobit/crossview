@@ -237,3 +237,39 @@ The application loads configuration in this order (highest to lowest priority):
 - **Chakra UI** - Component library
 - **React Router** - Routing
 - **@kubernetes/client-node** - Kubernetes client (for backend)
+
+## Contributing
+
+Contributions are welcome! Here are some guidelines to help you get started:
+
+### Getting Started
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Commit your changes (`git commit -m 'Add some amazing feature'`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
+
+### Code Style
+- Follow the existing code style and architecture patterns
+- Keep functions focused and maintainable
+- Add comments for complex logic
+- Ensure your code passes linting (`npm run lint`)
+
+### Pull Requests
+- Keep PRs focused on a single feature or fix
+- Include a clear description of what the PR does
+- Test your changes before submitting
+- Make sure all existing tests pass
+
+### Reporting Issues
+- Use the GitHub issue tracker
+- Provide clear steps to reproduce bugs
+- Include relevant environment details (OS, Node version, etc.)
+
+### Questions?
+Feel free to open an issue for questions or discussions about the project.
+
+## License
+
+This project is open source and available under the [MIT License](LICENSE).
