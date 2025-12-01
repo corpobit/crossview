@@ -16,7 +16,26 @@ When running inside a Kubernetes pod, the application automatically detects the 
    - Falls back to `~/.kube/config` or `KUBECONFIG` env var
    - Uses your local kubeconfig file
 
-### Deployment Example
+## Quick Deployment
+
+See the `k8s/` directory for ready-to-use Kubernetes manifests. Quick start:
+
+```bash
+# 1. Create secret (edit secret.yaml.example first)
+cp k8s/secret.yaml.example k8s/secret.yaml
+# Edit k8s/secret.yaml with your values
+kubectl apply -f k8s/secret.yaml
+
+# 2. Update deployment.yaml with your Docker Hub username
+# Edit k8s/deployment.yaml and replace YOUR_DOCKERHUB_USERNAME
+
+# 3. Deploy everything
+kubectl apply -f k8s/
+```
+
+See `k8s/README.md` for detailed instructions.
+
+### Manual Deployment Example
 
 ```yaml
 apiVersion: apps/v1
