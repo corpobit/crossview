@@ -27,22 +27,24 @@ export class KubernetesRepository extends IKubernetesRepository {
   }
 
   loadKubeConfig() {
-    // First, try to load from cluster (when running in a Kubernetes pod)
-    // This uses the service account token at /var/run/secrets/kubernetes.io/serviceaccount/
-    try {
+    // Check if we're running in a Kubernetes pod by checking for service account files
+    const serviceAccountPath = '/var/run/secrets/kubernetes.io/serviceaccount';
+    const hasServiceAccount = fs.existsSync(serviceAccountPath) && 
+                              fs.existsSync(`${serviceAccountPath}/token`) &&
+                              fs.existsSync(`${serviceAccountPath}/ca.crt`);
+    
+    if (hasServiceAccount) {
+      // Running in a pod - use service account
       this.kubeConfig.loadFromCluster();
       console.log('Loaded Kubernetes config from cluster (service account)');
       return;
-    } catch (clusterError) {
-      // Not running in a pod, fall back to file-based config
-      console.log('Not running in cluster, trying file-based config...');
     }
     
-    // Fall back to file-based config (for local development or mounted kubeconfig)
+    // Running locally - use file-based config
     const kubeConfigPath = this.getKubeConfigPath();
     
     if (!fs.existsSync(kubeConfigPath)) {
-      throw new Error(`Kubernetes config file not found at ${kubeConfigPath}. Set KUBECONFIG or KUBE_CONFIG_PATH environment variable, or ensure ~/.kube/config exists. When running in a Kubernetes pod, ensure service account has proper permissions.`);
+      throw new Error(`Kubernetes config file not found at ${kubeConfigPath}. Set KUBECONFIG or KUBE_CONFIG_PATH environment variable, or ensure ~/.kube/config exists.`);
     }
     
     this.kubeConfig.loadFromFile(kubeConfigPath);
@@ -97,7 +99,6 @@ export class KubernetesRepository extends IKubernetesRepository {
       this.coreApi = this.kubeConfig.makeApiClient(CoreV1Api);
       this.customObjectsApi = this.kubeConfig.makeApiClient(CustomObjectsApi);
       this.initialized = true;
-      console.log('Kubernetes client initialized successfully');
     } catch (error) {
       throw new Error(`Failed to initialize Kubernetes client: ${error.message}`);
     }
