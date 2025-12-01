@@ -305,6 +305,31 @@ export class KubernetesRepository extends IKubernetesRepository {
         }
       }
 
+      // Managed resources from provider API groups (e.g., kubernetes.crossplane.io)
+      // Query for Object resources (common managed resource type)
+      const managedApiVersions = [
+        'kubernetes.crossplane.io/v1alpha2',
+        'kubernetes.crossplane.io/v1alpha1',
+      ];
+      const managedKinds = ['Object'];
+      
+      for (const apiVersion of managedApiVersions) {
+        for (const kind of managedKinds) {
+          try {
+            const result = await this.getResources(apiVersion, kind, namespace, context);
+            const items = result.items || result;
+            const itemsArray = Array.isArray(items) ? items : [];
+            resources.push(...itemsArray.map(item => new CrossplaneResource({
+              ...item,
+              kind,
+              apiVersion,
+            })));
+          } catch (error) {
+            // Silently ignore errors for resources that don't exist
+          }
+        }
+      }
+
       return resources;
     } catch (error) {
       throw new Error(`Failed to get Crossplane resources: ${error.message}`);
