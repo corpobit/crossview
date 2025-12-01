@@ -27,18 +27,24 @@ export class KubernetesRepository extends IKubernetesRepository {
   }
 
   loadKubeConfig() {
-    // First, try to load from cluster (when running in a Kubernetes pod)
-    // This uses the service account token at /var/run/secrets/kubernetes.io/serviceaccount/
-    try {
-      this.kubeConfig.loadFromCluster();
-      console.log('Loaded Kubernetes config from cluster (service account)');
-      return;
-    } catch (clusterError) {
-      // Not running in a pod, fall back to file-based config
-      console.log('Not running in cluster, trying file-based config...');
+    // Check if we're actually running in a Kubernetes pod by checking for service account files
+    const serviceAccountPath = '/var/run/secrets/kubernetes.io/serviceaccount';
+    const hasServiceAccount = fs.existsSync(serviceAccountPath) && 
+                              fs.existsSync(`${serviceAccountPath}/token`) &&
+                              fs.existsSync(`${serviceAccountPath}/ca.crt`);
+    
+    if (hasServiceAccount) {
+      // Running in a pod - use service account
+      try {
+        this.kubeConfig.loadFromCluster();
+        console.log('Loaded Kubernetes config from cluster (service account)');
+        return;
+      } catch (clusterError) {
+        console.warn('Failed to load from cluster, falling back to file config:', clusterError.message);
+      }
     }
     
-    // Fall back to file-based config (for local development or mounted kubeconfig)
+    // Not in a pod or cluster load failed - use file-based config (local development)
     const kubeConfigPath = this.getKubeConfigPath();
     
     if (!fs.existsSync(kubeConfigPath)) {
