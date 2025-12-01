@@ -446,25 +446,32 @@ app.post('/api/contexts/current', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/api/health', requireAuth, async (req, res) => {
+// Simple health check endpoint (no auth required for Kubernetes probes)
+app.get('/api/health', async (req, res) => {
   try {
+    // If context is provided, check Kubernetes connection (requires auth)
     const context = req.query.context;
-    if (!context) {
-      return res.json({ connected: false });
+    if (context) {
+      // This requires auth, so check if user is authenticated
+      if (!req.session || !req.session.userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const kubeConfigPath = path.join(homedir(), '.kube', 'config');
+      if (!fs.existsSync(kubeConfigPath)) {
+        return res.json({ connected: false });
+      }
+      kubernetesRepository.kubeConfig.loadFromFile(kubeConfigPath);
+      kubernetesRepository.kubeConfig.setCurrentContext(context);
+      kubernetesRepository.initialized = false;
+      await kubernetesRepository.initialize();
+      const connected = await kubernetesRepository.isConnected(context);
+      return res.json({ connected });
     }
-    const kubeConfigPath = path.join(homedir(), '.kube', 'config');
-    if (!fs.existsSync(kubeConfigPath)) {
-      return res.json({ connected: false });
-    }
-    kubernetesRepository.kubeConfig.loadFromFile(kubeConfigPath);
-    kubernetesRepository.kubeConfig.setCurrentContext(context);
-    kubernetesRepository.initialized = false;
-    await kubernetesRepository.initialize();
-    const connected = await kubernetesRepository.isConnected(context);
-    res.json({ connected });
+    // Simple health check - just return OK
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
   } catch (error) {
     console.error('Error checking health:', error);
-    res.json({ connected: false });
+    res.status(500).json({ status: 'error', error: error.message });
   }
 });
 
