@@ -37,28 +37,34 @@ jobs:
           LATEST_TAG=$(git describe --tags --match "v*" --abbrev=0 2>/dev/null || echo "")
           
           if [ -z "$LATEST_TAG" ]; then
-            # No previous release, start at 0.1
-            NEW_VERSION="0.1"
+            # No previous release, start at 0.1.0
+            NEW_VERSION="0.1.0"
           else
             # Extract version number (remove 'v' prefix)
             VERSION=${LATEST_TAG#v}
             MAJOR=$(echo $VERSION | cut -d. -f1)
             MINOR=$(echo $VERSION | cut -d. -f2)
+            PATCH=$(echo $VERSION | cut -d. -f3)
+            
+            # If patch is empty, default to 0
+            if [ -z "$PATCH" ]; then
+              PATCH=0
+            fi
             
             if [ "$MAJOR" = "0" ]; then
               # We're in 0.x series
               if [ "$MINOR" -lt 9 ]; then
-                # Increment minor: 0.1 -> 0.2, 0.2 -> 0.3, etc.
+                # Increment minor: 0.1.0 -> 0.2.0, 0.2.0 -> 0.3.0, etc.
                 NEW_MINOR=$((MINOR + 1))
-                NEW_VERSION="0.$NEW_MINOR"
+                NEW_VERSION="0.$NEW_MINOR.0"
               else
-                # 0.9 -> 2.0
-                NEW_VERSION="2.0"
+                # 0.9.0 -> 2.0.0
+                NEW_VERSION="2.0.0"
               fi
             else
               # We're in 2.x or higher series
               NEW_MINOR=$((MINOR + 1))
-              NEW_VERSION="$MAJOR.$NEW_MINOR"
+              NEW_VERSION="$MAJOR.$NEW_MINOR.0"
             fi
           fi
           
@@ -103,10 +109,10 @@ jobs:
 
       - name: Update package.json version
         run: |
-          npm version ${{ steps.version.outputs.version }} --no-git-tag-version
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json
-          git commit -m "Bump version to ${{ steps.version.outputs.version }}" || exit 0
-          git push || exit 0
+                npm version ${{ steps.version.outputs.version }} --no-git-tag-version --allow-same-version
+                git config user.name "github-actions[bot]"
+                git config user.email "github-actions[bot]@users.noreply.github.com"
+                git add package.json
+                git commit -m "Bump version to ${{ steps.version.outputs.version }}" || exit 0
+                git push || exit 0
 
