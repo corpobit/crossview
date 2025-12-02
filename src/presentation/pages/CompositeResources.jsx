@@ -180,6 +180,7 @@ export const CompositeResources = () => {
       kind: item.kind,
       name: item.name,
       namespace: item.namespace || null,
+      plural: item.plural || null, // Include plural for getResource calls
     };
 
     // If clicking the same row that's already open, close the slideout

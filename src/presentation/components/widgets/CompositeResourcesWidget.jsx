@@ -147,7 +147,7 @@ export const CompositeResourcesWidget = ({ onResourceClick }) => {
 
   return (
     <Container p={6} h="100%" display="flex" flexDirection="column">
-      <Text fontSize="lg" fontWeight="bold" mb={4}>Recent Composite Resources</Text>
+      <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }} mb={4} fontWeight="medium">Recent Composite Resources</Text>
       {resources.length > 0 ? (
         <Box flex={1} minH={0} display="flex" flexDirection="column">
           <DataTable
@@ -159,7 +159,7 @@ export const CompositeResourcesWidget = ({ onResourceClick }) => {
           />
             </Box>
       ) : (
-        <Text color="gray.500" fontSize="sm">No composite resources found</Text>
+        <Text color="gray.500" _dark={{ color: 'gray.500' }} fontSize="sm">No composite resources found</Text>
       )}
     </Container>
   );

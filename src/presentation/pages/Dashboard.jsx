@@ -83,7 +83,7 @@ export const Dashboard = () => {
 
   return (
     <Box position="relative">
-      <Text fontSize="2xl" fontWeight="bold" mb={6}>
+      <Text fontSize="2xl" fontWeight="bold" mb={6} color="gray.900" _dark={{ color: 'gray.100' }}>
         Dashboard
       </Text>
 

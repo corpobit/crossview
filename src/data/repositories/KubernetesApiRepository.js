@@ -83,7 +83,7 @@ export class KubernetesApiRepository extends IKubernetesRepository {
     }
   }
 
-  async getResources(apiVersion, kind, namespace = null, context = null, limit = null, continueToken = null) {
+  async getResources(apiVersion, kind, namespace = null, context = null, limit = null, continueToken = null, plural = null) {
     try {
       const params = new URLSearchParams({ apiVersion, kind });
       if (namespace) {
@@ -98,6 +98,9 @@ export class KubernetesApiRepository extends IKubernetesRepository {
       if (continueToken) {
         params.append('continue', continueToken);
       }
+      if (plural) {
+        params.append('plural', plural);
+      }
       const result = await this.request(`/resources?${params.toString()}`);
       // Return in the same format as KubernetesRepository
       return {
@@ -110,7 +113,7 @@ export class KubernetesApiRepository extends IKubernetesRepository {
     }
   }
 
-  async getResource(apiVersion, kind, name, namespace = null, context = null) {
+  async getResource(apiVersion, kind, name, namespace = null, context = null, plural = null) {
     try {
       const params = new URLSearchParams({ apiVersion, kind, name });
       if (namespace) {
@@ -118,6 +121,9 @@ export class KubernetesApiRepository extends IKubernetesRepository {
       }
       if (context) {
         params.append('context', context);
+      }
+      if (plural) {
+        params.append('plural', plural);
       }
       return await this.request(`/resource?${params.toString()}`);
     } catch (error) {

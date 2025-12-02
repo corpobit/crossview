@@ -15,11 +15,11 @@ export class IKubernetesRepository {
     throw new Error('getNamespaces must be implemented');
   }
 
-  async getResources(apiVersion, kind, namespace = null, context = null, limit = null, continueToken = null) {
+  async getResources(apiVersion, kind, namespace = null, context = null, limit = null, continueToken = null, plural = null) {
     throw new Error('getResources must be implemented');
   }
 
-  async getResource(apiVersion, kind, name, namespace = null, context = null) {
+  async getResource(apiVersion, kind, name, namespace = null, context = null, plural = null) {
     throw new Error('getResource must be implemented');
   }
 

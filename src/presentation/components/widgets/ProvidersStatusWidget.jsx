@@ -71,32 +71,32 @@ export const ProvidersStatusWidget = () => {
 
   return (
     <Container p={6}>
-      <Text fontSize="lg" fontWeight="bold" mb={4}>Providers Status</Text>
+      <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }} mb={4} fontWeight="medium">Providers Status</Text>
       <VStack align="stretch" spacing={3}>
         <HStack justify="space-between">
-          <Text fontSize="sm" color="gray.600">Total Providers</Text>
-          <Text fontSize="xl" fontWeight="bold">{data?.total || 0}</Text>
+          <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>Total Providers</Text>
+          <Text fontSize="xl" fontWeight="bold" color="gray.900" _dark={{ color: 'gray.100' }}>{data?.total || 0}</Text>
         </HStack>
         <HStack justify="space-between">
           <HStack spacing={2}>
             <Box w={3} h={3} borderRadius="full" bg="green.500" />
-            <Text fontSize="sm" color="gray.600">Healthy</Text>
+            <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>Healthy</Text>
           </HStack>
-          <Text fontSize="lg" fontWeight="semibold" color="green.600">{data?.healthy || 0}</Text>
+          <Text fontSize="lg" fontWeight="semibold" color="green.600" _dark={{ color: 'green.400' }}>{data?.healthy || 0}</Text>
         </HStack>
         <HStack justify="space-between">
           <HStack spacing={2}>
             <Box w={3} h={3} borderRadius="full" bg="yellow.500" />
-            <Text fontSize="sm" color="gray.600">Unhealthy</Text>
+            <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>Unhealthy</Text>
           </HStack>
-          <Text fontSize="lg" fontWeight="semibold" color="yellow.600">{data?.unhealthy || 0}</Text>
+          <Text fontSize="lg" fontWeight="semibold" color="yellow.600" _dark={{ color: 'yellow.400' }}>{data?.unhealthy || 0}</Text>
         </HStack>
         <HStack justify="space-between">
           <HStack spacing={2}>
             <Box w={3} h={3} borderRadius="full" bg="gray.400" />
-            <Text fontSize="sm" color="gray.600">Not Installed</Text>
+            <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>Not Installed</Text>
           </HStack>
-          <Text fontSize="lg" fontWeight="semibold" color="gray.600">{data?.notInstalled || 0}</Text>
+          <Text fontSize="lg" fontWeight="semibold" color="gray.600" _dark={{ color: 'gray.400' }}>{data?.notInstalled || 0}</Text>
         </HStack>
       </VStack>
     </Container>

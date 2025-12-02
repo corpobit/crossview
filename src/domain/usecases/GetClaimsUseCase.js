@@ -54,7 +54,8 @@ export class GetClaimsUseCase {
               null, // null namespace = query across all namespaces
             context,
               PAGE_SIZE, // Large limit to minimize pagination
-            continueToken
+            continueToken,
+            claimDef.plural // Pass the correct plural from XRD
           );
           
           const claimResources = result.items || [];
@@ -66,6 +67,7 @@ export class GetClaimsUseCase {
             uid: claim.metadata?.uid || '',
             kind: claimDef.kind,
             apiVersion: claimDef.apiVersion,
+            plural: claimDef.plural, // Include plural for getResource calls
             creationTimestamp: claim.metadata?.creationTimestamp || '',
             labels: claim.metadata?.labels || {},
             resourceRef: claim.spec?.resourceRef || null,
@@ -73,6 +75,7 @@ export class GetClaimsUseCase {
             writeConnectionSecretToRef: claim.spec?.writeConnectionSecretToRef || null,
             status: claim.status || {},
             conditions: claim.status?.conditions || [],
+            spec: claim.spec || {}, // Include full spec for relation extraction
           })));
           
           continueToken = result.continueToken || null;
@@ -110,7 +113,8 @@ export class GetClaimsUseCase {
                 namespace.name,
                 context,
                 50000, // Very large page size - API server will cap at its maximum
-                null
+                null,
+                claimDef.plural // Pass the correct plural from XRD
               );
           
               const claimResources = result.items || [];
