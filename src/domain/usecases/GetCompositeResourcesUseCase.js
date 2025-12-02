@@ -32,15 +32,16 @@ export class GetCompositeResourcesUseCase {
           const xrGroup = xrd.spec?.group || 'apiextensions.crossplane.io';
           const xrVersion = xrd.spec?.versions?.[0]?.name || xrd.spec?.version || 'v1';
           const xrApiVersion = `${xrGroup}/${xrVersion}`;
-          resourceTypes.push({ xrKind, xrApiVersion });
+          const xrPlural = resourceNames.plural || xrKind.toLowerCase() + 's';
+          resourceTypes.push({ xrKind, xrApiVersion, xrPlural });
         }
       }
       
       // Fetch all resource types in parallel
-      const resourcePromises = resourceTypes.map(async ({ xrKind, xrApiVersion }) => {
+      const resourcePromises = resourceTypes.map(async ({ xrKind, xrApiVersion, xrPlural }) => {
         try {
           // Fetch cluster-scoped CompositeResources (namespace = null)
-          const xrsResult = await this.kubernetesRepository.getResources(xrApiVersion, xrKind, null, context);
+          const xrsResult = await this.kubernetesRepository.getResources(xrApiVersion, xrKind, null, context, null, null, xrPlural);
           const xrs = xrsResult.items || xrsResult; // Support both formats
           const xrsArray = Array.isArray(xrs) ? xrs : [];
           
@@ -50,6 +51,7 @@ export class GetCompositeResourcesUseCase {
             uid: xr.metadata?.uid || '',
             kind: xrKind,
             apiVersion: xrApiVersion,
+            plural: xrPlural, // Include plural for getResource calls
             creationTimestamp: xr.metadata?.creationTimestamp || '',
             labels: xr.metadata?.labels || {},
             compositionRef: xr.spec?.compositionRef || null,
@@ -58,6 +60,7 @@ export class GetCompositeResourcesUseCase {
             resourceRefs: xr.spec?.resourceRefs || [],
             status: xr.status || {},
             conditions: xr.status?.conditions || [],
+            spec: xr.spec || {}, // Include full spec for relation extraction
           }));
         } catch (error) {
           // Ignore errors for resources that don't exist or can't be accessed

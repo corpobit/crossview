@@ -522,6 +522,7 @@ app.get('/api/namespaces', requireAuth, async (req, res) => {
     kubernetesRepository.initialized = false;
     kubernetesRepository.coreApi = null;
     kubernetesRepository.customObjectsApi = null;
+    kubernetesRepository.appsApi = null;
     await kubernetesRepository.initialize();
     const namespaces = await kubernetesRepository.getNamespaces(context);
     logger.debug('Namespaces retrieved', { context, count: namespaces.length });
@@ -547,6 +548,7 @@ app.get('/api/crossplane/resources', requireAuth, async (req, res) => {
     kubernetesRepository.initialized = false;
     kubernetesRepository.coreApi = null;
     kubernetesRepository.customObjectsApi = null;
+    kubernetesRepository.appsApi = null;
     await kubernetesRepository.initialize();
     const resources = await kubernetesRepository.getCrossplaneResources(namespace, context);
     res.json(resources.map(r => ({
@@ -564,10 +566,10 @@ app.get('/api/crossplane/resources', requireAuth, async (req, res) => {
 });
 
 app.get('/api/resources', requireAuth, async (req, res) => {
+  const { apiVersion, kind, namespace, context: contextParam, limit, continue: continueToken, plural } = req.query;
+  const context = contextParam;
+  
   try {
-    const { apiVersion, kind, namespace, context: contextParam, limit, continue: continueToken } = req.query;
-    const context = contextParam;
-    
     // Load config (automatically detects cluster vs local)
     // Context is only required when running locally (not in cluster)
     const serviceAccountPath = '/var/run/secrets/kubernetes.io/serviceaccount';
@@ -586,6 +588,7 @@ app.get('/api/resources', requireAuth, async (req, res) => {
     kubernetesRepository.initialized = false;
     kubernetesRepository.coreApi = null;
     kubernetesRepository.customObjectsApi = null;
+    kubernetesRepository.appsApi = null;
     await kubernetesRepository.initialize();
     
     const limitNum = limit ? parseInt(limit, 10) : null;
@@ -595,7 +598,8 @@ app.get('/api/resources', requireAuth, async (req, res) => {
       namespace, 
       context, 
       limitNum, 
-      continueToken || null
+      continueToken || null,
+      plural || null
     );
     
     // Return paginated response
@@ -609,15 +613,24 @@ app.get('/api/resources', requireAuth, async (req, res) => {
       logger.debug('Resource not found (404)', { apiVersion, kind, namespace, context });
       return res.json({ items: [], continueToken: null, remainingItemCount: null });
     }
-    logger.error('Error getting resources', { error: error.message, stack: error.stack, apiVersion, kind, namespace, context });
-    res.status(500).json({ error: error.message });
+    // Defensive error logging - handle undefined variables gracefully
+    logger.error('Error getting resources', { 
+      error: error?.message || 'Unknown error', 
+      stack: error?.stack, 
+      apiVersion: apiVersion || 'undefined', 
+      kind: kind || 'undefined', 
+      namespace: namespace || 'undefined', 
+      context: context || 'undefined' 
+    });
+    res.status(500).json({ error: error?.message || 'Internal server error' });
   }
 });
 
 app.get('/api/resource', requireAuth, async (req, res) => {
+  const { apiVersion, kind, name, namespace, context: contextParam, plural } = req.query;
+  const context = contextParam;
+  
   try {
-    const { apiVersion, kind, name, namespace, context: contextParam } = req.query;
-    const context = contextParam;
     if (!context) {
       return res.status(400).json({ error: 'Context parameter is required' });
     }
@@ -629,25 +642,39 @@ app.get('/api/resource', requireAuth, async (req, res) => {
     kubernetesRepository.initialized = false;
     kubernetesRepository.coreApi = null;
     kubernetesRepository.customObjectsApi = null;
+    kubernetesRepository.appsApi = null;
     await kubernetesRepository.initialize();
     
-    const resource = await kubernetesRepository.getResource(apiVersion, kind, name, namespace, context);
-    logger.debug('Resource retrieved', { apiVersion, kind, name, namespace, context });
+    // Clean up namespace - convert "undefined" string to null for cluster-scoped resources
+    const cleanNamespace = namespace && namespace !== 'undefined' && namespace !== 'null' ? namespace : null;
+    
+    const resource = await kubernetesRepository.getResource(apiVersion, kind, name, cleanNamespace, context, plural || null);
+    logger.debug('Resource retrieved', { apiVersion, kind, name, namespace, context, plural });
     res.json(resource);
   } catch (error) {
     if (error.message && (error.message.includes('404') || error.message.includes('NotFound') || error.message.includes('does not exist'))) {
       logger.debug('Resource not found (404)', { apiVersion, kind, name, namespace, context });
       return res.status(404).json({ error: 'Resource not found' });
     }
-    logger.error('Error getting resource', { error: error.message, stack: error.stack, apiVersion, kind, name, namespace, context });
-    res.status(500).json({ error: error.message });
+    // Defensive error logging - handle undefined variables gracefully
+    logger.error('Error getting resource', { 
+      error: error?.message || 'Unknown error', 
+      stack: error?.stack, 
+      apiVersion: apiVersion || 'undefined', 
+      kind: kind || 'undefined', 
+      name: name || 'undefined', 
+      namespace: namespace || 'undefined', 
+      context: context || 'undefined' 
+    });
+    res.status(500).json({ error: error?.message || 'Internal server error' });
   }
 });
 
 app.get('/api/events', requireAuth, async (req, res) => {
+  const { kind, name, namespace, context: contextParam } = req.query;
+  const context = contextParam;
+  
   try {
-    const { kind, name, namespace, context: contextParam } = req.query;
-    const context = contextParam;
     if (!context) {
       return res.status(400).json({ error: 'Context parameter is required' });
     }
@@ -662,17 +689,54 @@ app.get('/api/events', requireAuth, async (req, res) => {
     kubernetesRepository.initialized = false;
     kubernetesRepository.coreApi = null;
     kubernetesRepository.customObjectsApi = null;
+    kubernetesRepository.appsApi = null;
     await kubernetesRepository.initialize();
     
     const events = await kubernetesRepository.getEvents(kind, name, namespace || null, context);
     logger.debug('Events retrieved', { kind, name, namespace, context, count: events.length });
     res.json(events);
   } catch (error) {
-    logger.error('Error getting events', { error: error.message, stack: error.stack, kind, name, namespace, context });
+    // Defensive error logging - handle undefined variables gracefully
+    logger.error('Error getting events', { 
+      error: error?.message || 'Unknown error', 
+      stack: error?.stack, 
+      kind: kind || 'undefined', 
+      name: name || 'undefined', 
+      namespace: namespace || 'undefined', 
+      context: context || 'undefined' 
+    });
     // Return empty array instead of error to not break the UI
     res.json([]);
   }
 });
+
+// Global error handlers to prevent server crashes
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', { promise, reason: reason?.message || reason, stack: reason?.stack });
+  // Don't exit - just log the error
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', { error: error.message, stack: error.stack });
+  // Don't exit - just log the error
+});
+
+// Handle errors in async route handlers
+const asyncHandler = (fn) => {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch((error) => {
+      logger.error('Unhandled route error', { 
+        error: error?.message || 'Unknown error', 
+        stack: error?.stack,
+        url: req.url,
+        method: req.method
+      });
+      if (!res.headersSent) {
+        res.status(500).json({ error: error?.message || 'Internal server error' });
+      }
+    });
+  };
+};
 
 const startServer = async () => {
   try {

@@ -60,9 +60,9 @@ export const XRDCountWidget = () => {
 
   return (
     <Container p={6}>
-      <Text fontSize="sm" color="gray.600" mb={2}>Composite Resource Definitions</Text>
-      <Text fontSize="2xl" fontWeight="bold">{count || 0}</Text>
-      <Text fontSize="xs" color="gray.500">Total XRDs</Text>
+      <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }} mb={3}>Composite Resource Definitions</Text>
+      <Text fontSize="3xl" fontWeight="bold" color="gray.900" _dark={{ color: 'gray.100' }} mb={1}>{count || 0}</Text>
+      <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.500' }}>Total XRDs</Text>
     </Container>
   );
 };

@@ -2,13 +2,18 @@ import {
   Box,
   Text,
   HStack,
+  VStack,
+  SimpleGrid,
+  Badge,
 } from '@chakra-ui/react';
+import { FiSearch } from 'react-icons/fi';
 import { useEffect, useState } from 'react';
 import { useAppContext } from '../providers/AppProvider.jsx';
-import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
 import { Dropdown } from '../components/common/Dropdown.jsx';
+import { Input } from '../components/common/Input.jsx';
+import { Container } from '../components/common/Container.jsx';
 import { GetProvidersUseCase } from '../../domain/usecases/GetProvidersUseCase.js';
 
 export const Providers = () => {
@@ -20,6 +25,7 @@ export const Providers = () => {
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const loadProviders = async () => {
@@ -59,8 +65,18 @@ export const Providers = () => {
       });
     }
     
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(p => 
+        (p.name && p.name.toLowerCase().includes(query)) ||
+        (p.package && p.package.toLowerCase().includes(query)) ||
+        (p.revision && p.revision.toLowerCase().includes(query)) ||
+        (p.controllerConfigRef && p.controllerConfigRef.toLowerCase().includes(query))
+      );
+    }
+    
     setFilteredProviders(filtered);
-  }, [providers, statusFilter]);
+  }, [providers, statusFilter, searchQuery]);
 
   if (loading) {
     return <LoadingSpinner message="Loading providers..." />;
@@ -86,15 +102,15 @@ export const Providers = () => {
     );
   }
 
-  const handleRowClick = (item) => {
+  const handleCardClick = (item) => {
     const clickedResource = {
-      apiVersion: item.apiVersion || 'apiextensions.crossplane.io/v1',
+      apiVersion: item.apiVersion || 'pkg.crossplane.io/v1',
       kind: item.kind || 'Provider',
       name: item.name,
       namespace: item.namespace || null,
     };
 
-    // If clicking the same row that's already open, close the slideout
+    // If clicking the same card that's already open, close the slideout
     if (selectedResource && 
         selectedResource.name === clickedResource.name &&
         selectedResource.kind === clickedResource.kind &&
@@ -106,7 +122,7 @@ export const Providers = () => {
     }
 
     // Otherwise, open/update the slideout with the new resource
-    // Clear navigation history when opening from table (not from another resource)
+    // Clear navigation history when opening from grid (not from another resource)
     setNavigationHistory([]);
     setSelectedResource(clickedResource);
   };
@@ -131,65 +147,30 @@ export const Providers = () => {
     setNavigationHistory([]);
   };
 
-  const columns = [
-    {
-      header: 'Name',
-      accessor: 'name',
-      minWidth: '200px',
-    },
-    {
-      header: 'Package',
-      accessor: 'package',
-      minWidth: '250px',
-    },
-    {
-      header: 'Revision',
-      accessor: 'revision',
-      minWidth: '150px',
-    },
-    {
-      header: 'Status',
-      accessor: 'status',
-      minWidth: '120px',
-      render: (row) => {
-        const isHealthy = row.healthy;
-        const isInstalled = row.installed;
+  const getStatusBadge = (provider) => {
+    const isHealthy = provider.healthy;
+    const isInstalled = provider.installed;
+    let status = 'Not Installed';
+    let colorScheme = 'gray';
+    
+    if (isInstalled) {
+      status = isHealthy ? 'Healthy' : 'Unhealthy';
+      colorScheme = isHealthy ? 'green' : 'yellow';
+    }
+    
         return (
-          <HStack spacing={2}>
-            <Box
-              as="span"
-              display="inline-block"
+      <Badge
+        colorScheme={colorScheme}
               px={2}
               py={1}
               borderRadius="md"
               fontSize="xs"
               fontWeight="semibold"
-              bg={isInstalled ? (isHealthy ? 'green.100' : 'yellow.100') : 'gray.100'}
-              _dark={{
-                bg: isInstalled ? (isHealthy ? 'green.800' : 'yellow.800') : 'gray.700',
-                color: isInstalled ? (isHealthy ? 'green.100' : 'yellow.100') : 'gray.300'
-              }}
-              color={isInstalled ? (isHealthy ? 'green.800' : 'yellow.800') : 'gray.600'}
-            >
-              {isInstalled ? (isHealthy ? 'Healthy' : 'Unhealthy') : 'Not Installed'}
-            </Box>
-          </HStack>
-        );
-      },
-    },
-    {
-      header: 'Controller Config',
-      accessor: 'controllerConfigRef',
-      minWidth: '150px',
-      render: (row) => row.controllerConfigRef || '-',
-    },
-    {
-      header: 'Created',
-      accessor: 'creationTimestamp',
-      minWidth: '150px',
-      render: (row) => row.creationTimestamp ? new Date(row.creationTimestamp).toLocaleString() : '-',
-    },
-  ];
+      >
+        {status}
+      </Badge>
+    );
+  };
 
   return (
     <Box
@@ -206,36 +187,129 @@ export const Providers = () => {
         </Text>
       </HStack>
 
+      <HStack spacing={4} mb={4} flexShrink={0}>
+        <Box flex={1} position="relative">
+          <Box
+            position="absolute"
+            left="12px"
+            top="14px"
+            zIndex={1}
+            pointerEvents="none"
+            color="gray.400"
+          >
+            <FiSearch size={18} />
+          </Box>
+          <Input
+            placeholder="Search providers by name, package, revision..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            pl="40px"
+          />
+        </Box>
+        <Dropdown
+          minW="180px"
+          placeholder="All Statuses"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={[
+            { value: 'all', label: 'All Statuses' },
+            { value: 'Healthy', label: 'Healthy' },
+            { value: 'Unhealthy', label: 'Unhealthy' },
+            { value: 'Not Installed', label: 'Not Installed' }
+          ]}
+        />
+      </HStack>
+
       <Box
         flex={selectedResource ? `0 0 calc(50% - 4px)` : '1'}
-        overflow="hidden"
-        display="flex"
-        flexDirection="column"
+        overflowY="auto"
         transition="flex 0.3s ease"
         minH={0}
-        mt={4}
       >
-        <DataTable
-          data={filteredProviders}
-          columns={columns}
-          searchableFields={['name', 'package', 'revision', 'controllerConfigRef']}
-          itemsPerPage={20}
-          onRowClick={handleRowClick}
-          filters={
-            <Dropdown
-              minW="180px"
-              placeholder="All Statuses"
-              value={statusFilter}
-              onChange={setStatusFilter}
-              options={[
-                { value: 'all', label: 'All Statuses' },
-                { value: 'Healthy', label: 'Healthy' },
-                { value: 'Unhealthy', label: 'Unhealthy' },
-                { value: 'Not Installed', label: 'Not Installed' }
-              ]}
-            />
-          }
-        />
+        {filteredProviders.length === 0 ? (
+          <Container p={8} textAlign="center">
+            <Text color="gray.500" fontSize="lg">
+              No providers found
+            </Text>
+          </Container>
+        ) : (
+          <SimpleGrid
+            columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
+            spacing={4}
+            pb={4}
+          >
+            {filteredProviders.map((provider) => (
+              <Container
+                key={provider.name}
+                p={4}
+                cursor="pointer"
+                _hover={{
+                  transform: 'translateY(-2px)',
+                  boxShadow: 'md',
+                  transition: 'all 0.2s',
+                }}
+                onClick={() => handleCardClick(provider)}
+                transition="all 0.2s"
+              >
+                <VStack align="stretch" spacing={3}>
+                  <HStack justify="space-between" align="start">
+                    <Text
+                      fontSize="lg"
+                      fontWeight="bold"
+                      noOfLines={1}
+                      title={provider.name}
+                    >
+                      {provider.name}
+                    </Text>
+                    {getStatusBadge(provider)}
+                  </HStack>
+
+                  <VStack align="stretch" spacing={2}>
+                    <Box>
+                      <Text fontSize="xs" color="gray.500" mb={1}>
+                        Package
+                      </Text>
+                      <Text fontSize="sm" noOfLines={2} title={provider.package}>
+                        {provider.package || '-'}
+                      </Text>
+                    </Box>
+
+                    {provider.revision && (
+                      <Box>
+                        <Text fontSize="xs" color="gray.500" mb={1}>
+                          Revision
+                        </Text>
+                        <Text fontSize="sm">{provider.revision}</Text>
+                      </Box>
+                    )}
+
+                    {provider.controllerConfigRef && (
+                      <Box>
+                        <Text fontSize="xs" color="gray.500" mb={1}>
+                          Controller Config
+                        </Text>
+                        <Text fontSize="sm" noOfLines={1}>
+                          {provider.controllerConfigRef}
+                        </Text>
+                      </Box>
+                    )}
+
+                    {provider.creationTimestamp && (
+                      <Box>
+                        <Text fontSize="xs" color="gray.500" mb={1}>
+                          Created
+                        </Text>
+                        <Text fontSize="sm">
+                          {new Date(provider.creationTimestamp).toLocaleDateString()}
+                        </Text>
+                      </Box>
+                    )}
+                  </VStack>
+                </VStack>
+              </Container>
+            ))}
+          </SimpleGrid>
+        )}
       </Box>
       
       {selectedResource && (
