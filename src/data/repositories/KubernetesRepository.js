@@ -99,6 +99,17 @@ export class KubernetesRepository extends IKubernetesRepository {
       if (!this.kubeConfig.getCurrentContext()) {
         this.loadKubeConfig();
       }
+      
+      const currentContext = this.kubeConfig.getCurrentContext();
+      if (!currentContext) {
+        const contexts = this.kubeConfig.getContexts();
+        if (contexts.length === 0) {
+          throw new Error('No active cluster! No contexts found in kubeconfig. Please configure a Kubernetes context.');
+        } else {
+          throw new Error(`No active cluster! Found ${contexts.length} context(s) but no current context is set. Use 'kubectl config use-context <context-name>' to set a current context.`);
+        }
+      }
+      
       this.coreApi = this.kubeConfig.makeApiClient(CoreV1Api);
       this.customObjectsApi = this.kubeConfig.makeApiClient(CustomObjectsApi);
       this.appsApi = this.kubeConfig.makeApiClient(AppsV1Api);

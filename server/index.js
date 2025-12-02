@@ -433,14 +433,7 @@ app.put('/api/users/:id', requireAuth, async (req, res) => {
 
 app.get('/api/contexts', requireAuth, async (req, res) => {
   try {
-    await kubernetesRepository.initialize();
-    const kubeConfig = kubernetesRepository.kubeConfig;
-    const contexts = kubeConfig.getContexts().map(ctx => ({
-      name: ctx.name,
-      cluster: ctx.cluster,
-      user: ctx.user,
-      namespace: ctx.namespace || 'default',
-    }));
+    const contexts = kubernetesRepository.getContexts();
     logger.debug('Kubernetes contexts retrieved', { count: contexts.length });
     res.json(contexts);
   } catch (error) {
