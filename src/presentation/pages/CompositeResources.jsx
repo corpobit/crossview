@@ -32,7 +32,7 @@ export const CompositeResources = () => {
     const loadFilterOptions = async () => {
       try {
         const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
-        const result = await kubernetesRepository.getCompositeResources(contextName, 100, null);
+        const result = await kubernetesRepository.getCompositeResources(contextName, 30, null);
         const resources = result.items || [];
         setFilterOptions({
           kinds: [...new Set(resources.map(r => r.kind).filter(Boolean))].sort(),
@@ -56,7 +56,9 @@ export const CompositeResources = () => {
       setError(null);
       const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
       const continueToken = continueTokensRef.current[page - 1] || null;
-      const result = await kubernetesRepository.getCompositeResources(contextName, pageSize * 3, continueToken);
+      const hasFilters = kindFilter !== 'all' || statusFilter !== 'all' || compositionFilter !== 'all';
+      const fetchLimit = hasFilters ? pageSize * 2 : pageSize;
+      const result = await kubernetesRepository.getCompositeResources(contextName, fetchLimit, continueToken);
       
       if (result.continueToken) {
         while (continueTokensRef.current.length < page) {

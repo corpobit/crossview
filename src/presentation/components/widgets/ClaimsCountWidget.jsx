@@ -25,8 +25,9 @@ export const ClaimsCountWidget = () => {
           : selectedContext.name || selectedContext;
         
         const data = await new GetClaimsUseCase(kubernetesRepository)
-          .execute(contextName);
-        setClaims(Array.isArray(data) ? data : (data?.items || []));
+          .execute(contextName, null, null);
+        const items = Array.isArray(data) ? data : (data?.items || []);
+        setClaims(items);
       } catch (err) {
         console.warn('Failed to fetch claims:', err.message);
         setError(err.message);

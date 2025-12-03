@@ -28,7 +28,7 @@ export const CompositeResourcesWidget = ({ onResourceClick }) => {
           : selectedContext.name || selectedContext;
         
         const data = await new GetCompositeResourcesUseCase(kubernetesRepository)
-          .execute(contextName);
+          .execute(contextName, 20, null);
         setCompositeResources(Array.isArray(data) ? data : (data?.items || []));
       } catch (err) {
         console.warn('Failed to fetch composite resources:', err.message);

@@ -32,7 +32,7 @@ export const Claims = () => {
     const loadFilterOptions = async () => {
       try {
         const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
-        const result = await kubernetesRepository.getClaims(contextName, 100, null);
+        const result = await kubernetesRepository.getClaims(contextName, 30, null);
         const claims = result.items || [];
         setFilterOptions({
           namespaces: [...new Set(claims.map(c => c.namespace).filter(Boolean))].sort(),
@@ -56,7 +56,9 @@ export const Claims = () => {
       setError(null);
       const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
       const continueToken = continueTokensRef.current[page - 1] || null;
-      const result = await kubernetesRepository.getClaims(contextName, pageSize * 3, continueToken);
+      const hasFilters = namespaceFilter !== 'all' || kindFilter !== 'all' || statusFilter !== 'all';
+      const fetchLimit = hasFilters ? pageSize * 2 : pageSize;
+      const result = await kubernetesRepository.getClaims(contextName, fetchLimit, continueToken);
       
       if (result.continueToken) {
         while (continueTokensRef.current.length < page) {
