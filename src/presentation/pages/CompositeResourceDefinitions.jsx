@@ -33,9 +33,10 @@ export const CompositeResourceDefinitions = () => {
         const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
         const useCase = new GetCompositeResourceDefinitionsUseCase(kubernetesRepository);
         const data = await useCase.execute(contextName);
-        setXrds(data);
+        setXrds(Array.isArray(data) ? data : []);
       } catch (err) {
         setError(err.message);
+        setXrds([]);
       } finally {
         setLoading(false);
       }
@@ -45,7 +46,7 @@ export const CompositeResourceDefinitions = () => {
   }, [selectedContext, kubernetesRepository]);
 
   useEffect(() => {
-    let filtered = xrds;
+    let filtered = Array.isArray(xrds) ? xrds : [];
     
     if (groupFilter !== 'all') {
       filtered = filtered.filter(x => x.group === groupFilter);
@@ -204,7 +205,7 @@ export const CompositeResourceDefinitions = () => {
               onChange={setGroupFilter}
               options={[
                 { value: 'all', label: 'All Groups' },
-                ...Array.from(new Set(xrds.map(x => x.group).filter(Boolean))).sort().map(group => ({
+                ...Array.from(new Set((Array.isArray(xrds) ? xrds : []).map(x => x.group).filter(Boolean))).sort().map(group => ({
                   value: group,
                   label: group
                 }))

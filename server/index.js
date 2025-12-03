@@ -2,10 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
+import passport from 'passport';
 import { KubernetesRepository } from '../src/data/repositories/KubernetesRepository.js';
 import { initDatabase, getPool } from './db/connection.js';
 import { User } from './models/User.js';
 import { getConfig, updateConfig, resetConfig } from '../config/loader.js';
+import { initializeSSO } from './middleware/sso.js';
 import path, { dirname } from 'path';
 import { homedir } from 'os';
 import fs from 'fs';
@@ -51,6 +53,8 @@ app.use(cors({
   credentials: serverConfig.cors?.credentials !== false,
 }));
 app.use(express.json());
+// SAML responses come as form-encoded data, so we need urlencoded parser
+app.use(express.urlencoded({ extended: true }));
 
 app.use(session({
   store: new PgSession({
@@ -67,6 +71,10 @@ app.use(session({
     maxAge: serverConfig.session?.cookie?.maxAge || 24 * 60 * 60 * 1000,
   },
 }));
+
+// Initialize Passport and SSO
+app.use(passport.initialize());
+app.use(passport.session());
 
 const requireAuth = (req, res, next) => {
   if (req.session && req.session.userId) {
@@ -177,12 +185,192 @@ app.post('/api/config/database', async (req, res) => {
   }
 });
 
+// SSO Status endpoint
+app.get('/api/auth/sso/status', async (req, res) => {
+  try {
+    const ssoConfig = getConfig('sso');
+    res.json({
+      enabled: ssoConfig.enabled || false,
+      oidc: {
+        enabled: ssoConfig.oidc?.enabled || false,
+      },
+      saml: {
+        enabled: ssoConfig.saml?.enabled || false,
+      },
+    });
+  } catch (error) {
+    logger.error('Error getting SSO status', { error: error.message, stack: error.stack });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// OIDC/OAuth2 SSO routes
+app.get('/api/auth/oidc', (req, res, next) => {
+  const ssoConfig = getConfig('sso');
+  if (!ssoConfig.enabled || !ssoConfig.oidc.enabled) {
+    return res.status(404).json({ error: 'OIDC SSO is not enabled' });
+  }
+  passport.authenticate('oidc', { session: false })(req, res, next);
+});
+
+app.get('/api/auth/oidc/callback', 
+  (req, res, next) => {
+    logger.debug('OIDC callback received', { query: req.query });
+    passport.authenticate('oidc', { session: false }, (err, user, info) => {
+      if (err) {
+        logger.error('OIDC authentication error', { 
+          error: err.message, 
+          stack: err.stack,
+          query: req.query 
+        });
+        const frontendUrl = serverConfig.cors?.origin || 'http://localhost:5173';
+        return res.redirect(`${frontendUrl}/login?error=sso_failed`);
+      }
+      if (!user) {
+        logger.warn('OIDC authentication failed - no user', { 
+          info: info || 'No info provided',
+          query: req.query 
+        });
+        const frontendUrl = serverConfig.cors?.origin || 'http://localhost:5173';
+        return res.redirect(`${frontendUrl}/login?error=sso_failed`);
+      }
+      logger.debug('OIDC user authenticated', { userId: user.id, username: user.username });
+      req.user = user;
+      next();
+    })(req, res, next);
+  },
+  async (req, res) => {
+    try {
+      if (req.user) {
+        req.session.userId = req.user.id;
+        req.session.userRole = req.user.role;
+        
+        // Get frontend URL from config (CORS origin) or default to localhost:5173
+        const frontendUrl = serverConfig.cors?.origin || 'http://localhost:5173';
+        
+        // Save session before redirect
+        req.session.save((err) => {
+          if (err) {
+            logger.error('Error saving session', { error: err.message, stack: err.stack });
+            return res.redirect(`${frontendUrl}/login?error=sso_failed`);
+          }
+          logger.info('OIDC login successful', { userId: req.user.id, username: req.user.username });
+          res.redirect(frontendUrl);
+        });
+      } else {
+        logger.warn('OIDC callback: no user in request');
+        const frontendUrl = serverConfig.cors?.origin || 'http://localhost:5173';
+        res.redirect(`${frontendUrl}/login?error=sso_failed`);
+      }
+    } catch (error) {
+      logger.error('Error in OIDC callback', { error: error.message, stack: error.stack });
+      const frontendUrl = serverConfig.cors?.origin || 'http://localhost:5173';
+      res.redirect(`${frontendUrl}/login?error=sso_failed`);
+    }
+  }
+);
+
+// SAML SSO routes
+app.get('/api/auth/saml', (req, res, next) => {
+  const ssoConfig = getConfig('sso');
+  if (!ssoConfig.enabled || !ssoConfig.saml.enabled) {
+    return res.status(404).json({ error: 'SAML SSO is not enabled' });
+  }
+  logger.info('SAML authentication request initiated', {
+    issuer: ssoConfig.saml.issuer,
+    entryPoint: ssoConfig.saml.entryPoint,
+  });
+  passport.authenticate('saml', { session: false })(req, res, next);
+});
+
+app.post('/api/auth/saml/callback',
+  (req, res, next) => {
+    logger.info('SAML callback received', { 
+      method: req.method,
+      hasBody: !!req.body,
+      bodyKeys: req.body ? Object.keys(req.body) : [],
+      query: req.query,
+    });
+    
+    passport.authenticate('saml', { session: false }, (err, user, info) => {
+      if (err) {
+        logger.error('SAML authentication error', { 
+          error: err.message, 
+          stack: err.stack,
+          info: info,
+        });
+        const frontendUrl = serverConfig.cors?.origin || 'http://localhost:5173';
+        return res.redirect(`${frontendUrl}/login?error=sso_failed`);
+      }
+      if (!user) {
+        logger.warn('SAML authentication failed - no user', { 
+          info: info,
+          hasInfo: !!info,
+        });
+        const frontendUrl = serverConfig.cors?.origin || 'http://localhost:5173';
+        return res.redirect(`${frontendUrl}/login?error=sso_failed`);
+      }
+      logger.info('SAML authentication successful', { 
+        userId: user.id,
+        username: user.username,
+        email: user.email,
+      });
+      req.user = user;
+      next();
+    })(req, res, next);
+  },
+  async (req, res) => {
+    try {
+      if (req.user) {
+        req.session.userId = req.user.id;
+        req.session.userRole = req.user.role;
+        
+        // Get frontend URL from config (CORS origin) or default to localhost:5173
+        const frontendUrl = serverConfig.cors?.origin || 'http://localhost:5173';
+        
+        // Save session before redirect
+        req.session.save((err) => {
+          if (err) {
+            logger.error('Error saving session', { error: err.message, stack: err.stack });
+            return res.redirect(`${frontendUrl}/login?error=sso_failed`);
+          }
+          logger.info('SAML login successful', { userId: req.user.id, username: req.user.username });
+          res.redirect(frontendUrl);
+        });
+      } else {
+        const frontendUrl = serverConfig.cors?.origin || 'http://localhost:5173';
+        res.redirect(`${frontendUrl}/login?error=sso_failed`);
+      }
+    } catch (error) {
+      logger.error('Error in SAML callback', { error: error.message, stack: error.stack });
+      const frontendUrl = serverConfig.cors?.origin || 'http://localhost:5173';
+      res.redirect(`${frontendUrl}/login?error=sso_failed`);
+    }
+  }
+);
+
 app.get('/api/auth/check', async (req, res) => {
   try {
-    const hasAdmin = await User.hasAdmin();
-    const hasUsers = (await User.count()) > 0;
+    // Try to check database, but handle connection errors gracefully
+    let hasAdmin = false;
+    let hasUsers = false;
+    
+    try {
+      hasAdmin = await User.hasAdmin();
+      hasUsers = (await User.count()) > 0;
+    } catch (dbError) {
+      // Database connection might fail if not configured yet - that's okay during setup
+      logger.warn('Could not check database (may not be configured yet)', { error: dbError.message });
+      // Return response indicating no users exist yet, allowing registration
+      return res.json({
+        authenticated: false,
+        hasAdmin: false,
+        hasUsers: false,
+      });
+    }
     
     if (req.session && req.session.userId) {
+      try {
       const user = await User.findById(req.session.userId);
       if (user) {
         return res.json({
@@ -196,6 +384,10 @@ app.get('/api/auth/check', async (req, res) => {
           hasAdmin,
           hasUsers,
         });
+        }
+      } catch (userError) {
+        // If we can't find the user, treat as not authenticated
+        logger.warn('Could not find user in session', { error: userError.message });
       }
     }
     
@@ -206,7 +398,12 @@ app.get('/api/auth/check', async (req, res) => {
     });
   } catch (error) {
     logger.error('Error checking auth', { error: error.message, stack: error.stack });
-    res.status(500).json({ error: error.message });
+    // Return a safe response instead of 500 error
+    res.json({
+      authenticated: false,
+      hasAdmin: false,
+      hasUsers: false,
+    });
   }
 });
 
@@ -814,6 +1011,13 @@ const asyncHandler = (fn) => {
 const startServer = async () => {
   try {
     await initDatabase();
+    
+    // Initialize SSO strategies
+    try {
+      await initializeSSO();
+    } catch (ssoError) {
+      logger.warn('SSO initialization failed (SSO may be disabled)', { error: ssoError.message });
+    }
     
     if (isProduction) {
       const distPath = path.join(__dirname, '..', 'dist');
