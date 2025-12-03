@@ -3,7 +3,7 @@ import {
   Text,
   HStack,
 } from '@chakra-ui/react';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
@@ -47,7 +47,7 @@ export const CompositeResources = () => {
     continueTokensRef.current = [null];
   }, [selectedContext, kubernetesRepository]);
 
-  const fetchData = async (page, pageSize) => {
+  const fetchData = useCallback(async (page, pageSize) => {
     if (!selectedContext) {
       return { items: [], totalCount: 0 };
     }
@@ -93,7 +93,7 @@ export const CompositeResources = () => {
       setError(err.message);
       return { items: [], totalCount: 0 };
     }
-  };
+  }, [selectedContext, kubernetesRepository, kindFilter, statusFilter, compositionFilter]);
 
   useEffect(() => {
     continueTokensRef.current = [null];

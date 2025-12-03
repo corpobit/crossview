@@ -34,17 +34,18 @@ export class GetCompositeResourcesUseCase {
         }
       }
       
-      let allResources = [];
-      let lastContinueToken = null;
+      if (resourceTypes.length === 0) {
+        return { items: [], continueToken: null };
+      }
       
-      for (const { xrKind, xrApiVersion, xrPlural } of resourceTypes) {
+      const resourcePromises = resourceTypes.map(async ({ xrKind, xrApiVersion, xrPlural }) => {
         try {
           const xrsResult = await this.kubernetesRepository.getResources(
             xrApiVersion,
             xrKind,
             null,
             context,
-            limit,
+            limit ? Math.ceil(limit / resourceTypes.length) + 10 : null,
             continueToken,
             xrPlural
           );
@@ -52,33 +53,43 @@ export class GetCompositeResourcesUseCase {
           const xrs = xrsResult.items || xrsResult;
           const xrsArray = Array.isArray(xrs) ? xrs : [];
           
-          allResources.push(...xrsArray.map(xr => ({
-            name: xr.metadata?.name || 'unknown',
-            namespace: xr.metadata?.namespace || null,
-            uid: xr.metadata?.uid || '',
-            kind: xrKind,
-            apiVersion: xrApiVersion,
-            plural: xrPlural,
-            creationTimestamp: xr.metadata?.creationTimestamp || '',
-            labels: xr.metadata?.labels || {},
-            compositionRef: xr.spec?.compositionRef || null,
-            claimRef: xr.spec?.claimRef || null,
-            writeConnectionSecretsTo: xr.spec?.writeConnectionSecretsTo || null,
-            resourceRefs: xr.spec?.resourceRefs || [],
-            status: xr.status || {},
-            conditions: xr.status?.conditions || [],
-            spec: xr.spec || {},
-          })));
-          
-          if (xrsResult.continueToken) {
-            lastContinueToken = xrsResult.continueToken;
-          }
-          
-          if (limit && allResources.length >= limit) {
-            break;
-          }
+          return {
+            resources: xrsArray.map(xr => ({
+              name: xr.metadata?.name || 'unknown',
+              namespace: xr.metadata?.namespace || null,
+              uid: xr.metadata?.uid || '',
+              kind: xrKind,
+              apiVersion: xrApiVersion,
+              plural: xrPlural,
+              creationTimestamp: xr.metadata?.creationTimestamp || '',
+              labels: xr.metadata?.labels || {},
+              compositionRef: xr.spec?.compositionRef || null,
+              claimRef: xr.spec?.claimRef || null,
+              writeConnectionSecretsTo: xr.spec?.writeConnectionSecretsTo || null,
+              resourceRefs: xr.spec?.resourceRefs || [],
+              status: xr.status || {},
+              conditions: xr.status?.conditions || [],
+              spec: xr.spec || {},
+            })),
+            continueToken: xrsResult.continueToken || null
+          };
         } catch (error) {
-          continue;
+          return { resources: [], continueToken: null };
+        }
+      });
+      
+      const results = await Promise.all(resourcePromises);
+      
+      let allResources = [];
+      let lastContinueToken = null;
+      
+      for (const result of results) {
+        allResources.push(...result.resources);
+        if (result.continueToken) {
+          lastContinueToken = result.continueToken;
+        }
+        if (limit && allResources.length >= limit) {
+          break;
         }
       }
       
