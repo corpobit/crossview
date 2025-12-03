@@ -11,6 +11,7 @@ import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
 import { Dropdown } from '../components/common/Dropdown.jsx';
 import { GetResourcesUseCase } from '../../domain/usecases/GetResourcesUseCase.js';
+import { getStatusColor, getStatusText, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
 
 export const ResourceKind = () => {
   const { kind } = useParams();
@@ -34,7 +35,8 @@ export const ResourceKind = () => {
         setError(null);
         const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
         const useCase = new GetResourcesUseCase(kubernetesRepository);
-        const data = await useCase.execute(contextName, null);
+        const result = await useCase.execute(contextName, null);
+        const data = Array.isArray(result) ? result : (result?.items || []);
         // Filter by kind
         const filtered = data.filter(r => r.kind === kind);
         setResources(filtered);
@@ -85,51 +87,6 @@ export const ResourceKind = () => {
     );
   }
 
-  const getStatusColor = (conditions, resourceKind) => {
-    if (!conditions || conditions.length === 0) return 'gray';
-    
-    if (resourceKind === 'Provider') {
-      const healthyCondition = conditions.find(c => c.type === 'Healthy');
-      if (healthyCondition && healthyCondition.status === 'True') return 'green';
-      if (healthyCondition && healthyCondition.status === 'False') return 'red';
-      return 'yellow';
-    }
-    
-    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
-    if (readyCondition && readyCondition.status === 'True') return 'green';
-    if (readyCondition && readyCondition.status === 'False') return 'red';
-    
-    const trueCondition = conditions.find(c => c.status === 'True');
-    const falseCondition = conditions.find(c => c.status === 'False');
-    if (trueCondition) return 'green';
-    if (falseCondition) return 'red';
-    
-    return 'yellow';
-  };
-
-  const getStatusText = (conditions, resourceKind) => {
-    if (!conditions || conditions.length === 0) return 'Unknown';
-    
-    if (resourceKind === 'Provider') {
-      const healthyCondition = conditions.find(c => c.type === 'Healthy');
-      if (healthyCondition && healthyCondition.status === 'True') return 'Healthy';
-      if (healthyCondition && healthyCondition.status === 'False') return 'Unhealthy';
-      const installedCondition = conditions.find(c => c.type === 'Installed');
-      if (installedCondition && installedCondition.status === 'True') return 'Installed';
-      return 'Pending';
-    }
-    
-    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
-    if (readyCondition && readyCondition.status === 'True') return 'Ready';
-    if (readyCondition && readyCondition.status === 'False') return 'Not Ready';
-    
-    const trueCondition = conditions.find(c => c.status === 'True');
-    const falseCondition = conditions.find(c => c.status === 'False');
-    if (trueCondition) return 'Active';
-    if (falseCondition) return 'Inactive';
-    
-    return 'Pending';
-  };
 
   const handleRowClick = (item) => {
     const clickedResource = {
@@ -188,10 +145,40 @@ export const ResourceKind = () => {
     {
       header: 'Status',
       accessor: 'status',
-      minWidth: '120px',
+      minWidth: '160px',
       render: (row) => {
-        const statusColor = getStatusColor(row.conditions, row.kind);
+        const syncedStatus = getSyncedStatus(row.conditions);
+        const readyStatus = getReadyStatus(row.conditions);
+        const responsiveStatus = getResponsiveStatus(row.conditions);
         const statusText = getStatusText(row.conditions, row.kind);
+        
+        const statusBadges = [syncedStatus, readyStatus, responsiveStatus].filter(Boolean);
+        
+        if (statusBadges.length > 0) {
+          return (
+            <HStack spacing={2}>
+              {statusBadges.map((status, idx) => (
+                <Box
+                  key={idx}
+                  as="span"
+                  display="inline-block"
+                  px={2}
+                  py={1}
+                  borderRadius="md"
+                  fontSize="xs"
+                  fontWeight="semibold"
+                  bg={`${status.color}.100`}
+                  _dark={{ bg: `${status.color}.800`, color: `${status.color}.100` }}
+                  color={`${status.color}.800`}
+                >
+                  {status.text}
+                </Box>
+              ))}
+            </HStack>
+          );
+        }
+        
+        const statusColor = getStatusColor(row.conditions, row.kind);
         return (
           <Box
             as="span"
@@ -226,12 +213,7 @@ export const ResourceKind = () => {
       overflowY="auto"
       position="relative"
     >
-      <HStack justify="space-between" mb={6} flexShrink={0}>
-        <Text fontSize="2xl" fontWeight="bold">{kind}</Text>
-        <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-          {filteredResources.length} resource{filteredResources.length !== 1 ? 's' : ''}
-        </Text>
-      </HStack>
+      <Text fontSize="2xl" fontWeight="bold" mb={6}>{kind}</Text>
 
       <Box
         flex={selectedResource ? `0 0 calc(50% - 4px)` : '1'}

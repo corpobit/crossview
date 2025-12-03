@@ -114,7 +114,7 @@ export const Dashboard = () => {
       {/* Detailed Widgets Row */}
       <Box
         display="grid"
-        gridTemplateColumns={{ base: '1fr', lg: 'repeat(2, 1fr)' }}
+        gridTemplateColumns={{ base: '1fr', lg: '1fr 3fr' }}
         gap={6}
         mb={8}
       >

@@ -3,59 +3,91 @@ import {
   Text,
   HStack,
 } from '@chakra-ui/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 import { Dropdown } from '../components/common/Dropdown.jsx';
 import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
-import { GetResourcesUseCase } from '../../domain/usecases/GetResourcesUseCase.js';
+import { getStatusColor, getStatusText, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
 
 export const Resources = () => {
   const { kubernetesRepository, selectedContext } = useAppContext();
-  const [resources, setResources] = useState([]);
-  const [filteredResources, setFilteredResources] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [kindFilter, setKindFilter] = useState('all');
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
+  const [uniqueKinds, setUniqueKinds] = useState([]);
+  const continueTokensRef = useRef([null]);
 
   useEffect(() => {
-    const loadResources = async () => {
-      if (!selectedContext) {
-        setLoading(false);
-        return;
-      }
-      try {
-        setLoading(true);
-        setError(null);
-        const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
-        const useCase = new GetResourcesUseCase(kubernetesRepository);
-        const data = await useCase.execute(contextName, null);
-        // Filter to only show Composition and CompositeResourceDefinition
-        const filtered = data.filter(r => r.kind === 'Composition' || r.kind === 'CompositeResourceDefinition');
-        setResources(filtered);
-        setFilteredResources(filtered);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadResources();
-  }, [selectedContext, kubernetesRepository]);
-
-  useEffect(() => {
-    let filtered = resources;
-    
-    if (kindFilter !== 'all') {
-      filtered = filtered.filter(r => r.kind === kindFilter);
+    if (!selectedContext) {
+      setUniqueKinds([]);
+      return;
     }
     
-    setFilteredResources(filtered);
-  }, [resources, kindFilter]);
+    const loadFilterOptions = async () => {
+      try {
+        const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
+        const { GetResourcesUseCase } = await import('../../domain/usecases/GetResourcesUseCase.js');
+        const useCase = new GetResourcesUseCase(kubernetesRepository);
+        const result = await useCase.execute(contextName, null, 100, null);
+        const data = Array.isArray(result) ? result : (result?.items || []);
+        const filtered = data.filter(r => r.kind === 'Composition' || r.kind === 'CompositeResourceDefinition');
+        setUniqueKinds([...new Set(filtered.map(r => r.kind).filter(Boolean))].sort());
+      } catch (err) {
+        console.warn('Failed to load filter options:', err);
+      }
+    };
+    
+    loadFilterOptions();
+    continueTokensRef.current = [null];
+  }, [selectedContext, kubernetesRepository]);
+
+  const fetchData = async (page, pageSize) => {
+    if (!selectedContext) {
+      return { items: [], totalCount: 0 };
+    }
+    
+    try {
+      setError(null);
+      const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
+      const { GetResourcesUseCase } = await import('../../domain/usecases/GetResourcesUseCase.js');
+      const useCase = new GetResourcesUseCase(kubernetesRepository);
+      const continueToken = continueTokensRef.current[page - 1] || null;
+      const result = await useCase.execute(contextName, null, pageSize * 3, continueToken);
+      
+      if (result.continueToken) {
+        while (continueTokensRef.current.length < page) {
+          continueTokensRef.current.push(null);
+        }
+        continueTokensRef.current[page] = result.continueToken;
+      }
+      
+      const data = result.items || [];
+      let filtered = Array.isArray(data) ? data.filter(r => r.kind === 'Composition' || r.kind === 'CompositeResourceDefinition') : [];
+      
+      if (kindFilter !== 'all') {
+        filtered = filtered.filter(r => r.kind === kindFilter);
+      }
+      
+      const startIndex = (page - 1) * pageSize;
+      const paginated = filtered.slice(startIndex, startIndex + pageSize);
+      
+      return {
+        items: paginated,
+        totalCount: result.continueToken ? (page * pageSize) + 1 : startIndex + filtered.length
+      };
+    } catch (err) {
+      setError(err.message);
+      return { items: [], totalCount: 0 };
+    }
+  };
+
+  useEffect(() => {
+    continueTokensRef.current = [null];
+  }, [selectedContext, kindFilter]);
 
   if (loading) {
     return <LoadingSpinner message="Loading resources..." />;
@@ -81,59 +113,6 @@ export const Resources = () => {
     );
   }
 
-  const uniqueKinds = [...new Set(resources.map(r => r.kind).filter(Boolean))].sort();
-
-  const getStatusColor = (conditions, kind) => {
-    if (!conditions || conditions.length === 0) return 'gray';
-    
-    // For Provider, check Healthy condition
-    if (kind === 'Provider') {
-      const healthyCondition = conditions.find(c => c.type === 'Healthy');
-      if (healthyCondition && healthyCondition.status === 'True') return 'green';
-      if (healthyCondition && healthyCondition.status === 'False') return 'red';
-      return 'yellow';
-    }
-    
-    // For other resources, check Ready or Synced conditions
-    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
-    if (readyCondition && readyCondition.status === 'True') return 'green';
-    if (readyCondition && readyCondition.status === 'False') return 'red';
-    
-    // If we have conditions but none match, check if any are True/False
-    const trueCondition = conditions.find(c => c.status === 'True');
-    const falseCondition = conditions.find(c => c.status === 'False');
-    if (trueCondition) return 'green';
-    if (falseCondition) return 'red';
-    
-    return 'yellow';
-  };
-
-  const getStatusText = (conditions, kind) => {
-    if (!conditions || conditions.length === 0) return 'Unknown';
-    
-    // For Provider, check Healthy condition
-    if (kind === 'Provider') {
-      const healthyCondition = conditions.find(c => c.type === 'Healthy');
-      if (healthyCondition && healthyCondition.status === 'True') return 'Healthy';
-      if (healthyCondition && healthyCondition.status === 'False') return 'Unhealthy';
-      const installedCondition = conditions.find(c => c.type === 'Installed');
-      if (installedCondition && installedCondition.status === 'True') return 'Installed';
-      return 'Pending';
-    }
-    
-    // For other resources, check Ready or Synced conditions
-    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
-    if (readyCondition && readyCondition.status === 'True') return 'Ready';
-    if (readyCondition && readyCondition.status === 'False') return 'Not Ready';
-    
-    // If we have conditions but none match, check if any are True/False
-    const trueCondition = conditions.find(c => c.status === 'True');
-    const falseCondition = conditions.find(c => c.status === 'False');
-    if (trueCondition) return 'Active';
-    if (falseCondition) return 'Inactive';
-    
-    return 'Pending';
-  };
 
   const handleRowClick = (item) => {
     const clickedResource = {
@@ -194,10 +173,40 @@ export const Resources = () => {
     {
       header: 'Status',
       accessor: 'status',
-      minWidth: '120px',
+      minWidth: '160px',
       render: (row) => {
-        const statusColor = getStatusColor(row.conditions, row.kind);
+        const syncedStatus = getSyncedStatus(row.conditions);
+        const readyStatus = getReadyStatus(row.conditions);
+        const responsiveStatus = getResponsiveStatus(row.conditions);
         const statusText = getStatusText(row.conditions, row.kind);
+        
+        const statusBadges = [syncedStatus, readyStatus, responsiveStatus].filter(Boolean);
+        
+        if (statusBadges.length > 0) {
+          return (
+            <HStack spacing={2}>
+              {statusBadges.map((status, idx) => (
+                <Box
+                  key={idx}
+                  as="span"
+                  display="inline-block"
+                  px={2}
+                  py={1}
+                  borderRadius="md"
+                  fontSize="xs"
+                  fontWeight="semibold"
+                  bg={`${status.color}.100`}
+                  _dark={{ bg: `${status.color}.800`, color: `${status.color}.100` }}
+                  color={`${status.color}.800`}
+                >
+                  {status.text}
+                </Box>
+              ))}
+            </HStack>
+          );
+        }
+        
+        const statusColor = getStatusColor(row.conditions, row.kind);
         return (
           <Box
             as="span"
@@ -232,12 +241,7 @@ export const Resources = () => {
       overflowY="auto"
       position="relative"
     >
-      <HStack justify="space-between" mb={6} flexShrink={0}>
-        <Text fontSize="2xl" fontWeight="bold">Resources</Text>
-        <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-          {filteredResources.length} resource{filteredResources.length !== 1 ? 's' : ''}
-        </Text>
-      </HStack>
+      <Text fontSize="2xl" fontWeight="bold" mb={6}>Resources</Text>
 
       <Box
         flex={selectedResource ? `0 0 calc(50% - 4px)` : '1'}
@@ -248,13 +252,16 @@ export const Resources = () => {
         minH={0}
         mt={4}
       >
-      <DataTable
-        data={filteredResources}
-        columns={columns}
+        <DataTable
+          data={[]}
+          columns={columns}
           searchableFields={['name', 'kind']}
-        itemsPerPage={20}
-        onRowClick={handleRowClick}
-        filters={
+          itemsPerPage={20}
+          onRowClick={handleRowClick}
+          serverSidePagination={true}
+          fetchData={fetchData}
+          loading={loading}
+          filters={
             <Dropdown
               minW="200px"
               placeholder="All Kinds"
