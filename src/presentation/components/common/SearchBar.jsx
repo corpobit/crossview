@@ -37,9 +37,9 @@ export const SearchBar = () => {
       p={2}
       borderRadius="md"
       bg="transparent"
-      color="gray.700"
-      _dark={{ color: 'gray.300' }}
-      _hover={{ bg: 'gray.100', _dark: { bg: 'gray.700' } }}
+      color="stone.700"
+      _dark={{ color: 'stone.300' }}
+      _hover={{ bg: 'stone.100', _dark: { bg: 'stone.700' } }}
       display="flex"
       alignItems="center"
       justifyContent="center"
