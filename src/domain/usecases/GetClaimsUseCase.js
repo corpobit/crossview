@@ -34,17 +34,14 @@ export class GetClaimsUseCase {
         return { items: [], continueToken: null };
       }
       
-      let allClaims = [];
-      let lastContinueToken = null;
-      
-      for (const claimDef of claimDefinitions) {
+      const claimPromises = claimDefinitions.map(async (claimDef) => {
         try {
           const result = await this.kubernetesRepository.getResources(
             claimDef.apiVersion,
             claimDef.kind,
             null,
             context,
-            limit,
+            limit ? Math.ceil(limit / claimDefinitions.length) + 10 : null,
             continueToken,
             claimDef.plural
           );
@@ -52,34 +49,45 @@ export class GetClaimsUseCase {
           const claimResources = result.items || [];
           const claimsArray = Array.isArray(claimResources) ? claimResources : [];
           
-          allClaims.push(...claimsArray.map(claim => ({
-            name: claim.metadata?.name || 'unknown',
-            namespace: claim.metadata?.namespace || null,
-            uid: claim.metadata?.uid || '',
-            kind: claimDef.kind,
-            apiVersion: claimDef.apiVersion,
-            plural: claimDef.plural,
-            creationTimestamp: claim.metadata?.creationTimestamp || '',
-            labels: claim.metadata?.labels || {},
-            resourceRef: claim.spec?.resourceRef || null,
-            compositionRef: claim.spec?.compositionRef || null,
-            writeConnectionSecretToRef: claim.spec?.writeConnectionSecretToRef || null,
-            status: claim.status || {},
-            conditions: claim.status?.conditions || [],
-            spec: claim.spec || {},
-          })));
-          
-          if (result.continueToken) {
-            lastContinueToken = result.continueToken;
-          }
-          
-          if (limit && allClaims.length >= limit) {
-            break;
-          }
+          return {
+            claims: claimsArray.map(claim => ({
+              name: claim.metadata?.name || 'unknown',
+              namespace: claim.metadata?.namespace || null,
+              uid: claim.metadata?.uid || '',
+              kind: claimDef.kind,
+              apiVersion: claimDef.apiVersion,
+              plural: claimDef.plural,
+              creationTimestamp: claim.metadata?.creationTimestamp || '',
+              labels: claim.metadata?.labels || {},
+              resourceRef: claim.spec?.resourceRef || null,
+              compositionRef: claim.spec?.compositionRef || null,
+              writeConnectionSecretToRef: claim.spec?.writeConnectionSecretToRef || null,
+              status: claim.status || {},
+              conditions: claim.status?.conditions || [],
+              spec: claim.spec || {},
+            })),
+            continueToken: result.continueToken || null
+          };
         } catch (error) {
           if (error.message && (error.message.includes('404') || error.message.includes('NotFound') || error.message.includes('does not exist'))) {
-            continue;
+            return { claims: [], continueToken: null };
           }
+          return { claims: [], continueToken: null };
+        }
+      });
+      
+      const results = await Promise.all(claimPromises);
+      
+      let allClaims = [];
+      let lastContinueToken = null;
+      
+      for (const result of results) {
+        allClaims.push(...result.claims);
+        if (result.continueToken) {
+          lastContinueToken = result.continueToken;
+        }
+        if (limit && allClaims.length >= limit) {
+          break;
         }
       }
       

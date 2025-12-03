@@ -32,7 +32,7 @@ export const Resources = () => {
         const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
         const { GetResourcesUseCase } = await import('../../domain/usecases/GetResourcesUseCase.js');
         const useCase = new GetResourcesUseCase(kubernetesRepository);
-        const result = await useCase.execute(contextName, null, 100, null);
+        const result = await useCase.execute(contextName, null, 20, null);
         const data = Array.isArray(result) ? result : (result?.items || []);
         const filtered = data.filter(r => r.kind === 'Composition' || r.kind === 'CompositeResourceDefinition');
         setUniqueKinds([...new Set(filtered.map(r => r.kind).filter(Boolean))].sort());
@@ -56,7 +56,9 @@ export const Resources = () => {
       const { GetResourcesUseCase } = await import('../../domain/usecases/GetResourcesUseCase.js');
       const useCase = new GetResourcesUseCase(kubernetesRepository);
       const continueToken = continueTokensRef.current[page - 1] || null;
-      const result = await useCase.execute(contextName, null, pageSize * 3, continueToken);
+      const hasFilters = kindFilter !== 'all';
+      const fetchLimit = hasFilters ? pageSize * 2 : pageSize;
+      const result = await useCase.execute(contextName, null, fetchLimit, continueToken);
       
       if (result.continueToken) {
         while (continueTokensRef.current.length < page) {

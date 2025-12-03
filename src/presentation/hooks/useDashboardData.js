@@ -34,7 +34,7 @@ export const useDashboardData = (kubernetesRepository, selectedContext) => {
           ? selectedContext 
           : selectedContext.name || selectedContext;
 
-        // Fetch all resources in parallel for maximum performance
+        // Fetch all resources in parallel with minimal limits for dashboard
         const [
           compositeResourcesResult,
           claimsResult,
@@ -43,13 +43,13 @@ export const useDashboardData = (kubernetesRepository, selectedContext) => {
           providers,
         ] = await Promise.all([
           new GetCompositeResourcesUseCase(kubernetesRepository)
-            .execute(contextName)
+            .execute(contextName, 10, null)
             .catch(err => {
               console.warn('Failed to fetch composite resources:', err.message);
               return { items: [] };
             }),
           new GetClaimsUseCase(kubernetesRepository)
-            .execute(contextName)
+            .execute(contextName, 10, null)
             .catch(err => {
               console.warn('Failed to fetch claims:', err.message);
               return { items: [] };
