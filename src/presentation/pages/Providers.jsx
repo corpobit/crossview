@@ -235,7 +235,7 @@ export const Providers = () => {
         ) : (
           <SimpleGrid
             columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
-            spacing={4}
+            spacing={6}
             pb={4}
           >
             {filteredProviders.map((provider) => (
