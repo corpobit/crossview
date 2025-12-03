@@ -78,5 +78,26 @@ export class AuthService {
       throw new Error(`Logout failed: ${error.message}`);
     }
   }
+
+  async getSSOStatus() {
+    try {
+      return await this.request('/auth/sso/status');
+    } catch (error) {
+      // If SSO is not configured, return disabled status
+      return {
+        enabled: false,
+        oidc: { enabled: false },
+        saml: { enabled: false },
+      };
+    }
+  }
+
+  getOIDCLoginURL() {
+    return `${this.apiBaseUrl}/auth/oidc`;
+  }
+
+  getSAMLLoginURL() {
+    return `${this.apiBaseUrl}/auth/saml`;
+  }
 }
 
