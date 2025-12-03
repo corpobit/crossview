@@ -236,12 +236,13 @@ export const Providers = () => {
           <SimpleGrid
             columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             spacing={6}
-            pb={4}
+            p={4}
           >
             {filteredProviders.map((provider) => (
               <Container
                 key={provider.name}
                 p={4}
+                m={2}
                 cursor="pointer"
                 _hover={{
                   transform: 'translateY(-2px)',
