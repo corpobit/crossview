@@ -47,16 +47,11 @@ export const DataTable = ({
   }, [serverSidePagination, fetchData, currentPage, itemsPerPage]);
 
   const filteredData = useMemo(() => {
-    // For server-side pagination, use serverData directly (filtering/sorting should be done server-side)
-    if (serverSidePagination) {
-      return serverData;
-    }
-    
-    let result = data;
+    let result = serverSidePagination ? serverData : data;
     
     if (searchTerm && searchableFields.length > 0) {
       const lowerSearch = searchTerm.toLowerCase();
-      result = data.filter(item => {
+      result = result.filter(item => {
         return searchableFields.some(field => {
           const value = field.split('.').reduce((obj, key) => obj?.[key], item);
           return String(value || '').toLowerCase().includes(lowerSearch);
@@ -90,16 +85,25 @@ export const DataTable = ({
   }, [data, searchTerm, searchableFields, sortColumn, sortDirection, columns, serverSidePagination, serverData]);
 
   const paginatedData = useMemo(() => {
-    // For server-side pagination, data is already paginated
+    // For server-side pagination with search, we still need to paginate the filtered results
+    if (serverSidePagination && searchTerm) {
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      return filteredData.slice(startIndex, startIndex + itemsPerPage);
+    }
+    // For server-side pagination without search, data is already paginated
     if (serverSidePagination) {
       return filteredData;
     }
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredData.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredData, currentPage, itemsPerPage, serverSidePagination]);
+  }, [filteredData, currentPage, itemsPerPage, serverSidePagination, searchTerm]);
 
   const totalPages = useMemo(() => {
     if (serverSidePagination) {
+      // If searching, calculate pages from filtered data
+      if (searchTerm) {
+        return Math.ceil(filteredData.length / itemsPerPage);
+      }
       const count = totalCount !== undefined ? totalCount : serverTotalCount;
       if (count !== null && count !== undefined) {
         return Math.ceil(count / itemsPerPage);
@@ -108,10 +112,14 @@ export const DataTable = ({
       return currentPage + (serverData.length === itemsPerPage ? 1 : 0);
     }
     return Math.ceil(filteredData.length / itemsPerPage);
-  }, [serverSidePagination, totalCount, serverTotalCount, itemsPerPage, currentPage, serverData.length, filteredData.length]);
+  }, [serverSidePagination, totalCount, serverTotalCount, itemsPerPage, currentPage, serverData.length, filteredData.length, searchTerm]);
 
   const displayCount = useMemo(() => {
     if (serverSidePagination) {
+      // If searching, show filtered count; otherwise show server count
+      if (searchTerm) {
+        return filteredData.length;
+      }
       const count = totalCount !== undefined ? totalCount : serverTotalCount;
       if (count !== null && count !== undefined) {
         return count;
@@ -120,7 +128,7 @@ export const DataTable = ({
       return serverData.length === itemsPerPage ? (currentPage * itemsPerPage) + 1 : currentPage * itemsPerPage;
     }
     return filteredData.length;
-  }, [serverSidePagination, totalCount, serverTotalCount, serverData.length, itemsPerPage, currentPage, filteredData.length]);
+  }, [serverSidePagination, totalCount, serverTotalCount, serverData.length, itemsPerPage, currentPage, filteredData.length, searchTerm]);
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
