@@ -1,0 +1,120 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xnginxes.example.org
+spec:
+  group: example.org
+  names:
+    kind: XNginx
+    plural: xnginxes
+  claimNames:
+    kind: Nginx
+    plural: nginxes
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              replicas:
+                type: integer
+                default: 2
+            required:
+            - replicas
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xredis.example.org
+spec:
+  group: example.org
+  names:
+    kind: XRedis
+    plural: xredis
+  claimNames:
+    kind: Redis
+    plural: redis
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              memoryMB:
+                type: integer
+                default: 256
+            required:
+            - memoryMB
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xpostgres.example.org
+spec:
+  group: example.org
+  names:
+    kind: XPostgres
+    plural: xpostgres
+  claimNames:
+    kind: Postgres
+    plural: postgres
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              database:
+                type: string
+                default: testdb
+            required:
+            - database
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xwebapp.example.org
+spec:
+  group: example.org
+  names:
+    kind: XWebApp
+    plural: xwebapp
+  claimNames:
+    kind: WebApp
+    plural: webapp
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              replicas:
+                type: integer
+                default: 1
+              image:
+                type: string
+                default: "httpd:alpine"
+            required:
+            - replicas
+            - image
+

@@ -27,24 +27,24 @@ export const ResourceHealthWidget = () => {
           ? selectedContext 
           : selectedContext.name || selectedContext;
         
-        // Load both composite resources and claims in parallel
+        // Load both composite resources and claims in parallel with small limits for health calculation
         const [compositeData, claimsData] = await Promise.all([
           new GetCompositeResourcesUseCase(kubernetesRepository)
-            .execute(contextName)
+            .execute(contextName, 50, null)
             .catch(err => {
               console.warn('Failed to fetch composite resources:', err.message);
-              return [];
+              return { items: [] };
             }),
           new GetClaimsUseCase(kubernetesRepository)
-            .execute(contextName)
+            .execute(contextName, 50, null)
             .catch(err => {
               console.warn('Failed to fetch claims:', err.message);
-              return [];
+              return { items: [] };
             }),
         ]);
         
-        setCompositeResources(compositeData || []);
-        setClaims(claimsData || []);
+        setCompositeResources(Array.isArray(compositeData) ? compositeData : (compositeData?.items || []));
+        setClaims(Array.isArray(claimsData) ? claimsData : (claimsData?.items || []));
       } catch (err) {
         console.warn('Failed to fetch resource health data:', err.message);
         setError(err.message);

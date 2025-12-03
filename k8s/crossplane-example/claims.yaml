@@ -1,0 +1,41 @@
+apiVersion: example.org/v1alpha1
+kind: Nginx
+metadata:
+  name: example-nginx
+  namespace: default
+spec:
+  replicas: 2
+  compositionRef:
+    name: nginx-service
+---
+apiVersion: example.org/v1alpha1
+kind: Redis
+metadata:
+  name: example-redis
+  namespace: default
+spec:
+  memoryMB: 512
+  compositionRef:
+    name: redis-service
+---
+apiVersion: example.org/v1alpha1
+kind: Postgres
+metadata:
+  name: example-postgres
+  namespace: default
+spec:
+  database: myapp
+  compositionRef:
+    name: postgres-service
+---
+apiVersion: example.org/v1alpha1
+kind: WebApp
+metadata:
+  name: example-webapp
+  namespace: default
+spec:
+  replicas: 2
+  image: "httpd:alpine"
+  compositionRef:
+    name: webapp-service
+

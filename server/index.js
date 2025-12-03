@@ -530,10 +530,13 @@ app.get('/api/crossplane/resources', requireAuth, async (req, res) => {
   try {
     const context = req.query.context;
     const namespace = req.query.namespace || null;
+    const limit = req.query.limit ? parseInt(req.query.limit, 10) : null;
+    const continueToken = req.query.continue || null;
+    
     if (!context) {
       return res.status(400).json({ error: 'Context parameter is required' });
     }
-    // Load config (automatically detects cluster vs local)
+    
     kubernetesRepository.loadKubeConfig();
     if (context) {
       kubernetesRepository.kubeConfig.setCurrentContext(context);
@@ -543,15 +546,22 @@ app.get('/api/crossplane/resources', requireAuth, async (req, res) => {
     kubernetesRepository.customObjectsApi = null;
     kubernetesRepository.appsApi = null;
     await kubernetesRepository.initialize();
-    const resources = await kubernetesRepository.getCrossplaneResources(namespace, context);
-    res.json(resources.map(r => ({
-      apiVersion: r.apiVersion,
-      kind: r.kind,
-      metadata: r.metadata,
-      spec: r.spec,
-      status: r.status,
-    })));
-    logger.debug('Crossplane resources retrieved', { context, namespace, count: resources.length });
+    
+    const result = await kubernetesRepository.getCrossplaneResources(namespace, context, limit, continueToken);
+    const items = result.items || result;
+    const itemsArray = Array.isArray(items) ? items : [];
+    
+    res.json({
+      items: itemsArray.map(r => ({
+        apiVersion: r.apiVersion,
+        kind: r.kind,
+        metadata: r.metadata,
+        spec: r.spec,
+        status: r.status,
+      })),
+      continueToken: result.continueToken || null
+    });
+    logger.debug('Crossplane resources retrieved', { context, namespace, count: itemsArray.length, continueToken: result.continueToken });
   } catch (error) {
     logger.error('Error getting Crossplane resources', { error: error.message, stack: error.stack, context, namespace });
     res.status(500).json({ error: error.message });
@@ -660,6 +670,76 @@ app.get('/api/resource', requireAuth, async (req, res) => {
       context: context || 'undefined' 
     });
     res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
+app.get('/api/claims', requireAuth, async (req, res) => {
+  const { context: contextParam, limit, continue: continueToken } = req.query;
+  const context = contextParam;
+  
+  try {
+    if (!context) {
+      return res.status(400).json({ error: 'Context parameter is required' });
+    }
+    
+    kubernetesRepository.loadKubeConfig();
+    if (context) {
+      kubernetesRepository.kubeConfig.setCurrentContext(context);
+    }
+    kubernetesRepository.initialized = false;
+    kubernetesRepository.coreApi = null;
+    kubernetesRepository.customObjectsApi = null;
+    kubernetesRepository.appsApi = null;
+    await kubernetesRepository.initialize();
+    
+    const { GetClaimsUseCase } = await import('../src/domain/usecases/GetClaimsUseCase.js');
+    const useCase = new GetClaimsUseCase(kubernetesRepository);
+    const limitNum = limit ? parseInt(limit, 10) : null;
+    const result = await useCase.execute(context, limitNum, continueToken || null);
+    
+    res.json({
+      items: result.items || [],
+      continueToken: result.continueToken || null
+    });
+    logger.debug('Claims retrieved', { context, count: result.items?.length || 0, continueToken: result.continueToken });
+  } catch (error) {
+    logger.error('Error getting claims', { error: error.message, stack: error.stack, context });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/composite-resources', requireAuth, async (req, res) => {
+  const { context: contextParam, limit, continue: continueToken } = req.query;
+  const context = contextParam;
+  
+  try {
+    if (!context) {
+      return res.status(400).json({ error: 'Context parameter is required' });
+    }
+    
+    kubernetesRepository.loadKubeConfig();
+    if (context) {
+      kubernetesRepository.kubeConfig.setCurrentContext(context);
+    }
+    kubernetesRepository.initialized = false;
+    kubernetesRepository.coreApi = null;
+    kubernetesRepository.customObjectsApi = null;
+    kubernetesRepository.appsApi = null;
+    await kubernetesRepository.initialize();
+    
+    const { GetCompositeResourcesUseCase } = await import('../src/domain/usecases/GetCompositeResourcesUseCase.js');
+    const useCase = new GetCompositeResourcesUseCase(kubernetesRepository);
+    const limitNum = limit ? parseInt(limit, 10) : null;
+    const result = await useCase.execute(context, limitNum, continueToken || null);
+    
+    res.json({
+      items: result.items || [],
+      continueToken: result.continueToken || null
+    });
+    logger.debug('Composite resources retrieved', { context, count: result.items?.length || 0, continueToken: result.continueToken });
+  } catch (error) {
+    logger.error('Error getting composite resources', { error: error.message, stack: error.stack, context });
+    res.status(500).json({ error: error.message });
   }
 });
 

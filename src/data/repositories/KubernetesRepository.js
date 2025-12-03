@@ -125,13 +125,7 @@ export class KubernetesRepository extends IKubernetesRepository {
     }
   }
 
-  async getPluralName(apiVersion, kind, context = null) {
-    const cacheKey = `${apiVersion}:${kind}`;
-    
-    if (this.pluralCache.has(cacheKey)) {
-      return this.pluralCache.get(cacheKey);
-    }
-
+  async ensureContext(context = null) {
     if (context && this.kubeConfig) {
       const currentContext = this.kubeConfig.getCurrentContext();
       if (currentContext !== context) {
@@ -140,6 +134,56 @@ export class KubernetesRepository extends IKubernetesRepository {
       }
     }
     await this.ensureInitialized();
+  }
+
+  handleNotFoundError(error, kind, name, namespace = null) {
+    const statusCode = error.statusCode || error.code || error.response?.statusCode || error.body?.code;
+    const errorBody = error.body || error.response?.body || {};
+    const errorMessage = error.message || '';
+    
+    if (statusCode === 404 || 
+        errorBody.code === 404 || 
+        errorBody.reason === 'NotFound' ||
+        errorMessage.includes('404') || 
+        errorMessage.includes('NotFound') || 
+        errorMessage.includes('does not exist') || 
+        errorMessage.includes('not found')) {
+      return true;
+    }
+    return false;
+  }
+
+  normalizeNamespace(namespace) {
+    if (namespace === 'undefined' || namespace === 'null' || namespace === undefined) {
+      return null;
+    }
+    return namespace;
+  }
+
+  async resolvePlural(apiVersion, kind, context, plural) {
+    if (plural) return plural;
+    
+    let resourcePlural = await this.getPluralName(apiVersion, kind, context);
+    if (resourcePlural) return resourcePlural;
+    
+    resourcePlural = await this.lookupPluralFromCRD(apiVersion, kind, context);
+    if (resourcePlural) return resourcePlural;
+    
+    const lowerKind = kind.toLowerCase();
+    if (lowerKind.startsWith('x') && lowerKind.length > 1) {
+      return lowerKind;
+    }
+    return lowerKind + 's';
+  }
+
+  async getPluralName(apiVersion, kind, context = null) {
+    const cacheKey = `${apiVersion}:${kind}`;
+    
+    if (this.pluralCache.has(cacheKey)) {
+      return this.pluralCache.get(cacheKey);
+    }
+
+    await this.ensureContext(context);
 
     try {
       const group = apiVersion.split('/')[0];
@@ -252,11 +296,7 @@ export class KubernetesRepository extends IKubernetesRepository {
 
   async isConnected(context = null) {
     try {
-      if (context) {
-        this.kubeConfig.setCurrentContext(context);
-        this.initialized = false;
-      }
-      await this.ensureInitialized();
+      await this.ensureContext(context);
       await this.coreApi.getAPIResources();
       return true;
     } catch (error) {
@@ -265,14 +305,7 @@ export class KubernetesRepository extends IKubernetesRepository {
   }
 
   async getNamespaces(context = null) {
-    if (context && this.kubeConfig) {
-      const currentContext = this.kubeConfig.getCurrentContext();
-      if (currentContext !== context) {
-        this.kubeConfig.setCurrentContext(context);
-        this.initialized = false;
-      }
-    }
-    await this.ensureInitialized();
+    await this.ensureContext(context);
     try {
       const response = await this.coreApi.listNamespace();
       return response.body.items.map(item => ({
@@ -287,14 +320,7 @@ export class KubernetesRepository extends IKubernetesRepository {
   }
 
   async getResources(apiVersion, kind, namespace = null, context = null, limit = null, continueToken = null, plural = null) {
-    if (context && this.kubeConfig) {
-      const currentContext = this.kubeConfig.getCurrentContext();
-      if (currentContext !== context) {
-        this.kubeConfig.setCurrentContext(context);
-        this.initialized = false;
-      }
-    }
-    await this.ensureInitialized();
+    await this.ensureContext(context);
     try {
       const group = apiVersion.split('/')[0];
       const version = apiVersion.split('/')[1] || 'v1';
@@ -343,15 +369,7 @@ export class KubernetesRepository extends IKubernetesRepository {
         };
       }
     } catch (error) {
-      const statusCode = error.statusCode || error.code || error.response?.statusCode || error.body?.code;
-      if (statusCode === 404) {
-        return { items: [], continueToken: null, remainingItemCount: null };
-      }
-      if (error.message && (error.message.includes('404') || error.message.includes('NotFound') || error.message.includes('does not exist') || error.message.includes('not found'))) {
-        return { items: [], continueToken: null, remainingItemCount: null };
-      }
-      const errorBody = error.body || error.response?.body || {};
-      if (errorBody.code === 404 || errorBody.reason === 'NotFound') {
+      if (this.handleNotFoundError(error)) {
         return { items: [], continueToken: null, remainingItemCount: null };
       }
       throw new Error(`Failed to get resources: ${error.message}`);
@@ -360,16 +378,7 @@ export class KubernetesRepository extends IKubernetesRepository {
 
   async lookupPluralFromCRD(apiVersion, kind, context = null) {
     try {
-      await this.ensureInitialized();
-      
-      if (context && this.kubeConfig) {
-        const currentContext = this.kubeConfig.getCurrentContext();
-        if (currentContext !== context) {
-          this.kubeConfig.setCurrentContext(context);
-          this.initialized = false;
-          await this.ensureInitialized();
-        }
-      }
+      await this.ensureContext(context);
 
       const group = apiVersion.split('/')[0];
       const version = apiVersion.split('/')[1] || 'v1';
@@ -446,106 +455,53 @@ export class KubernetesRepository extends IKubernetesRepository {
   }
 
   async getResource(apiVersion, kind, name, namespace = null, context = null, plural = null) {
-    if (context && this.kubeConfig) {
-      const currentContext = this.kubeConfig.getCurrentContext();
-      if (currentContext !== context) {
-        this.kubeConfig.setCurrentContext(context);
-        this.initialized = false;
-      }
-    }
-    await this.ensureInitialized();
-    
-    if (namespace === 'undefined' || namespace === 'null' || namespace === undefined) {
-      namespace = null;
-    }
+    await this.ensureContext(context);
+    namespace = this.normalizeNamespace(namespace);
     
     try {
+      if (kind === 'Event') {
+        throw new Error(`Events should be fetched using getEvents method`);
+      }
+
+      const coreV1Namespaced = {
+        'Service': (n, ns) => this.coreApi.readNamespacedService(n, ns),
+        'Pod': (n, ns) => this.coreApi.readNamespacedPod(n, ns),
+        'ConfigMap': (n, ns) => this.coreApi.readNamespacedConfigMap(n, ns),
+        'Secret': (n, ns) => this.coreApi.readNamespacedSecret(n, ns),
+      };
+
+      const coreV1Cluster = {
+        'Namespace': (n) => this.coreApi.readNamespace(n),
+        'Node': (n) => this.coreApi.readNode(n),
+        'PersistentVolume': (n) => this.coreApi.readPersistentVolume(n),
+      };
+
+      const appsV1Namespaced = {
+        'Deployment': (n, ns) => this.appsApi.readNamespacedDeployment(n, ns),
+        'StatefulSet': (n, ns) => this.appsApi.readNamespacedStatefulSet(n, ns),
+        'DaemonSet': (n, ns) => this.appsApi.readNamespacedDaemonSet(n, ns),
+        'ReplicaSet': (n, ns) => this.appsApi.readNamespacedReplicaSet(n, ns),
+      };
+
       if (apiVersion === 'v1') {
-        if (namespace) {
-          if (kind === 'Service') {
-            const response = await this.coreApi.readNamespacedService(name, namespace);
-            return response.body;
-          } else if (kind === 'Pod') {
-            const response = await this.coreApi.readNamespacedPod(name, namespace);
-            return response.body;
-          } else if (kind === 'ConfigMap') {
-            const response = await this.coreApi.readNamespacedConfigMap(name, namespace);
-            return response.body;
-          } else if (kind === 'Secret') {
-            const response = await this.coreApi.readNamespacedSecret(name, namespace);
-            return response.body;
-          } else if (kind === 'Event') {
-            throw new Error(`Events should be fetched using getEvents method`);
-          }
-          let resourcePlural = plural;
-          if (!resourcePlural) {
-            resourcePlural = await this.getPluralName(apiVersion, kind, context);
-            if (!resourcePlural) {
-              resourcePlural = kind.toLowerCase() + 's';
-            }
-          }
-          const response = await this.customObjectsApi.getNamespacedCustomObject('', 'v1', namespace, resourcePlural, name);
+        if (namespace && coreV1Namespaced[kind]) {
+          const response = await coreV1Namespaced[kind](name, namespace);
           return response.body;
-        } else {
-          if (kind === 'Namespace') {
-            const response = await this.coreApi.readNamespace(name);
-            return response.body;
-          } else if (kind === 'Node') {
-            const response = await this.coreApi.readNode(name);
-            return response.body;
-          } else if (kind === 'PersistentVolume') {
-            const response = await this.coreApi.readPersistentVolume(name);
-            return response.body;
-          }
-          let resourcePlural = plural;
-          if (!resourcePlural) {
-            resourcePlural = await this.getPluralName(apiVersion, kind, context);
-            if (!resourcePlural) {
-              resourcePlural = kind.toLowerCase() + 's';
-            }
-          }
-          const response = await this.customObjectsApi.getClusterCustomObject('', 'v1', resourcePlural, name);
+        }
+        if (!namespace && coreV1Cluster[kind]) {
+          const response = await coreV1Cluster[kind](name);
           return response.body;
         }
       }
-      
-      if (apiVersion === 'apps/v1') {
-        if (namespace) {
-          if (kind === 'Deployment') {
-            const response = await this.appsApi.readNamespacedDeployment(name, namespace);
-            return response.body;
-          } else if (kind === 'StatefulSet') {
-            const response = await this.appsApi.readNamespacedStatefulSet(name, namespace);
-            return response.body;
-          } else if (kind === 'DaemonSet') {
-            const response = await this.appsApi.readNamespacedDaemonSet(name, namespace);
-            return response.body;
-          } else if (kind === 'ReplicaSet') {
-            const response = await this.appsApi.readNamespacedReplicaSet(name, namespace);
-            return response.body;
-          }
-        }
+
+      if (apiVersion === 'apps/v1' && namespace && appsV1Namespaced[kind]) {
+        const response = await appsV1Namespaced[kind](name, namespace);
+        return response.body;
       }
       
       const group = apiVersion.split('/')[0];
       const version = apiVersion.split('/')[1] || 'v1';
-      let resourcePlural = plural;
-      if (!resourcePlural) {
-        resourcePlural = await this.getPluralName(apiVersion, kind, context);
-        
-        if (!resourcePlural) {
-          resourcePlural = await this.lookupPluralFromCRD(apiVersion, kind, context);
-        }
-        
-        if (!resourcePlural) {
-          const lowerKind = kind.toLowerCase();
-          if (lowerKind.startsWith('x') && lowerKind.length > 1) {
-            resourcePlural = lowerKind;
-          } else {
-            resourcePlural = lowerKind + 's';
-          }
-        }
-      }
+      const resourcePlural = await this.resolvePlural(apiVersion, kind, context, plural);
       
       if (namespace) {
         const response = await this.customObjectsApi.getNamespacedCustomObject(
@@ -566,39 +522,25 @@ export class KubernetesRepository extends IKubernetesRepository {
         return response.body;
       }
     } catch (error) {
-      const statusCode = error.statusCode || error.code || error.response?.statusCode || error.body?.code;
-      if (statusCode === 404) {
-        throw new Error(`Resource not found: ${kind}/${name}${namespace ? ` in namespace ${namespace}` : ''}`);
-      }
-      if (error.message && (error.message.includes('404') || error.message.includes('NotFound') || error.message.includes('does not exist') || error.message.includes('not found'))) {
-        throw new Error(`Resource not found: ${kind}/${name}${namespace ? ` in namespace ${namespace}` : ''}`);
-      }
-      const errorBody = error.body || error.response?.body || {};
-      if (errorBody.code === 404 || errorBody.reason === 'NotFound') {
+      if (this.handleNotFoundError(error)) {
         throw new Error(`Resource not found: ${kind}/${name}${namespace ? ` in namespace ${namespace}` : ''}`);
       }
       throw new Error(`Failed to get resource: ${error.message}`);
     }
   }
 
-  async getCrossplaneResources(namespace = null, context = null) {
-    if (context && this.kubeConfig) {
-      const currentContext = this.kubeConfig.getCurrentContext();
-      if (currentContext !== context) {
-        this.kubeConfig.setCurrentContext(context);
-        this.initialized = false;
-      }
-    }
-    await this.ensureInitialized();
+  async getCrossplaneResources(namespace = null, context = null, limit = null, continueToken = null) {
+    await this.ensureContext(context);
     try {
       const resources = [];
+      let lastContinueToken = null;
 
       const apiextensionsApiVersion = 'apiextensions.crossplane.io/v1';
       const apiextensionsKinds = ['Composition', 'CompositeResourceDefinition', 'ProviderConfig', 'StoreConfig', 'EnvironmentConfig'];
       
       for (const kind of apiextensionsKinds) {
         try {
-          const result = await this.getResources(apiextensionsApiVersion, kind, namespace, context);
+          const result = await this.getResources(apiextensionsApiVersion, kind, namespace, context, limit, continueToken);
           const items = result.items || result;
           const itemsArray = Array.isArray(items) ? items : [];
           resources.push(...itemsArray.map(item => new CrossplaneResource({
@@ -606,8 +548,21 @@ export class KubernetesRepository extends IKubernetesRepository {
             kind,
             apiVersion: apiextensionsApiVersion,
           })));
+          if (result.continueToken) {
+            lastContinueToken = result.continueToken;
+          }
+          if (limit && resources.length >= limit) {
+            break;
+          }
         } catch (error) {
         }
+      }
+
+      if (limit && resources.length >= limit) {
+        return {
+          items: resources.slice(0, limit),
+          continueToken: lastContinueToken
+        };
       }
 
       const pkgApiVersion = 'pkg.crossplane.io/v1';
@@ -615,7 +570,7 @@ export class KubernetesRepository extends IKubernetesRepository {
       
       for (const kind of pkgKinds) {
         try {
-          const result = await this.getResources(pkgApiVersion, kind, namespace, context);
+          const result = await this.getResources(pkgApiVersion, kind, namespace, context, limit ? (limit - resources.length) : null, continueToken);
           const items = result.items || result;
           const itemsArray = Array.isArray(items) ? items : [];
           resources.push(...itemsArray.map(item => new CrossplaneResource({
@@ -623,8 +578,21 @@ export class KubernetesRepository extends IKubernetesRepository {
             kind,
             apiVersion: pkgApiVersion,
           })));
+          if (result.continueToken) {
+            lastContinueToken = result.continueToken;
+          }
+          if (limit && resources.length >= limit) {
+            break;
+          }
         } catch (error) {
         }
+      }
+
+      if (limit && resources.length >= limit) {
+        return {
+          items: resources.slice(0, limit),
+          continueToken: lastContinueToken
+        };
       }
 
       const managedApiVersions = [
@@ -636,7 +604,7 @@ export class KubernetesRepository extends IKubernetesRepository {
       for (const apiVersion of managedApiVersions) {
         for (const kind of managedKinds) {
           try {
-            const result = await this.getResources(apiVersion, kind, namespace, context);
+            const result = await this.getResources(apiVersion, kind, namespace, context, limit ? (limit - resources.length) : null, continueToken);
             const items = result.items || result;
             const itemsArray = Array.isArray(items) ? items : [];
             resources.push(...itemsArray.map(item => new CrossplaneResource({
@@ -644,26 +612,38 @@ export class KubernetesRepository extends IKubernetesRepository {
               kind,
               apiVersion,
             })));
+            if (result.continueToken) {
+              lastContinueToken = result.continueToken;
+            }
+            if (limit && resources.length >= limit) {
+              break;
+            }
           } catch (error) {
           }
         }
+        if (limit && resources.length >= limit) {
+          break;
+        }
       }
 
-      return resources;
+      if (limit && resources.length > limit) {
+        return {
+          items: resources.slice(0, limit),
+          continueToken: lastContinueToken
+        };
+      }
+
+      return {
+        items: resources,
+        continueToken: lastContinueToken
+      };
     } catch (error) {
       throw new Error(`Failed to get Crossplane resources: ${error.message}`);
     }
   }
 
   async getEvents(kind, name, namespace = null, context = null) {
-    if (context && this.kubeConfig) {
-      const currentContext = this.kubeConfig.getCurrentContext();
-      if (currentContext !== context) {
-        this.kubeConfig.setCurrentContext(context);
-        this.initialized = false;
-      }
-    }
-    await this.ensureInitialized();
+    await this.ensureContext(context);
     try {
       if (!namespace) {
         logger.debug('Skipping events fetch - no namespace provided', { kind, name });
