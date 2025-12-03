@@ -2,15 +2,15 @@ import { getPool } from '../db/connection.js';
 import bcrypt from 'bcrypt';
 
 export class User {
-  static async create({ username, email, password, role = 'user' }) {
+  static async create({ username, email, password, role = 'user', first_name, last_name }) {
     const pool = getPool();
     const passwordHash = await bcrypt.hash(password, 10);
     
     const result = await pool.query(
-      `INSERT INTO users (username, email, password_hash, role) 
-       VALUES ($1, $2, $3, $4) 
-       RETURNING id, username, email, role, created_at`,
-      [username, email, passwordHash, role]
+      `INSERT INTO users (username, email, password_hash, role, first_name, last_name) 
+       VALUES ($1, $2, $3, $4, $5, $6) 
+       RETURNING id, username, email, role, first_name, last_name, created_at`,
+      [username, email, passwordHash, role, first_name || null, last_name || null]
     );
     
     return result.rows[0];
@@ -37,7 +37,7 @@ export class User {
   static async findById(id) {
     const pool = getPool();
     const result = await pool.query(
-      'SELECT id, username, email, role, created_at FROM users WHERE id = $1',
+      'SELECT id, username, email, role, first_name, last_name, created_at FROM users WHERE id = $1',
       [id]
     );
     return result.rows[0] || null;
@@ -64,12 +64,12 @@ export class User {
   static async findAll() {
     const pool = getPool();
     const result = await pool.query(
-      'SELECT id, username, email, role, created_at FROM users ORDER BY created_at DESC'
+      'SELECT id, username, email, role, first_name, last_name, created_at FROM users ORDER BY created_at DESC'
     );
     return result.rows;
   }
 
-  static async update(id, { username, email, role, password }) {
+  static async update(id, { username, email, role, password, first_name, last_name }) {
     const pool = getPool();
     const updates = [];
     const values = [];
@@ -92,6 +92,14 @@ export class User {
       updates.push(`password_hash = $${paramIndex++}`);
       values.push(passwordHash);
     }
+    if (first_name !== undefined) {
+      updates.push(`first_name = $${paramIndex++}`);
+      values.push(first_name);
+    }
+    if (last_name !== undefined) {
+      updates.push(`last_name = $${paramIndex++}`);
+      values.push(last_name);
+    }
 
     if (updates.length === 0) {
       return await this.findById(id);
@@ -101,7 +109,7 @@ export class User {
     values.push(id);
 
     const result = await pool.query(
-      `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING id, username, email, role, created_at`,
+      `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING id, username, email, role, first_name, last_name, created_at`,
       values
     );
 

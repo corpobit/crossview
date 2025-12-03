@@ -4,32 +4,38 @@ export const Input = ({ ...props }) => {
   return (
     <ChakraInput
       bg="white"
+      _dark={{ 
+        bg: 'gray.800', 
+        color: 'gray.200',
+        borderColor: 'gray.700',
+        _focus: {
+          borderColor: 'gray.600',
+        },
+        _hover: {
+          borderColor: 'gray.600',
+        },
+        _placeholder: {
+          color: 'gray.500',
+        }
+      }}
       border="1px solid"
+      borderColor="gray.200"
       borderRadius="md"
       fontSize="sm"
       color="gray.900"
-      _dark={{ 
-        bg: 'gray.800', 
-        color: 'white' 
-      }}
+      py={2}
+      px={3}
       _placeholder={{
         color: 'gray.400',
-        _dark: { color: 'gray.500' }
       }}
       _focus={{
+        borderColor: 'gray.400',
+        outline: 'none',
         boxShadow: 'none',
       }}
-      css={{
-        borderColor: 'rgba(0, 0, 0, 0.08) !important',
-        '.dark &': {
-          borderColor: 'rgba(255, 255, 255, 0.1) !important',
-        },
-        '.dark &:focus': {
-          borderColor: '#3b82f6 !important',
-        },
-        '&:focus': {
-          borderColor: '#3b82f6 !important',
-        }
+      transition="all 0.2s"
+      _hover={{
+        borderColor: 'gray.300',
       }}
       {...props}
     />
