@@ -19,6 +19,7 @@ import { QuickFilters } from '../components/common/QuickFilters.jsx';
 import { Input } from '../components/common/Input.jsx';
 import { SearchResourcesUseCase } from '../../domain/usecases/SearchResourcesUseCase.js';
 import { FiX, FiBookmark, FiSearch, FiTrash2 } from 'react-icons/fi';
+import { getStatusColor, getStatusText, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
 
 export const Search = () => {
   const { kubernetesRepository, selectedContext, saveSearch, savedSearches, deleteSearch } = useAppContext();
@@ -338,15 +339,31 @@ export const Search = () => {
     {
       header: 'Status',
       accessor: 'status',
-      minWidth: '120px',
+      minWidth: '160px',
       render: (row) => {
-        const conditions = row.conditions || [];
-        const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
-        const status = readyCondition?.status || 'Unknown';
-        const colorScheme = status === 'True' ? 'green' : status === 'False' ? 'red' : 'gray';
+        const syncedStatus = getSyncedStatus(row.conditions);
+        const readyStatus = getReadyStatus(row.conditions);
+        const responsiveStatus = getResponsiveStatus(row.conditions);
+        const statusText = getStatusText(row.conditions, row.kind);
+        
+        const statusBadges = [syncedStatus, readyStatus, responsiveStatus].filter(Boolean);
+        
+        if (statusBadges.length > 0) {
+          return (
+            <HStack spacing={2}>
+              {statusBadges.map((status, idx) => (
+                <Badge key={idx} colorScheme={status.color} fontSize="xs">
+                  {status.text}
+                </Badge>
+              ))}
+            </HStack>
+          );
+        }
+        
+        const statusColor = getStatusColor(row.conditions, row.kind);
         return (
-          <Badge colorScheme={colorScheme} fontSize="xs">
-            {status === 'True' ? 'Ready' : status === 'False' ? 'Not Ready' : 'Unknown'}
+          <Badge colorScheme={statusColor} fontSize="xs">
+            {statusText}
           </Badge>
         );
       },

@@ -36,8 +36,8 @@ export const useDashboardData = (kubernetesRepository, selectedContext) => {
 
         // Fetch all resources in parallel for maximum performance
         const [
-          compositeResources,
-          claims,
+          compositeResourcesResult,
+          claimsResult,
           xrds,
           compositions,
           providers,
@@ -46,13 +46,13 @@ export const useDashboardData = (kubernetesRepository, selectedContext) => {
             .execute(contextName)
             .catch(err => {
               console.warn('Failed to fetch composite resources:', err.message);
-              return [];
+              return { items: [] };
             }),
           new GetClaimsUseCase(kubernetesRepository)
             .execute(contextName)
             .catch(err => {
               console.warn('Failed to fetch claims:', err.message);
-              return [];
+              return { items: [] };
             }),
           new GetCompositeResourceDefinitionsUseCase(kubernetesRepository)
             .execute(contextName)
@@ -75,8 +75,8 @@ export const useDashboardData = (kubernetesRepository, selectedContext) => {
         ]);
 
         setData({
-          compositeResources,
-          claims,
+          compositeResources: Array.isArray(compositeResourcesResult) ? compositeResourcesResult : (compositeResourcesResult?.items || []),
+          claims: Array.isArray(claimsResult) ? claimsResult : (claimsResult?.items || []),
           xrds,
           compositions,
           providers,

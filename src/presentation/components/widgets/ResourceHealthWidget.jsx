@@ -33,18 +33,18 @@ export const ResourceHealthWidget = () => {
             .execute(contextName)
             .catch(err => {
               console.warn('Failed to fetch composite resources:', err.message);
-              return [];
+              return { items: [] };
             }),
           new GetClaimsUseCase(kubernetesRepository)
             .execute(contextName)
             .catch(err => {
               console.warn('Failed to fetch claims:', err.message);
-              return [];
+              return { items: [] };
             }),
         ]);
         
-        setCompositeResources(compositeData || []);
-        setClaims(claimsData || []);
+        setCompositeResources(Array.isArray(compositeData) ? compositeData : (compositeData?.items || []));
+        setClaims(Array.isArray(claimsData) ? claimsData : (claimsData?.items || []));
       } catch (err) {
         console.warn('Failed to fetch resource health data:', err.message);
         setError(err.message);

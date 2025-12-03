@@ -13,18 +13,18 @@ export class SearchResourcesUseCase {
     try {
       // Fetch all resource types in parallel
       const [
-        compositeResources,
-        claims,
+        compositeResourcesResult,
+        claimsResult,
         compositions,
         xrds,
         providers,
       ] = await Promise.all([
         new GetCompositeResourcesUseCase(this.kubernetesRepository)
           .execute(context)
-          .catch(() => []),
+          .catch(() => ({ items: [] })),
         new GetClaimsUseCase(this.kubernetesRepository)
           .execute(context)
-          .catch(() => []),
+          .catch(() => ({ items: [] })),
         new GetCompositionsUseCase(this.kubernetesRepository)
           .execute(context)
           .catch(() => []),
@@ -35,6 +35,9 @@ export class SearchResourcesUseCase {
           .execute(context)
           .catch(() => []),
       ]);
+
+      const compositeResources = Array.isArray(compositeResourcesResult) ? compositeResourcesResult : (compositeResourcesResult?.items || []);
+      const claims = Array.isArray(claimsResult) ? claimsResult : (claimsResult?.items || []);
 
       // Combine all resources
       const allResources = [
