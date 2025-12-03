@@ -13,6 +13,7 @@ import { Dropdown } from '../components/common/Dropdown.jsx';
 import { GetCompositeResourcesUseCase } from '../../domain/usecases/GetCompositeResourcesUseCase.js';
 import { GetCompositionsUseCase } from '../../domain/usecases/GetCompositionsUseCase.js';
 import { GetCompositeResourceDefinitionsUseCase } from '../../domain/usecases/GetCompositeResourceDefinitionsUseCase.js';
+import { getStatusColor, getStatusText, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
 
 export const CompositeResourceKind = () => {
   const { kind } = useParams();
@@ -39,14 +40,17 @@ export const CompositeResourceKind = () => {
         let data = [];
         if (kind === 'Composition') {
           const useCase = new GetCompositionsUseCase(kubernetesRepository);
-          data = await useCase.execute(contextName);
+          const result = await useCase.execute(contextName);
+          data = Array.isArray(result) ? result : [];
         } else if (kind === 'CompositeResourceDefinition') {
           const useCase = new GetCompositeResourceDefinitionsUseCase(kubernetesRepository);
-          data = await useCase.execute(contextName);
+          const result = await useCase.execute(contextName);
+          data = Array.isArray(result) ? result : [];
         } else {
           // For other composite resource kinds, use GetCompositeResourcesUseCase
           const useCase = new GetCompositeResourcesUseCase(kubernetesRepository);
-          const allResources = await useCase.execute(contextName);
+          const result = await useCase.execute(contextName);
+          const allResources = Array.isArray(result) ? result : (result?.items || []);
           data = allResources.filter(r => r.kind === kind);
         }
         
@@ -61,13 +65,6 @@ export const CompositeResourceKind = () => {
     loadResources();
   }, [selectedContext, kubernetesRepository, kind]);
 
-  const getStatusText = (conditions) => {
-    if (!conditions || conditions.length === 0) return 'Unknown';
-    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
-    if (readyCondition && readyCondition.status === 'True') return 'Ready';
-    if (readyCondition && readyCondition.status === 'False') return 'Not Ready';
-    return 'Pending';
-  };
 
   useEffect(() => {
     let filtered = resources;
@@ -107,13 +104,6 @@ export const CompositeResourceKind = () => {
     );
   }
 
-  const getStatusColor = (conditions) => {
-    if (!conditions || conditions.length === 0) return 'gray';
-    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
-    if (readyCondition && readyCondition.status === 'True') return 'green';
-    if (readyCondition && readyCondition.status === 'False') return 'red';
-    return 'yellow';
-  };
 
   const handleRowClick = (item) => {
     const clickedResource = {
@@ -237,10 +227,40 @@ export const CompositeResourceKind = () => {
         {
           header: 'Status',
           accessor: 'status',
-          minWidth: '120px',
+          minWidth: '160px',
           render: (row) => {
-            const statusColor = getStatusColor(row.conditions);
+            const syncedStatus = getSyncedStatus(row.conditions);
+            const readyStatus = getReadyStatus(row.conditions);
+            const responsiveStatus = getResponsiveStatus(row.conditions);
             const statusText = getStatusText(row.conditions);
+            
+            const statusBadges = [syncedStatus, readyStatus, responsiveStatus].filter(Boolean);
+            
+            if (statusBadges.length > 0) {
+              return (
+                <HStack spacing={2}>
+                  {statusBadges.map((status, idx) => (
+                    <Box
+                      key={idx}
+                      as="span"
+                      display="inline-block"
+                      px={2}
+                      py={1}
+                      borderRadius="md"
+                      fontSize="xs"
+                      fontWeight="semibold"
+                      bg={`${status.color}.100`}
+                      _dark={{ bg: `${status.color}.800`, color: `${status.color}.100` }}
+                      color={`${status.color}.800`}
+                    >
+                      {status.text}
+                    </Box>
+                  ))}
+                </HStack>
+              );
+            }
+            
+            const statusColor = getStatusColor(row.conditions);
             return (
               <Box
                 as="span"
@@ -277,12 +297,7 @@ export const CompositeResourceKind = () => {
       overflowY="auto"
       position="relative"
     >
-      <HStack justify="space-between" mb={6} flexShrink={0}>
-        <Text fontSize="2xl" fontWeight="bold">{kind}</Text>
-        <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-          {resources.length} resource{resources.length !== 1 ? 's' : ''}
-        </Text>
-      </HStack>
+        <Text fontSize="2xl" fontWeight="bold" mb={6}>{kind}</Text>
 
       <Box
         flex={selectedResource ? `0 0 calc(50% - 4px)` : '1'}

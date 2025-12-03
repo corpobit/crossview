@@ -3,77 +3,103 @@ import {
   Text,
   HStack,
 } from '@chakra-ui/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
 import { Dropdown } from '../components/common/Dropdown.jsx';
-import { GetCompositeResourcesUseCase } from '../../domain/usecases/GetCompositeResourcesUseCase.js';
+import { getStatusColor, getStatusText, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
 
 export const CompositeResources = () => {
   const { kubernetesRepository, selectedContext } = useAppContext();
-  const [compositeResources, setCompositeResources] = useState([]);
-  const [filteredResources, setFilteredResources] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
   const [kindFilter, setKindFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [compositionFilter, setCompositionFilter] = useState('all');
+  const [filterOptions, setFilterOptions] = useState({ kinds: [], compositions: [] });
+  const continueTokensRef = useRef([null]);
 
   useEffect(() => {
-    const loadCompositeResources = async () => {
-      if (!selectedContext) {
-        setLoading(false);
-        return;
-      }
+    if (!selectedContext) {
+      setFilterOptions({ kinds: [], compositions: [] });
+      return;
+    }
+    
+    const loadFilterOptions = async () => {
       try {
-        setLoading(true);
-        setError(null);
         const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
-        const useCase = new GetCompositeResourcesUseCase(kubernetesRepository);
-        const data = await useCase.execute(contextName);
-        setCompositeResources(data);
+        const result = await kubernetesRepository.getCompositeResources(contextName, 30, null);
+        const resources = result.items || [];
+        setFilterOptions({
+          kinds: [...new Set(resources.map(r => r.kind).filter(Boolean))].sort(),
+          compositions: [...new Set(resources.map(r => r.compositionRef?.name).filter(Boolean))].sort()
+        });
       } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+        console.warn('Failed to load filter options:', err);
       }
     };
-
-    loadCompositeResources();
+    
+    loadFilterOptions();
+    continueTokensRef.current = [null];
   }, [selectedContext, kubernetesRepository]);
 
-  const getStatusText = (conditions) => {
-    if (!conditions || conditions.length === 0) return 'Unknown';
-    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
-    if (readyCondition && readyCondition.status === 'True') return 'Ready';
-    if (readyCondition && readyCondition.status === 'False') return 'Not Ready';
-    return 'Pending';
-  };
+  const fetchData = useCallback(async (page, pageSize) => {
+    if (!selectedContext) {
+      return { items: [], totalCount: 0 };
+    }
+    
+    try {
+      setError(null);
+      const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
+      const continueToken = continueTokensRef.current[page - 1] || null;
+      const hasFilters = kindFilter !== 'all' || statusFilter !== 'all' || compositionFilter !== 'all';
+      const fetchLimit = hasFilters ? pageSize * 2 : pageSize;
+      const result = await kubernetesRepository.getCompositeResources(contextName, fetchLimit, continueToken);
+      
+      if (result.continueToken) {
+        while (continueTokensRef.current.length < page) {
+          continueTokensRef.current.push(null);
+        }
+        continueTokensRef.current[page] = result.continueToken;
+      }
+      
+      let filtered = result.items || [];
+      
+      if (kindFilter !== 'all') {
+        filtered = filtered.filter(r => r.kind === kindFilter);
+      }
+      
+      if (statusFilter !== 'all') {
+        filtered = filtered.filter(r => {
+          const statusText = getStatusText(r.conditions);
+          return statusText === statusFilter;
+        });
+      }
+      
+      if (compositionFilter !== 'all') {
+        filtered = filtered.filter(r => (r.compositionRef?.name || '') === compositionFilter);
+      }
+      
+      const startIndex = (page - 1) * pageSize;
+      const paginated = filtered.slice(startIndex, startIndex + pageSize);
+      
+      return {
+        items: paginated,
+        totalCount: result.continueToken ? (page * pageSize) + 1 : startIndex + filtered.length
+      };
+    } catch (err) {
+      setError(err.message);
+      return { items: [], totalCount: 0 };
+    }
+  }, [selectedContext, kubernetesRepository, kindFilter, statusFilter, compositionFilter]);
 
   useEffect(() => {
-    let filtered = compositeResources;
-    
-    if (kindFilter !== 'all') {
-      filtered = filtered.filter(r => r.kind === kindFilter);
-    }
-    
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(r => {
-        const statusText = getStatusText(r.conditions);
-        return statusText === statusFilter;
-      });
-    }
-    
-    if (compositionFilter !== 'all') {
-      filtered = filtered.filter(r => (r.compositionRef?.name || '') === compositionFilter);
-    }
-    
-    setFilteredResources(filtered);
-  }, [compositeResources, kindFilter, statusFilter, compositionFilter]);
+    continueTokensRef.current = [null];
+  }, [selectedContext, kindFilter, statusFilter, compositionFilter]);
 
   if (loading) {
     return <LoadingSpinner message="Loading composite resources..." />;
@@ -99,13 +125,6 @@ export const CompositeResources = () => {
     );
   }
 
-  const getStatusColor = (conditions) => {
-    if (!conditions || conditions.length === 0) return 'gray';
-    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
-    if (readyCondition && readyCondition.status === 'True') return 'green';
-    if (readyCondition && readyCondition.status === 'False') return 'red';
-    return 'yellow';
-  };
 
   const columns = [
     {
@@ -121,10 +140,40 @@ export const CompositeResources = () => {
     {
       header: 'Status',
       accessor: 'status',
-      minWidth: '120px',
+      minWidth: '160px',
       render: (row) => {
-        const statusColor = getStatusColor(row.conditions);
+        const syncedStatus = getSyncedStatus(row.conditions);
+        const readyStatus = getReadyStatus(row.conditions);
+        const responsiveStatus = getResponsiveStatus(row.conditions);
         const statusText = getStatusText(row.conditions);
+        
+        const statusBadges = [syncedStatus, readyStatus, responsiveStatus].filter(Boolean);
+        
+        if (statusBadges.length > 0) {
+          return (
+            <HStack spacing={2}>
+              {statusBadges.map((status, idx) => (
+                <Box
+                  key={idx}
+                  as="span"
+                  display="inline-block"
+                  px={2}
+                  py={1}
+                  borderRadius="md"
+                  fontSize="xs"
+                  fontWeight="semibold"
+                  bg={`${status.color}.100`}
+                  _dark={{ bg: `${status.color}.800`, color: `${status.color}.100` }}
+                  color={`${status.color}.800`}
+                >
+                  {status.text}
+                </Box>
+              ))}
+            </HStack>
+          );
+        }
+        
+        const statusColor = getStatusColor(row.conditions);
         return (
           <Box
             as="span"
@@ -228,12 +277,7 @@ export const CompositeResources = () => {
       overflowY="auto"
       position="relative"
     >
-      <HStack justify="space-between" mb={6} flexShrink={0}>
-        <Text fontSize="2xl" fontWeight="bold">Composite Resources</Text>
-        <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-          {filteredResources.length} resource{filteredResources.length !== 1 ? 's' : ''}
-        </Text>
-      </HStack>
+      <Text fontSize="2xl" fontWeight="bold" mb={6}>Composite Resources</Text>
 
       <Box
         flex={selectedResource ? `0 0 calc(50% - 4px)` : '1'}
@@ -245,11 +289,14 @@ export const CompositeResources = () => {
         mt={4}
       >
         <DataTable
-          data={filteredResources}
+          data={[]}
           columns={columns}
           searchableFields={['name', 'kind', 'compositionRef.name']}
           itemsPerPage={20}
           onRowClick={handleRowClick}
+          serverSidePagination={true}
+          fetchData={fetchData}
+          loading={loading}
           filters={
             <HStack spacing={3}>
               <Dropdown
@@ -259,7 +306,7 @@ export const CompositeResources = () => {
                 onChange={setKindFilter}
                 options={[
                   { value: 'all', label: 'All Kinds' },
-                  ...Array.from(new Set(compositeResources.map(r => r.kind).filter(Boolean))).sort().map(kind => ({
+                  ...filterOptions.kinds.map(kind => ({
                     value: kind,
                     label: kind
                   }))
@@ -285,7 +332,7 @@ export const CompositeResources = () => {
                 onChange={setCompositionFilter}
                 options={[
                   { value: 'all', label: 'All Compositions' },
-                  ...Array.from(new Set(compositeResources.map(r => r.compositionRef?.name).filter(Boolean))).sort().map(comp => ({
+                  ...filterOptions.compositions.map(comp => ({
                     value: comp,
                     label: comp
                   }))

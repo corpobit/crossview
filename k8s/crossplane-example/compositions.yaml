@@ -1,0 +1,380 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: nginx-service
+spec:
+  compositeTypeRef:
+    apiVersion: example.org/v1alpha1
+    kind: XNginx
+  mode: Pipeline
+  pipeline:
+  - step: patch-and-transform
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+      - name: nginx-deployment
+        base:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: nginx-deployment
+            labels:
+              crossplane.io/managed: "true"
+            annotations:
+              crossplane.io/external-name: nginx-deployment
+          spec:
+            replicas: ${replicas}
+            selector:
+              matchLabels:
+                app: nginx
+            template:
+              metadata:
+                labels:
+                  app: nginx
+              spec:
+                containers:
+                - name: nginx
+                  image: nginx:alpine
+                  ports:
+                  - containerPort: 80
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.replicas
+          toFieldPath: spec.replicas
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.name
+          toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-deployment"
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.claimRef.namespace
+          toFieldPath: metadata.namespace
+      - name: nginx-service
+        base:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: nginx-service
+            labels:
+              crossplane.io/managed: "true"
+            annotations:
+              crossplane.io/external-name: nginx-service
+          spec:
+            type: LoadBalancer
+            ports:
+            - port: 80
+              protocol: TCP
+              targetPort: 80
+            selector:
+              app: nginx
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.name
+          toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-service"
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.claimRef.namespace
+          toFieldPath: metadata.namespace
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: redis-service
+spec:
+  compositeTypeRef:
+    apiVersion: example.org/v1alpha1
+    kind: XRedis
+  mode: Pipeline
+  pipeline:
+  - step: patch-and-transform
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+      - name: redis-deployment
+        base:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: redis-deployment
+            labels:
+              crossplane.io/managed: "true"
+            annotations:
+              crossplane.io/external-name: redis-deployment
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: redis
+            template:
+              metadata:
+                labels:
+                  app: redis
+              spec:
+                containers:
+                - name: redis
+                  image: redis:7-alpine
+                  ports:
+                  - containerPort: 6379
+                  resources:
+                    requests:
+                      memory: "256Mi"
+                      cpu: "100m"
+                    limits:
+                      memory: "512Mi"
+                      cpu: "500m"
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.name
+          toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-deployment"
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.claimRef.namespace
+          toFieldPath: metadata.namespace
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.memoryMB
+          toFieldPath: spec.template.spec.containers[0].resources.limits.memory
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%dMi"
+      - name: redis-service
+        base:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: redis-service
+            labels:
+              crossplane.io/managed: "true"
+            annotations:
+              crossplane.io/external-name: redis-service
+          spec:
+            type: ClusterIP
+            ports:
+            - port: 6379
+              protocol: TCP
+              targetPort: 6379
+            selector:
+              app: redis
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.name
+          toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-service"
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.claimRef.namespace
+          toFieldPath: metadata.namespace
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: postgres-service
+spec:
+  compositeTypeRef:
+    apiVersion: example.org/v1alpha1
+    kind: XPostgres
+  mode: Pipeline
+  pipeline:
+  - step: patch-and-transform
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+      - name: postgres-deployment
+        base:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: postgres-deployment
+            labels:
+              crossplane.io/managed: "true"
+            annotations:
+              crossplane.io/external-name: postgres-deployment
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: postgres
+            template:
+              metadata:
+                labels:
+                  app: postgres
+              spec:
+                containers:
+                - name: postgres
+                  image: postgres:15-alpine
+                  env:
+                  - name: POSTGRES_DB
+                    value: ${database}
+                  - name: POSTGRES_USER
+                    value: admin
+                  - name: POSTGRES_PASSWORD
+                    value: changeme
+                  ports:
+                  - containerPort: 5432
+                  volumeMounts:
+                  - name: postgres-data
+                    mountPath: /var/lib/postgresql/data
+                volumes:
+                - name: postgres-data
+                  emptyDir: {}
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.name
+          toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-deployment"
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.claimRef.namespace
+          toFieldPath: metadata.namespace
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.database
+          toFieldPath: spec.template.spec.containers[0].env[0].value
+      - name: postgres-service
+        base:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: postgres-service
+            labels:
+              crossplane.io/managed: "true"
+            annotations:
+              crossplane.io/external-name: postgres-service
+          spec:
+            type: ClusterIP
+            ports:
+            - port: 5432
+              protocol: TCP
+              targetPort: 5432
+            selector:
+              app: postgres
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.name
+          toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-service"
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.claimRef.namespace
+          toFieldPath: metadata.namespace
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: webapp-service
+spec:
+  compositeTypeRef:
+    apiVersion: example.org/v1alpha1
+    kind: XWebApp
+  mode: Pipeline
+  pipeline:
+  - step: patch-and-transform
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+      - name: webapp-deployment
+        base:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: webapp-deployment
+            labels:
+              crossplane.io/managed: "true"
+            annotations:
+              crossplane.io/external-name: webapp-deployment
+          spec:
+            replicas: ${replicas}
+            selector:
+              matchLabels:
+                app: webapp
+            template:
+              metadata:
+                labels:
+                  app: webapp
+              spec:
+                containers:
+                - name: webapp
+                  image: ${image}
+                  ports:
+                  - containerPort: 80
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.name
+          toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-deployment"
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.claimRef.namespace
+          toFieldPath: metadata.namespace
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.replicas
+          toFieldPath: spec.replicas
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.image
+          toFieldPath: spec.template.spec.containers[0].image
+      - name: webapp-service
+        base:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: webapp-service
+            labels:
+              crossplane.io/managed: "true"
+            annotations:
+              crossplane.io/external-name: webapp-service
+          spec:
+            type: LoadBalancer
+            ports:
+            - port: 80
+              protocol: TCP
+              targetPort: 80
+            selector:
+              app: webapp
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.name
+          toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-service"
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.claimRef.namespace
+          toFieldPath: metadata.namespace
+

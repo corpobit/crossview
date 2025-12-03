@@ -131,7 +131,7 @@ export class KubernetesApiRepository extends IKubernetesRepository {
     }
   }
 
-  async getCrossplaneResources(namespace = null, context = null) {
+  async getCrossplaneResources(namespace = null, context = null, limit = null, continueToken = null) {
     try {
       const params = new URLSearchParams();
       if (namespace) {
@@ -140,11 +140,60 @@ export class KubernetesApiRepository extends IKubernetesRepository {
       if (context) {
         params.append('context', context);
       }
+      if (limit) {
+        params.append('limit', limit.toString());
+      }
+      if (continueToken) {
+        params.append('continue', continueToken);
+      }
       const queryString = params.toString();
-      const resources = await this.request(`/crossplane/resources${queryString ? `?${queryString}` : ''}`);
-      return resources.map(item => new CrossplaneResource(item));
+      const result = await this.request(`/crossplane/resources${queryString ? `?${queryString}` : ''}`);
+      const items = result.items || result;
+      const itemsArray = Array.isArray(items) ? items : [];
+      return {
+        items: itemsArray.map(item => new CrossplaneResource(item)),
+        continueToken: result.continueToken || null
+      };
     } catch (error) {
       throw new Error(`Failed to get Crossplane resources: ${error.message}`);
+    }
+  }
+
+  async getClaims(context = null, limit = null, continueToken = null) {
+    try {
+      const params = new URLSearchParams();
+      if (context) {
+        params.append('context', context);
+      }
+      if (limit) {
+        params.append('limit', limit.toString());
+      }
+      if (continueToken) {
+        params.append('continue', continueToken);
+      }
+      const queryString = params.toString();
+      return await this.request(`/claims${queryString ? `?${queryString}` : ''}`);
+    } catch (error) {
+      throw new Error(`Failed to get claims: ${error.message}`);
+    }
+  }
+
+  async getCompositeResources(context = null, limit = null, continueToken = null) {
+    try {
+      const params = new URLSearchParams();
+      if (context) {
+        params.append('context', context);
+      }
+      if (limit) {
+        params.append('limit', limit.toString());
+      }
+      if (continueToken) {
+        params.append('continue', continueToken);
+      }
+      const queryString = params.toString();
+      return await this.request(`/composite-resources${queryString ? `?${queryString}` : ''}`);
+    } catch (error) {
+      throw new Error(`Failed to get composite resources: ${error.message}`);
     }
   }
 

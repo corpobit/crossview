@@ -1,10 +1,11 @@
-import { Box, Text, Spinner } from '@chakra-ui/react';
+import { Box, Text, Spinner, HStack } from '@chakra-ui/react';
 import { useEffect, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useAppContext } from '../../providers/AppProvider.jsx';
 import { GetCompositeResourcesUseCase } from '../../../domain/usecases/GetCompositeResourcesUseCase.js';
 import { Container } from '../common/Container.jsx';
 import { DataTable } from '../common/DataTable.jsx';
+import { getStatusColor, getStatusText, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../../utils/resourceStatus.js';
 
 export const CompositeResourcesWidget = ({ onResourceClick }) => {
   const { kubernetesRepository, selectedContext } = useAppContext();
@@ -27,8 +28,8 @@ export const CompositeResourcesWidget = ({ onResourceClick }) => {
           : selectedContext.name || selectedContext;
         
         const data = await new GetCompositeResourcesUseCase(kubernetesRepository)
-          .execute(contextName);
-        setCompositeResources(data || []);
+          .execute(contextName, 20, null);
+        setCompositeResources(Array.isArray(data) ? data : (data?.items || []));
       } catch (err) {
         console.warn('Failed to fetch composite resources:', err.message);
         setError(err.message);
@@ -49,21 +50,6 @@ export const CompositeResourcesWidget = ({ onResourceClick }) => {
       .slice(0, 10);
   }, [compositeResources]);
 
-  const getStatusText = (conditions) => {
-    if (!conditions || conditions.length === 0) return 'Unknown';
-    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
-    if (readyCondition?.status === 'True') return 'Ready';
-    if (readyCondition?.status === 'False') return 'Not Ready';
-    return 'Pending';
-  };
-
-  const getStatusColor = (conditions) => {
-    if (!conditions || conditions.length === 0) return 'gray';
-    const readyCondition = conditions.find(c => c.type === 'Ready' || c.type === 'Synced');
-    if (readyCondition?.status === 'True') return 'green';
-    if (readyCondition?.status === 'False') return 'red';
-    return 'yellow';
-  };
 
   const columns = [
     {
@@ -79,10 +65,40 @@ export const CompositeResourcesWidget = ({ onResourceClick }) => {
     {
       header: 'Status',
       accessor: 'status',
-      minWidth: '120px',
+      minWidth: '160px',
       render: (row) => {
-        const statusColor = getStatusColor(row.conditions);
+        const syncedStatus = getSyncedStatus(row.conditions);
+        const readyStatus = getReadyStatus(row.conditions);
+        const responsiveStatus = getResponsiveStatus(row.conditions);
         const statusText = getStatusText(row.conditions);
+        
+        const statusBadges = [syncedStatus, readyStatus, responsiveStatus].filter(Boolean);
+        
+        if (statusBadges.length > 0) {
+          return (
+            <HStack spacing={2}>
+              {statusBadges.map((status, idx) => (
+                <Box
+                  key={idx}
+                  as="span"
+                  display="inline-block"
+                  px={2}
+                  py={1}
+                  borderRadius="md"
+                  fontSize="xs"
+                  fontWeight="semibold"
+                  bg={`${status.color}.100`}
+                  _dark={{ bg: `${status.color}.800`, color: `${status.color}.100` }}
+                  color={`${status.color}.800`}
+                >
+                  {status.text}
+                </Box>
+              ))}
+            </HStack>
+          );
+        }
+        
+        const statusColor = getStatusColor(row.conditions);
         return (
           <Box
             as="span"

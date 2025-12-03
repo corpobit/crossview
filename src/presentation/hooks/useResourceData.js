@@ -51,44 +51,43 @@ export const useResourceData = (resource) => {
     loadFullResource();
   }, [resource, selectedContext, kubernetesRepository]);
 
-  const extractRelations = (full, originalResource) => {
-    const related = [];
-    
-    if (!full.spec && originalResource) {
-      full.spec = {
-        resourceRef: originalResource.resourceRef || originalResource.spec?.resourceRef,
-        compositionRef: originalResource.compositionRef || originalResource.spec?.compositionRef,
-        writeConnectionSecretToRef: originalResource.writeConnectionSecretToRef || originalResource.spec?.writeConnectionSecretToRef,
-        resourceRefs: originalResource.resourceRefs || originalResource.spec?.resourceRefs || [],
-        claimRef: originalResource.claimRef || originalResource.spec?.claimRef,
-        writeConnectionSecretsTo: originalResource.writeConnectionSecretsTo || originalResource.spec?.writeConnectionSecretsTo,
-        ...originalResource.spec
-      };
-    } else if (full.spec && originalResource) {
+  const mergeSpec = (full, originalResource) => {
+    if (!full.spec) {
+      full.spec = originalResource?.spec || {};
+    }
+    if (originalResource) {
       full.spec = {
         ...full.spec,
         resourceRef: full.spec.resourceRef || originalResource.resourceRef || originalResource.spec?.resourceRef,
         compositionRef: full.spec.compositionRef || originalResource.compositionRef || originalResource.spec?.compositionRef,
+        writeConnectionSecretToRef: full.spec.writeConnectionSecretToRef || originalResource.writeConnectionSecretToRef || originalResource.spec?.writeConnectionSecretToRef,
         resourceRefs: full.spec.resourceRefs || originalResource.resourceRefs || originalResource.spec?.resourceRefs || [],
         claimRef: full.spec.claimRef || originalResource.claimRef || originalResource.spec?.claimRef,
+        writeConnectionSecretsTo: full.spec.writeConnectionSecretsTo || originalResource.writeConnectionSecretsTo || originalResource.spec?.writeConnectionSecretsTo,
       };
     }
-    
-    if (!full.metadata && originalResource) {
-      full.metadata = {
-        ...originalResource.metadata,
-        name: originalResource.name,
-        namespace: originalResource.namespace,
-        labels: originalResource.labels || originalResource.metadata?.labels || {},
-        ownerReferences: originalResource.metadata?.ownerReferences || []
-      };
-    } else if (full.metadata && originalResource) {
+  };
+
+  const mergeMetadata = (full, originalResource) => {
+    if (!full.metadata) {
+      full.metadata = {};
+    }
+    if (originalResource) {
       full.metadata = {
         ...full.metadata,
+        name: full.metadata.name || originalResource.name,
+        namespace: full.metadata.namespace || originalResource.namespace,
         labels: full.metadata.labels || originalResource.labels || originalResource.metadata?.labels || {},
         ownerReferences: full.metadata.ownerReferences || originalResource.metadata?.ownerReferences || []
       };
     }
+  };
+
+  const extractRelations = (full, originalResource) => {
+    const related = [];
+    
+    mergeSpec(full, originalResource);
+    mergeMetadata(full, originalResource);
     
     const resourceRef = full.spec?.resourceRef || full.resourceRef || originalResource?.resourceRef || originalResource?.spec?.resourceRef;
     if (resourceRef) {
@@ -211,23 +210,10 @@ export const useResourceData = (resource) => {
       const claimName = labels['crossplane.io/claim-name'];
       const claimNamespace = labels['crossplane.io/claim-namespace'];
       const ownerRef = full.metadata?.ownerReferences?.find(ref => ref.kind && ref.kind.startsWith('X'));
-      const claimApiVersion = ownerRef?.apiVersion || 'unknown';
-      const claimKind = ownerRef?.kind ? ownerRef.kind.substring(1) : 'Claim';
-      
-      related.push({
-        type: 'Claim (Owner)',
-        apiVersion: claimApiVersion,
-        kind: claimKind,
-        name: claimName,
-        namespace: claimNamespace,
-      });
-    }
-    
-    if (labels['crossplane.io/claim-name'] && labels['crossplane.io/claim-namespace']) {
-      const claimName = labels['crossplane.io/claim-name'];
-      const claimNamespace = labels['crossplane.io/claim-namespace'];
-      const claimApiVersion = full.apiVersion || originalResource.apiVersion || 'unknown';
-      const claimKind = full.kind ? full.kind.substring(1) : (originalResource.kind ? originalResource.kind.substring(1) : 'Claim');
+      const claimApiVersion = ownerRef?.apiVersion || full.apiVersion || originalResource.apiVersion || 'unknown';
+      const claimKind = ownerRef?.kind ? ownerRef.kind.substring(1) : 
+                       (full.kind ? full.kind.substring(1) : 
+                       (originalResource.kind ? originalResource.kind.substring(1) : 'Claim'));
       
       related.push({
         type: 'Claim (Owner)',
@@ -256,20 +242,10 @@ export const useResourceData = (resource) => {
       Object.keys(full.spec).forEach((key) => {
         if ((key.endsWith('Ref') || key.endsWith('Refs')) && full.spec[key] && !processedRefs.has(key)) {
           const refValue = full.spec[key];
+          const refType = key.replace(/Refs?$/, '').replace(/([A-Z])/g, ' $1').trim() || 'Resource';
           
-          if (refValue && typeof refValue === 'object' && !Array.isArray(refValue) && refValue.name) {
-            const refType = key.replace('Ref', '').replace(/([A-Z])/g, ' $1').trim() || 'Resource';
-            related.push({
-              type: refType,
-              apiVersion: refValue.apiVersion || 'unknown',
-              kind: refValue.kind || refType,
-              name: refValue.name,
-              namespace: refValue.namespace || null,
-            });
-          } else if (Array.isArray(refValue)) {
-            refValue.forEach((ref) => {
+          const addRef = (ref) => {
               if (ref && ref.name) {
-                const refType = key.replace('Refs', '').replace(/([A-Z])/g, ' $1').trim() || 'Resource';
                 related.push({
                   type: refType,
                   apiVersion: ref.apiVersion || 'unknown',
@@ -278,41 +254,30 @@ export const useResourceData = (resource) => {
                   namespace: ref.namespace || null,
                 });
               }
-            });
+          };
+          
+          if (Array.isArray(refValue)) {
+            refValue.forEach(addRef);
+          } else if (refValue && typeof refValue === 'object' && refValue.name) {
+            addRef(refValue);
           }
         }
       });
     }
     
-    const uniqueRelated = [];
     const seen = new Set();
-    related.forEach(rel => {
+    return related.filter(rel => {
       const key = `${rel.type}-${rel.name}-${rel.namespace || 'null'}`;
-      if (!seen.has(key)) {
+      if (seen.has(key)) return false;
         seen.add(key);
-        uniqueRelated.push(rel);
-      }
+      return true;
     });
-    
-    return uniqueRelated;
   };
 
   const loadEvents = async (full, originalResource, contextName) => {
-    let resourceNamespace = full.metadata?.namespace;
-    
-    if (!resourceNamespace || resourceNamespace === 'undefined' || resourceNamespace === 'null') {
-      resourceNamespace = originalResource.namespace || full.namespace;
-    }
-    
+    let resourceNamespace = full.metadata?.namespace || originalResource.namespace || full.namespace || null;
     if (resourceNamespace === 'undefined' || resourceNamespace === 'null') {
       resourceNamespace = null;
-    }
-    
-    if (!resourceNamespace && full && typeof full === 'object') {
-      resourceNamespace = full.namespace || 
-                         (full.metadata && full.metadata.namespace) ||
-                         (originalResource && originalResource.namespace) ||
-                         null;
     }
     
     const resourceKind = full.kind || originalResource.kind;
@@ -326,17 +291,17 @@ export const useResourceData = (resource) => {
     
     if (!isClusterScoped && resourceKind && resourceName) {
       if (resourceNamespace) {
-        try {
-          setEventsLoading(true);
-          const eventsData = await kubernetesRepository.getEvents(
-            resourceKind,
-            resourceName,
-            resourceNamespace,
-            contextName
-          );
-          allEvents.push(...eventsData);
-        } catch (error) {
-          console.warn('[useResourceData] Failed to load events for resource:', error);
+      try {
+        setEventsLoading(true);
+        const eventsData = await kubernetesRepository.getEvents(
+          resourceKind,
+          resourceName,
+          resourceNamespace,
+          contextName
+        );
+        allEvents.push(...eventsData);
+      } catch (error) {
+        console.warn('[useResourceData] Failed to load events for resource:', error);
         } finally {
           setEventsLoading(false);
         }
@@ -345,15 +310,15 @@ export const useResourceData = (resource) => {
     
     const resourceRef = full.spec?.resourceRef || full.resourceRef || originalResource?.resourceRef || originalResource?.spec?.resourceRef;
     if (resourceRef && resourceRef.kind && resourceRef.name && resourceNamespace) {
-      try {
-        const compositeEvents = await kubernetesRepository.getEvents(
-          resourceRef.kind,
-          resourceRef.name,
+          try {
+            const compositeEvents = await kubernetesRepository.getEvents(
+              resourceRef.kind,
+              resourceRef.name,
           resourceNamespace,
-          contextName
-        );
-        if (compositeEvents.length > 0) {
-          allEvents.push(...compositeEvents);
+              contextName
+            );
+            if (compositeEvents.length > 0) {
+              allEvents.push(...compositeEvents);
         }
       } catch (error) {
         console.warn('[useResourceData] Failed to load events for Composite Resource:', error);
