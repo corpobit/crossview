@@ -1,20 +1,64 @@
 # Kubernetes Deployment Guide
 
-## Running in a Kubernetes Pod
+Deploy Crossview using standard Kubernetes manifests for full control over your deployment.
 
-When running inside a Kubernetes pod, the application automatically detects the cluster environment and uses the **service account token** instead of a kubeconfig file.
+## Prerequisites
 
-### How It Works
+- Kubernetes cluster (1.19+)
+- kubectl configured
+- Access to create namespaces, deployments, services, and RBAC resources
 
-1. **In a Kubernetes Pod:**
-   - The app tries `kubeConfig.loadFromCluster()` first
-   - This uses the service account token at `/var/run/secrets/kubernetes.io/serviceaccount/`
-   - No kubeconfig file needed!
-   - Accesses the **same cluster** the pod is running in
+## Quick Deployment
 
-2. **Local Development:**
-   - Falls back to `~/.kube/config` or `KUBECONFIG` env var
-   - Uses your local kubeconfig file
+### 1. Create Namespace
+
+```bash
+kubectl create namespace crossview
+```
+
+### 2. Create Secrets
+
+Create a secret with database password and session secret:
+
+```bash
+kubectl create secret generic crossview-secrets \
+  --from-literal=db-password=your-secure-password \
+  --from-literal=session-secret=$(openssl rand -base64 32) \
+  -n crossview
+```
+
+### 3. Update Configuration
+
+Edit `k8s/configmap.yaml` and `k8s/deployment.yaml` with your settings:
+
+- Update Docker image in `deployment.yaml`
+- Adjust resource limits if needed
+- Configure database settings in `configmap.yaml`
+
+### 4. Deploy Resources
+
+```bash
+# Apply all manifests
+kubectl apply -f k8s/
+
+# Or apply individually
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/secret.yaml
+kubectl apply -f k8s/serviceaccount.yaml
+kubectl apply -f k8s/clusterrole.yaml
+kubectl apply -f k8s/clusterrolebinding.yaml
+kubectl apply -f k8s/postgres-deployment.yaml
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+```
+
+## How It Works
+
+When running inside a Kubernetes pod, Crossview automatically:
+- Uses the service account token (no kubeconfig needed)
+- Accesses the same cluster the pod is running in
+- Uses RBAC permissions from the service account
 
 ## Quick Deployment
 

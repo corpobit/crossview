@@ -156,9 +156,8 @@ helm install crossview crossview/crossview \
 ```
 
 For more details, see:
-- [Helm Chart README](helm/crossview/README.md) - Detailed chart documentation
-- [Helm Setup Guide](docs/HELM_SETUP.md) - How to set up the Helm chart repository
-- [Helm Quick Start](docs/HELM_QUICKSTART.md) - Quick installation guide
+- [Helm Deployment Guide](docs/HELM_DEPLOYMENT.md) - Complete Helm deployment guide
+- [Helm Chart Reference](helm/crossview/README.md) - All available chart options
 
 ## Docker
 
@@ -262,13 +261,23 @@ The application loads configuration in this order (highest to lowest priority):
 
 ## Documentation
 
-- [Kubernetes Deployment Guide](docs/KUBERNETES_DEPLOYMENT.md) - Deploy using Kubernetes manifests
-- [Helm Setup Guide](docs/HELM_SETUP.md) - Set up Helm chart repository
-- [Helm Quick Start](docs/HELM_QUICKSTART.md) - Quick Helm installation guide
-- [SSO Setup Guide](docs/SSO_SETUP.md) - Configure Single Sign-On
+### Getting Started
+- [Getting Started Guide](docs/GETTING_STARTED.md) - Quick start and first steps
+- [Features & Capabilities](docs/FEATURES.md) - What Crossview can do
+
+### Deployment
+- [Helm Deployment](docs/HELM_DEPLOYMENT.md) - Deploy using Helm (recommended)
+- [Kubernetes Deployment](docs/KUBERNETES_DEPLOYMENT.md) - Deploy using Kubernetes manifests
+- [Helm Chart Reference](helm/crossview/README.md) - Complete Helm chart options
+
+### Configuration
+- [Configuration Guide](docs/CONFIGURATION.md) - Configure Crossview for your environment
+- [SSO Setup](docs/SSO_SETUP.md) - Configure Single Sign-On (OIDC/SAML)
 - [SSO Protocols](docs/SSO_PROTOCOLS.md) - Understanding OIDC and SAML
-- [Helm Chart Documentation](helm/crossview/README.md) - Complete Helm chart reference
-- [Kubernetes Manifests](k8s/README.md) - Kubernetes deployment manifests
+
+### Support
+- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
+- [Kubernetes Manifests](k8s/README.md) - Reference for Kubernetes manifests
 - [Keycloak Setup](keycloak/README.md) - Keycloak integration guide
 
 ## Tech Stack
