@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build-and-release:
@@ -73,7 +74,23 @@ jobs:
           echo "Previous version: $LATEST_TAG"
           echo "New version: $NEW_VERSION"
 
+      - name: Check if release already exists
+        id: check-release
+        run: |
+          TAG=${{ steps.version.outputs.tag }}
+          echo "Checking if tag $TAG already exists..."
+          if git ls-remote --tags origin "$TAG" | grep -q "$TAG"; then
+            echo "⚠️ Release $TAG already exists!"
+            echo "Current latest tag: $(git describe --tags --match 'v*' --abbrev=0 2>/dev/null || echo 'none')"
+            echo "Calculated next version: ${{ steps.version.outputs.version }}"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Release $TAG does not exist, will create"
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create GitHub Release
+        if: steps.check-release.outputs.skip != 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.tag }}
@@ -84,8 +101,18 @@ jobs:
             ## Changes
             - Built from commit ${{ github.sha }}
             - Docker image: ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}
+            - Helm chart will be automatically updated to version ${{ steps.version.outputs.version }}
           draft: false
           prerelease: false
+          fail_on_unmatched: true
+
+      - name: Warn if release skipped
+        if: steps.check-release.outputs.skip == 'true'
+        run: |
+          echo "::warning::Release ${{ steps.version.outputs.tag }} already exists. Skipping release creation but continuing with Docker build."
+          echo "If you want to create a new release, you may need to:"
+          echo "1. Delete the existing tag: git push origin --delete ${{ steps.version.outputs.tag }}"
+          echo "2. Or manually create a new release with a different version"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
