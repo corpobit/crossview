@@ -159,30 +159,29 @@ jobs:
           helm repo index . --url https://corpobit.github.io/crossview
           cat index.yaml
 
+      - name: Clean up gh-pages branch (remove unnecessary files)
+        if: steps.chart-version.outputs.skip != 'true'
+        run: |
+          cd gh-pages
+          # Remove any files that shouldn't be in the Helm repo
+          find . -type f ! -name 'index.yaml' ! -name '*.tgz' ! -path './charts/*' -delete 2>/dev/null || true
+          find . -type d -empty -delete 2>/dev/null || true
+          # Remove directories that shouldn't be there
+          rm -rf config logs node_modules .git 2>/dev/null || true
+          # Ensure charts directory exists
+          mkdir -p charts
+
       - name: Commit and push to gh-pages
         if: steps.chart-version.outputs.skip != 'true'
         run: |
           cd gh-pages
           git add .
-          if git diff --staged --quiet; then
+          # Remove any untracked files
+          git clean -fd || true
+          if git diff --staged --quiet && git diff --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Update Helm chart to version ${{ steps.chart-version.outputs.version }}"
+            git commit -m "Update Helm chart to version ${{ steps.chart-version.outputs.version }}" || echo "Nothing to commit"
             git push origin gh-pages
           fi
-
-      - name: Setup Pages
-        if: steps.chart-version.outputs.skip != 'true'
-        uses: actions/configure-pages@v4
-
-      - name: Upload artifact
-        if: steps.chart-version.outputs.skip != 'true'
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: gh-pages
-
-      - name: Deploy to GitHub Pages
-        if: steps.chart-version.outputs.skip != 'true'
-        id: deploy
-        uses: actions/deploy-pages@v4
 
