@@ -15,12 +15,16 @@
 - **YAML Editor** - View and understand resource definitions
 - **Resource Relations** - Visualize relationships between resources
 
+![Global Search](../public/images/global-search.png)
+
 ### 📦 Crossplane-Specific Features
 - **Claims Management** - View and manage Crossplane Claims
 - **Composite Resources** - Monitor Composite Resources (XRs)
 - **Compositions** - Browse and understand Composition definitions
 - **XRD Browser** - Explore Composite Resource Definitions
 - **Provider Status** - Monitor Crossplane Provider health
+
+![Composition Resources](../public/images/composition-resources.png)
 
 ### 🔐 Security & Access
 - **User Authentication** - Secure login system
