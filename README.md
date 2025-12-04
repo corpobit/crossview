@@ -132,7 +132,33 @@ The backend uses `KubernetesRepository` from `src/data/repositories/KubernetesRe
 - `KUBECONFIG` environment variable
 - `KUBE_CONFIG_PATH` environment variable
 
-See `KUBERNETES_DEPLOYMENT.md` for deployment examples.
+See [Kubernetes Deployment Guide](docs/KUBERNETES_DEPLOYMENT.md) for deployment examples.
+
+## Helm Chart
+
+Crossview can be deployed using Helm, which simplifies Kubernetes deployment and management.
+
+### Add the Helm Repository
+
+```bash
+helm repo add crossview https://corpobit.github.io/crossview
+helm repo update
+```
+
+### Install with Helm
+
+```bash
+helm install crossview crossview/crossview \
+  --namespace crossview \
+  --create-namespace \
+  --set secrets.dbPassword=your-db-password \
+  --set secrets.sessionSecret=$(openssl rand -base64 32)
+```
+
+For more details, see:
+- [Helm Chart README](helm/crossview/README.md) - Detailed chart documentation
+- [Helm Setup Guide](docs/HELM_SETUP.md) - How to set up the Helm chart repository
+- [Helm Quick Start](docs/HELM_QUICKSTART.md) - Quick installation guide
 
 ## Docker
 
@@ -233,6 +259,17 @@ The application loads configuration in this order (highest to lowest priority):
 - `DB_PASSWORD` - Database password
 - `KUBECONFIG` or `KUBE_CONFIG_PATH` - Path to Kubernetes config file inside container
 - `SESSION_SECRET` - Secret for session encryption (optional, has default)
+
+## Documentation
+
+- [Kubernetes Deployment Guide](docs/KUBERNETES_DEPLOYMENT.md) - Deploy using Kubernetes manifests
+- [Helm Setup Guide](docs/HELM_SETUP.md) - Set up Helm chart repository
+- [Helm Quick Start](docs/HELM_QUICKSTART.md) - Quick Helm installation guide
+- [SSO Setup Guide](docs/SSO_SETUP.md) - Configure Single Sign-On
+- [SSO Protocols](docs/SSO_PROTOCOLS.md) - Understanding OIDC and SAML
+- [Helm Chart Documentation](helm/crossview/README.md) - Complete Helm chart reference
+- [Kubernetes Manifests](k8s/README.md) - Kubernetes deployment manifests
+- [Keycloak Setup](keycloak/README.md) - Keycloak integration guide
 
 ## Tech Stack
 
