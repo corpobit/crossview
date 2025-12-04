@@ -8,6 +8,7 @@ import {
 } from '@chakra-ui/react';
 import { FiExternalLink, FiClock, FiTag, FiLayers, FiSettings, FiInfo } from 'react-icons/fi';
 import { formatRelativeTime } from './resourceUtils.js';
+import { colors, getBorderColor } from '../../utils/theme.js';
 
 export const ResourceOverview = ({ fullResource, resource, relatedResources, onRelatedClick }) => {
   return (
@@ -830,15 +831,15 @@ export const ResourceOverview = ({ fullResource, resource, relatedResources, onR
                   _dark={{ bg: 'gray.800' }}
                   _hover={{ bg: 'blue.50', _dark: { bg: 'gray.700' } }}
                   css={{
-                    borderColor: 'rgba(0, 0, 0, 0.08) !important',
+                    borderColor: `${getBorderColor('light')} !important`,
                     '.dark &': {
-                      borderColor: 'rgba(255, 255, 255, 0.1) !important',
+                      borderColor: `${getBorderColor('dark')} !important`,
                     },
                     '&:hover': {
-                      borderColor: 'rgba(59, 130, 246, 0.5) !important',
+                      borderColor: `${colors.border.light.blueHover} !important`,
                     },
                     '.dark &:hover': {
-                      borderColor: 'rgba(59, 130, 246, 0.7) !important',
+                      borderColor: `${colors.border.dark.blueHover} !important`,
                     }
                   }}
                   onClick={() => onRelatedClick(related)}

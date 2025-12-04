@@ -4,6 +4,7 @@ import {
   Text,
 } from '@chakra-ui/react';
 import { SearchBar } from '../common/SearchBar.jsx';
+import { getBorderColor } from '../../utils/theme.js';
 
 export const Header = ({ sidebarWidth }) => {
   return (
@@ -14,9 +15,9 @@ export const Header = ({ sidebarWidth }) => {
       _dark={{ bg: 'gray.800' }}
       borderBottom="1px solid"
       css={{
-        borderColor: 'rgba(0, 0, 0, 0.08) !important',
+        borderColor: `${getBorderColor('light')} !important`,
         '.dark &': {
-          borderColor: 'rgba(255, 255, 255, 0.1) !important',
+          borderColor: `${getBorderColor('dark')} !important`,
         }
       }}
       position="fixed"

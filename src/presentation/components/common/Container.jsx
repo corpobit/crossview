@@ -1,4 +1,5 @@
 import { Box } from '@chakra-ui/react';
+import { getBorderColor } from '../../utils/theme.js';
 
 export const Container = ({ children, ...props }) => {
   return (
@@ -8,9 +9,9 @@ export const Container = ({ children, ...props }) => {
       border="1px solid"
       borderRadius="md"
       css={{
-        borderColor: 'rgba(0, 0, 0, 0.08) !important',
+        borderColor: `${getBorderColor('light')} !important`,
         '.dark &': {
-          borderColor: 'rgba(255, 255, 255, 0.1) !important',
+          borderColor: `${getBorderColor('dark')} !important`,
         }
       }}
       {...props}

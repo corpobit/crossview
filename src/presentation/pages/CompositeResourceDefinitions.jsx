@@ -3,7 +3,8 @@ import {
   Text,
   HStack,
 } from '@chakra-ui/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
@@ -12,6 +13,7 @@ import { Dropdown } from '../components/common/Dropdown.jsx';
 import { GetCompositeResourceDefinitionsUseCase } from '../../domain/usecases/GetCompositeResourceDefinitionsUseCase.js';
 
 export const CompositeResourceDefinitions = () => {
+  const location = useLocation();
   const { kubernetesRepository, selectedContext } = useAppContext();
   const [xrds, setXrds] = useState([]);
   const [filteredXrds, setFilteredXrds] = useState([]);
@@ -20,6 +22,14 @@ export const CompositeResourceDefinitions = () => {
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
   const [groupFilter, setGroupFilter] = useState('all');
+  const [useAutoHeight, setUseAutoHeight] = useState(false);
+  const tableContainerRef = useRef(null);
+
+  // Close resource detail when route changes
+  useEffect(() => {
+    setSelectedResource(null);
+    setNavigationHistory([]);
+  }, [location.pathname]);
 
   useEffect(() => {
     const loadXrds = async () => {
@@ -171,11 +181,9 @@ export const CompositeResourceDefinitions = () => {
     <Box
       display="flex"
       flexDirection="column"
-      h="calc(100vh - 100px)"
-      overflowY="auto"
       position="relative"
     >
-      <HStack justify="space-between" mb={6} flexShrink={0}>
+      <HStack justify="space-between" mb={6}>
         <Text fontSize="2xl" fontWeight="bold">Composite Resource Definitions</Text>
         <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
           {filteredXrds.length} definition{filteredXrds.length !== 1 ? 's' : ''}
@@ -183,46 +191,57 @@ export const CompositeResourceDefinitions = () => {
       </HStack>
 
       <Box
-        flex={selectedResource ? `0 0 calc(50% - 4px)` : '1'}
-        overflow="hidden"
         display="flex"
         flexDirection="column"
-        transition="flex 0.3s ease"
-        minH={0}
-        mt={4}
+        gap={4}
       >
-        <DataTable
-          data={filteredXrds}
-          columns={columns}
-          searchableFields={['name', 'group', 'names.kind', 'claimNames.kind']}
-          itemsPerPage={20}
-          onRowClick={handleRowClick}
-          filters={
-            <Dropdown
-              minW="250px"
-              placeholder="All Groups"
-              value={groupFilter}
-              onChange={setGroupFilter}
-              options={[
-                { value: 'all', label: 'All Groups' },
-                ...Array.from(new Set((Array.isArray(xrds) ? xrds : []).map(x => x.group).filter(Boolean))).sort().map(group => ({
-                  value: group,
-                  label: group
-                }))
-              ]}
+        <Box
+          ref={tableContainerRef}
+          flex={selectedResource ? (useAutoHeight ? '0 0 auto' : `0 0 50%`) : '1'}
+          display="flex"
+          flexDirection="column"
+          minH={0}
+        >
+          <DataTable
+              data={filteredXrds}
+              columns={columns}
+              searchableFields={['name', 'group', 'names.kind', 'claimNames.kind']}
+              itemsPerPage={20}
+              onRowClick={handleRowClick}
+              filters={
+                <Dropdown
+                  minW="250px"
+                  placeholder="All Groups"
+                  value={groupFilter}
+                  onChange={setGroupFilter}
+                  options={[
+                    { value: 'all', label: 'All Groups' },
+                    ...Array.from(new Set((Array.isArray(xrds) ? xrds : []).map(x => x.group).filter(Boolean))).sort().map(group => ({
+                      value: group,
+                      label: group
+                    }))
+                  ]}
+                />
+              }
             />
-          }
-        />
+        </Box>
+        
+        {selectedResource && (
+          <Box
+            flex="1"
+            display="flex"
+            flexDirection="column"
+            mb={8}
+          >
+            <ResourceDetails
+                resource={selectedResource}
+                onClose={handleClose}
+                onNavigate={handleNavigate}
+                onBack={navigationHistory.length > 0 ? handleBack : undefined}
+            />
+          </Box>
+        )}
       </Box>
-      
-      {selectedResource && (
-        <ResourceDetails
-            resource={selectedResource}
-            onClose={handleClose}
-            onNavigate={handleNavigate}
-            onBack={navigationHistory.length > 0 ? handleBack : undefined}
-        />
-      )}
     </Box>
   );
 };

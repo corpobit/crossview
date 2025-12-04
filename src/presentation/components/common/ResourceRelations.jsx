@@ -2,6 +2,7 @@ import { Box, Text } from '@chakra-ui/react';
 import { useMemo } from 'react';
 import { ReactFlow, Background } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { colors, getBackgroundColor, getBorderColor, getTextColor } from '../../utils/theme.js';
 
 export const ResourceRelations = ({ resource, relatedResources, colorMode }) => {
   const { nodes, edges } = useMemo(() => {
@@ -21,22 +22,22 @@ export const ResourceRelations = ({ resource, relatedResources, colorMode }) => 
       data: {
         label: (
           <Box textAlign="center" p={2}>
-            <Text fontWeight="bold" fontSize="sm" color={colorMode === 'dark' ? 'blue.400' : 'blue.600'}>
+            <Text fontWeight="bold" fontSize="sm" color={colorMode === 'dark' ? colors.accent.blue.light : colors.accent.blue.dark}>
               {resource.kind || 'Resource'}
             </Text>
-            <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.300' : 'gray.600'} mt={1}>
+            <Text fontSize="xs" color={getTextColor(colorMode, colorMode === 'dark' ? 'secondary' : 'secondary')} mt={1}>
               {resource.name}
             </Text>
           </Box>
         ),
       },
       style: {
-        background: colorMode === 'dark' ? '#1f2937' : 'white',
-        border: '2px solid #3b82f6',
+        background: getBackgroundColor(colorMode, colorMode === 'dark' ? 'secondary' : 'primary'),
+        border: `2px solid ${colors.border.light.blue}`,
         borderRadius: '8px',
         padding: '0',
         minWidth: '150px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        boxShadow: `0 2px 4px ${colors.shadow.light}`,
       },
     });
 
@@ -56,22 +57,22 @@ export const ResourceRelations = ({ resource, relatedResources, colorMode }) => 
         data: {
           label: (
             <Box textAlign="center" p={2}>
-              <Text fontWeight="semibold" fontSize="xs" color={colorMode === 'dark' ? 'gray.300' : 'gray.700'}>
+              <Text fontWeight="semibold" fontSize="xs" color={getTextColor(colorMode, colorMode === 'dark' ? 'secondary' : 'inverse')}>
                 {related.type || related.kind}
               </Text>
-              <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'} mt={1} maxW="120px" noOfLines={1}>
+              <Text fontSize="xs" color={getTextColor(colorMode, colorMode === 'dark' ? 'tertiary' : 'secondary')} mt={1} maxW="120px" noOfLines={1}>
                 {related.name}
               </Text>
             </Box>
           ),
         },
         style: {
-          background: colorMode === 'dark' ? '#374151' : 'white',
-          border: colorMode === 'dark' ? '1px solid #4b5563' : '1px solid #e5e7eb',
+          background: getBackgroundColor(colorMode, colorMode === 'dark' ? 'tertiary' : 'primary'),
+          border: `1px solid ${getBorderColor(colorMode, colorMode === 'dark' ? 'gray' : 'gray')}`,
           borderRadius: '8px',
           padding: '0',
           minWidth: '120px',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+          boxShadow: `0 1px 2px ${colors.shadow.light}`,
         },
       });
 
@@ -82,7 +83,7 @@ export const ResourceRelations = ({ resource, relatedResources, colorMode }) => 
         target: nodeId,
         type: 'smoothstep',
         animated: true,
-        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        style: { stroke: colors.border.light.blue, strokeWidth: 2 },
       });
     });
 
@@ -125,7 +126,7 @@ export const ResourceRelations = ({ resource, relatedResources, colorMode }) => 
           fitViewOptions={{ padding: 0.2 }}
           style={{ width: '100%', height: '100%', background: 'transparent' }}
         >
-          {colorMode === 'light' && <Background color="#e5e7eb" gap={16} size={1} />}
+          {colorMode === 'light' && <Background color={colors.border.light.gray} gap={16} size={1} />}
         </ReactFlow>
       ) : (
         <Box

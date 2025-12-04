@@ -1,62 +1,77 @@
 import { Box, Button, Text } from '@chakra-ui/react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { FiCopy } from 'react-icons/fi';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { jsonToYaml } from './resourceUtils.js';
+import { colors, getBackgroundColor, getBorderColor, getTextColor } from '../../utils/theme.js';
 
-// Custom light theme for YAML - white background
-const customLightTheme = {
+// Create theme objects once - memoized outside component
+const createLightTheme = () => ({
   ...oneLight,
   'code[class*="language-"]': {
     ...oneLight['code[class*="language-"]'],
-    background: '#ffffff',
-    backgroundColor: '#ffffff',
-    color: '#1a202c',
+    background: colors.code.light.background,
+    backgroundColor: colors.code.light.background,
+    color: colors.code.light.text,
   },
   'pre[class*="language-"]': {
     ...oneLight['pre[class*="language-"]'],
-    background: '#ffffff',
-    backgroundColor: '#ffffff',
-    color: '#1a202c',
+    background: colors.code.light.background,
+    backgroundColor: colors.code.light.background,
+    color: colors.code.light.text,
   },
   'pre': {
-    background: '#ffffff',
-    backgroundColor: '#ffffff',
+    background: colors.code.light.background,
+    backgroundColor: colors.code.light.background,
   },
   'code': {
-    background: '#ffffff',
-    backgroundColor: '#ffffff',
+    background: colors.code.light.background,
+    backgroundColor: colors.code.light.background,
   },
-};
+});
 
-// Custom dark theme for YAML
-const stoneDarkTheme = {
+const createDarkTheme = () => ({
   ...oneDark,
   'code[class*="language-"]': {
     ...oneDark['code[class*="language-"]'],
-    background: '#27272A',
-    backgroundColor: '#27272A',
-    color: '#e2e8f0',
+    background: colors.code.dark.background,
+    backgroundColor: colors.code.dark.background,
+    color: colors.code.dark.text,
   },
   'pre[class*="language-"]': {
     ...oneDark['pre[class*="language-"]'],
-    background: '#27272A',
-    backgroundColor: '#27272A',
-    color: '#e2e8f0',
+    background: colors.code.dark.background,
+    backgroundColor: colors.code.dark.background,
+    color: colors.code.dark.text,
   },
   'pre': {
-    background: '#27272A',
-    backgroundColor: '#27272A',
+    background: colors.code.dark.background,
+    backgroundColor: colors.code.dark.background,
   },
   'code': {
-    background: '#27272A',
-    backgroundColor: '#27272A',
+    background: colors.code.dark.background,
+    backgroundColor: colors.code.dark.background,
   },
-};
+});
+
+// Create themes once and reuse
+const customLightTheme = createLightTheme();
+const stoneDarkTheme = createDarkTheme();
 
 export const ResourceYAML = ({ fullResource, colorMode }) => {
   const [copied, setCopied] = useState(false);
+
+  // Memoize YAML conversion - only recalculate when fullResource changes
+  const yamlContent = useMemo(() => {
+    if (!fullResource) return '';
+    try {
+      return jsonToYaml(fullResource);
+    } catch (error) {
+      console.error('Error converting to YAML:', error);
+      return '';
+    }
+  }, [fullResource]);
 
   return (
     <Box
@@ -71,11 +86,11 @@ export const ResourceYAML = ({ fullResource, colorMode }) => {
         border="1px solid"
         position="relative"
         css={{
-          borderColor: 'rgba(0, 0, 0, 0.08)',
-          backgroundColor: '#ffffff',
+          borderColor: getBorderColor('light'),
+          backgroundColor: getBackgroundColor('light'),
           '.dark &': {
-            borderColor: 'rgba(255, 255, 255, 0.1)',
-            backgroundColor: '#27272A',
+            borderColor: getBorderColor('dark'),
+            backgroundColor: getBackgroundColor('dark'),
           }
         }}
       >
@@ -88,7 +103,7 @@ export const ResourceYAML = ({ fullResource, colorMode }) => {
           zIndex={10}
           onClick={async () => {
             try {
-              const yamlContent = jsonToYaml(fullResource);
+              // Use already computed yamlContent instead of recalculating
               await navigator.clipboard.writeText(yamlContent);
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
@@ -100,11 +115,11 @@ export const ResourceYAML = ({ fullResource, colorMode }) => {
           minW="auto"
           h="32px"
           px={2}
-          bg={colorMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}
+          bg={colorMode === 'dark' ? colors.code.dark.buttonBg : colors.code.light.buttonBg}
           _hover={{
-            bg: colorMode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+            bg: colorMode === 'dark' ? colors.code.dark.buttonBgHover : colors.code.light.buttonBgHover,
           }}
-          color={colorMode === 'dark' ? 'gray.300' : 'gray.700'}
+          color={getTextColor(colorMode, colorMode === 'dark' ? 'secondary' : 'inverse')}
         >
           {copied ? (
             <Text fontSize="xs" mr={1}>Copied!</Text>
@@ -120,13 +135,14 @@ export const ResourceYAML = ({ fullResource, colorMode }) => {
             padding: '1rem',
             fontSize: '0.75rem',
             lineHeight: '1.5',
-            background: colorMode === 'dark' ? '#27272A' : '#ffffff',
-            backgroundColor: colorMode === 'dark' ? '#27272A' : '#ffffff',
+            background: getBackgroundColor(colorMode),
+            backgroundColor: getBackgroundColor(colorMode),
           }}
           showLineNumbers
           wrapLines
+          PreTag="div"
         >
-          {jsonToYaml(fullResource)}
+          {yamlContent}
         </SyntaxHighlighter>
       </Box>
     </Box>

@@ -10,7 +10,7 @@ import {
   SimpleGrid,
 } from '@chakra-ui/react';
 import { useEffect, useState, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
@@ -120,6 +120,14 @@ export const Search = () => {
   const [quickFilter, setQuickFilter] = useState(null);
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
+  const [useAutoHeight, setUseAutoHeight] = useState(false);
+  const tableContainerRef = useRef(null);
+
+  // Close resource detail when route changes
+  useEffect(() => {
+    setSelectedResource(null);
+    setNavigationHistory([]);
+  }, [location.pathname]);
 
   useEffect(() => {
     const performSearch = async () => {
@@ -283,6 +291,36 @@ export const Search = () => {
     const timeoutId = setTimeout(generateSuggestions, isEmpty ? 0 : 200);
     return () => clearTimeout(timeoutId);
   }, [searchQuery, savedSearches, availableKinds, availableNamespaces, results, selectedContext]);
+
+  // Check if table height is less than 50% of viewport
+  useEffect(() => {
+    if (!selectedResource || !tableContainerRef.current) {
+      setUseAutoHeight(false);
+      return;
+    }
+
+    const checkTableHeight = () => {
+      const container = tableContainerRef.current;
+      if (!container) return;
+      
+      const viewportHeight = window.innerHeight;
+      const halfViewport = (viewportHeight - 100) * 0.5; // Account for header
+      const tableHeight = container.scrollHeight;
+      
+      setUseAutoHeight(tableHeight < halfViewport);
+    };
+
+    // Check immediately
+    checkTableHeight();
+
+    // Check on resize
+    const resizeObserver = new ResizeObserver(checkTableHeight);
+    resizeObserver.observe(tableContainerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [selectedResource, results]);
 
   // Handle clicking outside to close suggestions
   useEffect(() => {
@@ -672,8 +710,6 @@ export const Search = () => {
     <Box
       display="flex"
       flexDirection="column"
-      h="calc(100vh - 100px)"
-      overflowY="auto"
       position="relative"
     >
       {/* Results Header */}
@@ -718,14 +754,14 @@ export const Search = () => {
 
       {query && (
         <>
-          <Box mb={4} flexShrink={0}>
+          <Box mb={4}>
             <QuickFilters 
               onQuickFilter={(id) => setQuickFilter(quickFilter === id ? null : id)}
               activeFilter={quickFilter}
             />
           </Box>
 
-          <Box mb={4} flexShrink={0}>
+          <Box mb={4}>
             <AdvancedFilters
               filters={filters}
               onFiltersChange={setFilters}
@@ -734,43 +770,54 @@ export const Search = () => {
             />
           </Box>
 
-          {loading ? (
-            <Box display="flex" justifyContent="center" alignItems="center" minH="400px">
-              <Spinner size="xl" />
-            </Box>
-          ) : error ? (
-            <Box p={6} bg="red.50" _dark={{ bg: 'red.900', color: 'red.100' }} borderRadius="md" color="red.800">
-              <Text>Error loading search results: {error}</Text>
-            </Box>
-          ) : (
-            <Box
-              flex={selectedResource ? `0 0 calc(50% - 4px)` : '1'}
-              overflow="hidden"
-              display="flex"
-              flexDirection="column"
-              transition="flex 0.3s ease"
-              minH={0}
-              mt={4}
-            >
-              <DataTable
-                data={filteredResults}
-                columns={columns}
-                searchableFields={['name', 'kind', 'namespace']}
-                itemsPerPage={20}
-                onRowClick={handleRowClick}
-              />
-            </Box>
-          )}
-        </>
-      )}
+          <Box
+            display="flex"
+            flexDirection="column"
+            gap={4}
+          >
+            {loading ? (
+              <Box display="flex" justifyContent="center" alignItems="center" minH="400px">
+                <Spinner size="xl" />
+              </Box>
+            ) : error ? (
+              <Box p={6} bg="red.50" _dark={{ bg: 'red.900', color: 'red.100' }} borderRadius="md" color="red.800">
+                <Text>Error loading search results: {error}</Text>
+              </Box>
+            ) : (
+              <Box
+                ref={tableContainerRef}
+                flex={selectedResource ? (useAutoHeight ? '0 0 auto' : `0 0 50%`) : '1'}
+                display="flex"
+                flexDirection="column"
+                minH={0}
+              >
+                <DataTable
+                  data={filteredResults}
+                  columns={columns}
+                  searchableFields={['name', 'kind', 'namespace']}
+                  itemsPerPage={20}
+                  onRowClick={handleRowClick}
+                />
+              </Box>
+            )}
 
-      {selectedResource && (
-        <ResourceDetails
-          resource={selectedResource}
-          onClose={handleClose}
-          onNavigate={handleNavigate}
-          onBack={navigationHistory.length > 0 ? handleBack : handleClose}
-        />
+            {selectedResource && (
+              <Box
+                flex="1"
+                display="flex"
+                flexDirection="column"
+                mb={8}
+              >
+                <ResourceDetails
+                  resource={selectedResource}
+                  onClose={handleClose}
+                  onNavigate={handleNavigate}
+                  onBack={navigationHistory.length > 0 ? handleBack : handleClose}
+                />
+              </Box>
+            )}
+          </Box>
+        </>
       )}
 
       {/* Save Search Modal */}
