@@ -1,0 +1,155 @@
+# Default values for crossview
+# This is a YAML-formatted file.
+
+# Global settings
+global:
+  namespace: crossview
+
+# Image configuration
+image:
+  repository: corpobit/crossview
+  pullPolicy: Always
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+# Application configuration
+app:
+  name: crossview
+  port: 3001
+  replicas: 3
+
+# Deployment strategy
+deployment:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+# Resource limits and requests
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+# Health checks
+healthCheck:
+  livenessProbe:
+    httpGet:
+      path: /api/health
+      port: 3001
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /api/health
+      port: 3001
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Service configuration
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 3001
+  sessionAffinity: ClientIP
+  sessionAffinityTimeout: 10800
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: crossview.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+    # - secretName: crossview-tls
+    #   hosts:
+    #     - crossview.example.com
+
+# Database configuration
+database:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "16-alpine"
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  persistence:
+    enabled: true
+    size: 10Gi
+    accessMode: ReadWriteOnce
+    storageClass: ""
+
+# Environment variables
+env:
+  NODE_ENV: "production"
+  PORT: "3001"
+  DB_HOST: "crossview-postgres"
+  DB_PORT: "5432"
+  DB_NAME: "crossview"
+  DB_USER: "postgres"
+
+# Secrets (should be set via --set or secrets file)
+secrets:
+  dbPassword: ""  # Set via --set secrets.dbPassword=your-password
+  sessionSecret: ""  # Set via --set secrets.sessionSecret=your-secret
+
+# Service Account
+serviceAccount:
+  create: true
+  name: crossview-sa
+  annotations: {}
+
+# RBAC
+rbac:
+  create: true
+  clusterRole:
+    name: crossview-role
+  clusterRoleBinding:
+    name: crossview-binding
+
+# Pod affinity
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - crossview
+          topologyKey: kubernetes.io/hostname
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod labels
+podLabels: {}
+
