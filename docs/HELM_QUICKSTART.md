@@ -13,7 +13,7 @@
 
 3. **Documentation**
    - `helm/crossview/README.md` - Chart usage guide
-   - `HELM_SETUP.md` - Detailed setup instructions
+   - `docs/HELM_SETUP.md` - Detailed setup instructions
    - Updated main `README.md` with Helm section
 
 ## Private Repository Note
@@ -117,5 +117,5 @@ helm install crossview-test ./helm/crossview \
 - **Chart not found**: Ensure `gh-pages` branch exists and has `index.yaml`
 - **Pages not updating**: Wait a few minutes, GitHub Pages can take time to rebuild
 
-For more details, see [HELM_SETUP.md](HELM_SETUP.md).
+For more details, see [HELM_SETUP.md](HELM_SETUP.md) in the docs folder.
 
