@@ -1,0 +1,236 @@
+# Configuration Guide
+
+This guide explains how to configure Crossview for your environment.
+
+## Configuration Methods
+
+Crossview supports multiple configuration methods, in order of priority:
+
+1. **Environment Variables** (highest priority)
+2. **Config File** (`config/config.yaml`)
+3. **Default Values** (fallback)
+
+## Database Configuration
+
+### PostgreSQL Settings
+
+**Environment Variables:**
+```bash
+DB_HOST=localhost          # Database host
+DB_PORT=5432               # Database port
+DB_NAME=crossview          # Database name
+DB_USER=postgres           # Database user
+DB_PASSWORD=your-password  # Database password
+```
+
+**Config File:**
+```yaml
+database:
+  host: localhost
+  port: 5432
+  name: crossview
+  user: postgres
+  password: your-password
+```
+
+### Database Setup
+
+Crossview requires PostgreSQL for session storage. You can:
+
+1. **Use Included PostgreSQL** (Helm/Kubernetes)
+   - Automatically deployed with the application
+   - Configured via Helm values or ConfigMap
+
+2. **Use External PostgreSQL**
+   - Set `DB_HOST` to your PostgreSQL server
+   - Ensure network connectivity
+   - Create database: `CREATE DATABASE crossview;`
+
+## Kubernetes Configuration
+
+### In-Cluster Deployment
+
+When running in Kubernetes, Crossview automatically:
+- Uses service account token
+- Accesses the cluster it's running in
+- No kubeconfig file needed
+
+**Required:**
+- Service account with appropriate RBAC permissions
+- ClusterRole with read access to resources
+
+### Local Development
+
+For local development:
+- Set `KUBECONFIG` environment variable, or
+- Place kubeconfig at `~/.kube/config`
+- Ensure you have access to the cluster
+
+## Application Settings
+
+### Server Configuration
+
+```bash
+NODE_ENV=production        # Environment (development/production)
+PORT=3001                  # Server port
+SESSION_SECRET=your-secret # Session encryption key (generate with: openssl rand -base64 32)
+```
+
+### Session Configuration
+
+Sessions are stored in PostgreSQL. Configuration:
+
+```yaml
+session:
+  secret: your-session-secret-key
+  maxAge: 86400000  # 24 hours in milliseconds
+  secure: false     # Set to true for HTTPS
+  httpOnly: true
+```
+
+## SSO Configuration
+
+### OpenID Connect (OIDC)
+
+Enable OIDC authentication:
+
+```yaml
+sso:
+  oidc:
+    enabled: true
+    issuer: https://your-provider.com/realms/your-realm
+    clientId: your-client-id
+    clientSecret: your-client-secret
+    callbackURL: http://localhost:3001/api/auth/oidc/callback
+```
+
+See [SSO Setup Guide](SSO_SETUP.md) for detailed instructions.
+
+### SAML 2.0
+
+Enable SAML authentication:
+
+```yaml
+sso:
+  saml:
+    enabled: true
+    entryPoint: https://your-idp.com/sso/saml
+    issuer: crossview
+    cert: /path/to/certificate.pem
+    callbackURL: http://localhost:3001/api/auth/saml/callback
+```
+
+## Helm Chart Configuration
+
+When using Helm, configure via `values.yaml` or `--set`:
+
+```bash
+helm install crossview crossview/crossview \
+  --set env.DB_HOST=postgres \
+  --set env.DB_PORT=5432 \
+  --set secrets.dbPassword=your-password \
+  --set secrets.sessionSecret=$(openssl rand -base64 32) \
+  --set ingress.enabled=true \
+  --set ingress.hosts[0].host=crossview.example.com
+```
+
+See [Helm Chart README](../helm/crossview/README.md) for all available options.
+
+## Kubernetes Manifest Configuration
+
+Edit the ConfigMap and Secrets:
+
+**ConfigMap** (`k8s/configmap.yaml`):
+```yaml
+data:
+  NODE_ENV: "production"
+  PORT: "3001"
+  DB_HOST: "crossview-postgres"
+  DB_PORT: "5432"
+  DB_NAME: "crossview"
+  DB_USER: "postgres"
+```
+
+**Secret** (`k8s/secret.yaml`):
+```yaml
+stringData:
+  db-password: "your-database-password"
+  session-secret: "your-session-secret"
+```
+
+## Environment-Specific Configuration
+
+### Development
+```bash
+NODE_ENV=development
+PORT=3001
+DB_HOST=localhost
+DB_PORT=5432
+```
+
+### Production
+```bash
+NODE_ENV=production
+PORT=3001
+DB_HOST=postgres-service
+DB_PORT=5432
+SESSION_SECRET=<strong-random-secret>
+```
+
+## Security Best Practices
+
+1. **Session Secret**
+   - Generate with: `openssl rand -base64 32`
+   - Never commit to version control
+   - Use different secrets per environment
+
+2. **Database Password**
+   - Use strong passwords
+   - Store in Kubernetes Secrets
+   - Rotate regularly
+
+3. **SSO Secrets**
+   - Store client secrets securely
+   - Use Kubernetes Secrets
+   - Rotate according to provider policy
+
+4. **RBAC**
+   - Follow principle of least privilege
+   - Use read-only access for dashboard
+   - Review ClusterRole permissions
+
+## Troubleshooting Configuration
+
+### Check Current Configuration
+
+View running configuration:
+```bash
+# In Kubernetes
+kubectl get configmap crossview-config -n crossview -o yaml
+
+# Check environment variables
+kubectl exec -n crossview <pod-name> -- env | grep -E "DB_|NODE_|PORT"
+```
+
+### Common Issues
+
+**Database Connection Failed**
+- Verify DB_HOST and DB_PORT
+- Check network connectivity
+- Verify database exists
+- Check credentials
+
+**Kubernetes Access Denied**
+- Verify service account exists
+- Check ClusterRoleBinding
+- Verify RBAC permissions
+- Check service account token
+
+**SSO Not Working**
+- Verify callback URLs match
+- Check client ID and secret
+- Verify certificate (SAML)
+- Check provider logs
+
+See [Troubleshooting Guide](TROUBLESHOOTING.md) for more help.
+
