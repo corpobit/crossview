@@ -15,6 +15,7 @@ import { ResourceYAML } from './ResourceYAML.jsx';
 import { ResourceStatus } from './ResourceStatus.jsx';
 import { ResourceRelations } from './ResourceRelations.jsx';
 import { ResourceEvents } from './ResourceEvents.jsx';
+import { getBorderColor } from '../../utils/theme.js';
 
 export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
   const { colorMode } = useAppContext();
@@ -45,9 +46,9 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
       border="1px solid"
       borderRadius="lg"
       css={{
-        borderColor: 'rgba(0, 0, 0, 0.08) !important',
+        borderColor: `${getBorderColor('light')} !important`,
         '.dark &': {
-          borderColor: 'rgba(255, 255, 255, 0.1) !important',
+          borderColor: `${getBorderColor('dark')} !important`,
         }
       }}
       mt={4}
@@ -103,15 +104,15 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
         </Text>
       </Box>
 
-      <Box flex={1}>
+      <Box flex={1} minH={0}>
         {loading ? (
           <Box display="flex" justifyContent="center" alignItems="center" minH="200px" p={4}>
             <Text color="gray.700" _dark={{ color: 'gray.300' }}>Loading resource details...</Text>
           </Box>
         ) : (
-          <Box display="flex" flexDirection="column" h="100%">
+          <Box display="flex" flexDirection="column">
             {/* Tabs Navigation */}
-            <Box px={4} pt={4}>
+            <Box px={4} pt={4} flexShrink={0}>
               <ResourceTabs
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -127,30 +128,32 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
             </Box>
 
             {/* Tab Content */}
-            {activeTab === 'overview' && (
-              <ResourceOverview
-                fullResource={fullResource}
-                resource={resource}
-                relatedResources={relatedResources}
-                onRelatedClick={handleRelatedClick}
-              />
-            )}
+            <Box flex={1} minH={0}>
+              {activeTab === 'overview' && (
+                <ResourceOverview
+                  fullResource={fullResource}
+                  resource={resource}
+                  relatedResources={relatedResources}
+                  onRelatedClick={handleRelatedClick}
+                />
+              )}
 
-            {activeTab === 'status' && <ResourceStatus fullResource={fullResource} />}
+              {activeTab === 'status' && <ResourceStatus fullResource={fullResource} />}
 
-            {activeTab === 'yaml' && <ResourceYAML fullResource={fullResource} colorMode={colorMode} />}
+              {activeTab === 'yaml' && <ResourceYAML fullResource={fullResource} colorMode={colorMode} />}
 
-            {activeTab === 'events' && <ResourceEvents events={events} eventsLoading={eventsLoading} />}
+              {activeTab === 'events' && <ResourceEvents events={events} eventsLoading={eventsLoading} />}
 
-            {activeTab === 'relations' && (
-              <ResourceRelations 
-                resource={resource} 
-                relatedResources={relatedResources} 
-                colorMode={colorMode} 
-                  />
-                )}
-              </Box>
-            )}
+              {activeTab === 'relations' && (
+                <ResourceRelations 
+                  resource={resource} 
+                  relatedResources={relatedResources} 
+                  colorMode={colorMode} 
+                />
+              )}
+            </Box>
+          </Box>
+        )}
       </Box>
     </Box>
   );

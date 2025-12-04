@@ -7,6 +7,7 @@ import {
 import { Container } from '../components/common/Container.jsx';
 import { FiMoon, FiSun } from 'react-icons/fi';
 import { useAppContext } from '../providers/AppProvider.jsx';
+import { colors, colors as themeColors } from '../utils/theme.js';
 
 export const Appearance = () => {
   const { user, colorMode, setColorMode } = useAppContext();
@@ -92,16 +93,16 @@ export const Appearance = () => {
                   h="24px"
                   borderRadius="full"
                   bg="white"
-                  boxShadow="0 2px 4px rgba(0, 0, 0, 0.2)"
+                  boxShadow={`0 2px 4px ${colors.shadow.dark}`}
                   transition="left 0.3s ease"
                   display="flex"
                   alignItems="center"
                   justifyContent="center"
                 >
                   {colorMode === 'dark' ? (
-                    <FiMoon size={12} color="#2563eb" />
+                    <FiMoon size={12} color={colors.accent.blue.secondary} />
                   ) : (
-                    <FiSun size={12} color="#f59e0b" />
+                    <FiSun size={12} color={colors.accent.amber.primary} />
                   )}
                 </Box>
               </Box>

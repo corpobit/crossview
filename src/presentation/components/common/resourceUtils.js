@@ -49,25 +49,25 @@ export const jsonToYaml = (obj, indent = 0) => {
     if (obj.length === 0) {
       return '[]';
     }
-    let yaml = '';
+    const lines = [];
     obj.forEach((item) => {
       if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
         // Array of objects - first property on same line as '-', rest indented
         const itemYaml = jsonToYaml(item, 0);
-        const lines = itemYaml.split('\n').filter(line => line.trim());
-        if (lines.length > 0) {
-          yaml += `${indentStr}- ${lines[0]}\n`;
-          lines.slice(1).forEach(line => {
-            yaml += `${indentStr}  ${line}\n`;
+        const itemLines = itemYaml.split('\n').filter(line => line.trim());
+        if (itemLines.length > 0) {
+          lines.push(`${indentStr}- ${itemLines[0]}`);
+          itemLines.slice(1).forEach(line => {
+            lines.push(`${indentStr}  ${line}`);
           });
         }
       } else {
         // Array of primitives or arrays
         const itemYaml = jsonToYaml(item, 0);
-        yaml += `${indentStr}- ${itemYaml}\n`;
+        lines.push(`${indentStr}- ${itemYaml}`);
       }
     });
-    return yaml.trimEnd();
+    return lines.join('\n');
   }
   
   if (typeof obj === 'object') {
@@ -75,52 +75,49 @@ export const jsonToYaml = (obj, indent = 0) => {
     if (keys.length === 0) {
       return '{}';
     }
-    let yaml = '';
+    const lines = [];
     keys.forEach((key) => {
       const value = obj[key];
       if (value === null || value === undefined) {
-        yaml += `${indentStr}${key}: null\n`;
+        lines.push(`${indentStr}${key}: null`);
       } else if (Array.isArray(value)) {
         if (value.length === 0) {
-          yaml += `${indentStr}${key}: []\n`;
+          lines.push(`${indentStr}${key}: []`);
         } else {
-          yaml += `${indentStr}${key}:\n`;
+          lines.push(`${indentStr}${key}:`);
           value.forEach((item) => {
             if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
               // Array of objects - first property on same line as '-', rest indented
-              // Generate YAML with base indentation, then adjust for array item format
               const itemYaml = jsonToYaml(item, 0);
-              const lines = itemYaml.split('\n').filter(line => line.trim());
-              if (lines.length > 0) {
-                // First line: '- key: value' at indent + 2
-                yaml += `${indentStr}  - ${lines[0]}\n`;
-                // Subsequent lines: '  key: value' at indent + 4
-                lines.slice(1).forEach(line => {
-                  yaml += `${indentStr}    ${line}\n`;
+              const itemLines = itemYaml.split('\n').filter(line => line.trim());
+              if (itemLines.length > 0) {
+                lines.push(`${indentStr}  - ${itemLines[0]}`);
+                itemLines.slice(1).forEach(line => {
+                  lines.push(`${indentStr}    ${line}`);
                 });
               }
             } else {
               // Array of primitives
               const itemYaml = jsonToYaml(item, 0);
-              yaml += `${indentStr}  - ${itemYaml}\n`;
+              lines.push(`${indentStr}  - ${itemYaml}`);
             }
           });
         }
       } else if (typeof value === 'object') {
         // Nested object
-        yaml += `${indentStr}${key}:\n`;
+        lines.push(`${indentStr}${key}:`);
         const valueYaml = jsonToYaml(value, indent + 1);
-        const lines = valueYaml.split('\n').filter(line => line.trim());
-        lines.forEach(line => {
-          yaml += `${indentStr}  ${line}\n`;
+        const valueLines = valueYaml.split('\n').filter(line => line.trim());
+        valueLines.forEach(line => {
+          lines.push(`${indentStr}  ${line}`);
         });
       } else {
         // Primitive value
         const valueYaml = jsonToYaml(value, 0);
-        yaml += `${indentStr}${key}: ${valueYaml}\n`;
+        lines.push(`${indentStr}${key}: ${valueYaml}`);
       }
     });
-    return yaml.trimEnd();
+    return lines.join('\n');
   }
   
   return String(obj);

@@ -2,7 +2,8 @@ import {
   Box,
   Text,
 } from '@chakra-ui/react';
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 
@@ -27,9 +28,16 @@ const WidgetSuspense = ({ children }) => (
 );
 
 export const Dashboard = () => {
+  const location = useLocation();
   const { selectedContext } = useAppContext();
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
+
+  // Close resource detail when route changes
+  useEffect(() => {
+    setSelectedResource(null);
+    setNavigationHistory([]);
+  }, [location.pathname]);
 
   const handleResourceClick = (resource) => {
     // If clicking the same resource that's already open, close the slideout

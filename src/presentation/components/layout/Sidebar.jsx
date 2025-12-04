@@ -10,6 +10,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ContextSelector } from './ContextSelector.jsx';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../../providers/AppProvider.jsx';
+import { colors, getBorderColor, getTextColor } from '../../utils/theme.js';
 
 export const Sidebar = ({ onToggle, onResize }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -201,9 +202,9 @@ export const Sidebar = ({ onToggle, onResize }) => {
       _dark={{ bg: 'gray.900' }}
       borderRight="1px solid"
       css={{
-        borderColor: 'rgba(0, 0, 0, 0.08) !important',
+        borderColor: `${getBorderColor('light')} !important`,
         '.dark &': {
-          borderColor: 'rgba(255, 255, 255, 0.1) !important',
+          borderColor: `${getBorderColor('dark')} !important`,
         }
       }}
       transition={isResizing ? 'none' : 'width 0.2s'}
@@ -234,9 +235,9 @@ export const Sidebar = ({ onToggle, onResize }) => {
           p={isCollapsed ? 2 : 4}
           borderBottom="1px solid"
           css={{
-            borderColor: 'rgba(0, 0, 0, 0.08) !important',
+            borderColor: `${getBorderColor('light')} !important`,
             '.dark &': {
-              borderColor: 'rgba(255, 255, 255, 0.1) !important',
+              borderColor: `${getBorderColor('dark')} !important`,
             }
           }}
         >
@@ -309,9 +310,9 @@ export const Sidebar = ({ onToggle, onResize }) => {
                       py={2}
                       borderRadius="md"
                       textAlign="left"
-                      bg={isActive ? 'blue.50' : 'transparent'}
-                      _dark={{ bg: isActive ? '#27272A' : 'transparent' }}
-                      _hover={{ bg: isActive ? 'blue.100' : 'gray.100', _dark: { bg: isActive ? '#3f3f46' : 'gray.800' } }}
+                      bg={isActive ? colors.sidebar.light.activeBg : 'transparent'}
+                      _dark={{ bg: isActive ? colors.sidebar.dark.activeBg : 'transparent' }}
+                      _hover={{ bg: isActive ? colors.sidebar.light.hoverBg : 'gray.100', _dark: { bg: isActive ? colors.sidebar.dark.hoverBg : 'gray.800' } }}
                       onClick={() => {
                         if (hasSubMenu) {
                           toggleMenu(item.id);
@@ -329,15 +330,15 @@ export const Sidebar = ({ onToggle, onResize }) => {
                           size={18} 
                           style={{ 
                             color: isActive 
-                              ? (colorMode === 'dark' ? '#e4e4e7' : '#2563eb')
-                              : (colorMode === 'dark' ? '#d1d5db' : '#6b7280')
+                              ? (colorMode === 'dark' ? colors.sidebar.dark.activeText : colors.sidebar.light.activeText)
+                              : (colorMode === 'dark' ? colors.sidebar.dark.inactiveText : colors.sidebar.light.inactiveText)
                           }} 
                         />
                         <Text
                           fontSize="sm"
                           fontWeight={isActive ? 'semibold' : 'normal'}
-                          color={isActive ? 'blue.700' : 'gray.700'}
-                          _dark={{ color: isActive ? '#e4e4e7' : 'gray.300' }}
+                          color={isActive ? colors.accent.blue.darker : 'gray.700'}
+                          _dark={{ color: isActive ? colors.sidebar.dark.activeText : 'gray.300' }}
                         >
                           {item.label}
                         </Text>
@@ -383,17 +384,17 @@ export const Sidebar = ({ onToggle, onResize }) => {
                                 py={2}
                                 borderRadius="md"
                                 textAlign="left"
-                                bg={isSubActive ? 'blue.50' : 'transparent'}
-                                _dark={{ bg: isSubActive ? '#27272A' : 'transparent' }}
-                                _hover={{ bg: isSubActive ? 'blue.100' : 'gray.100', _dark: { bg: isSubActive ? '#3f3f46' : 'gray.800' } }}
+                                bg={isSubActive ? colors.sidebar.light.activeBg : 'transparent'}
+                                _dark={{ bg: isSubActive ? colors.sidebar.dark.activeBg : 'transparent' }}
+                                _hover={{ bg: isSubActive ? colors.sidebar.light.hoverBg : 'gray.100', _dark: { bg: isSubActive ? colors.sidebar.dark.hoverBg : 'gray.800' } }}
                                 onClick={() => navigate(subItem.path)}
                                 transition="all 0.2s"
                               >
                                 <Text
                                   fontSize="sm"
                                   fontWeight={isSubActive ? 'semibold' : 'normal'}
-                                  color={isSubActive ? 'blue.700' : 'gray.600'}
-                                  _dark={{ color: isSubActive ? '#e4e4e7' : 'gray.400' }}
+                                  color={isSubActive ? colors.accent.blue.darker : 'gray.600'}
+                                  _dark={{ color: isSubActive ? colors.sidebar.dark.activeText : 'gray.400' }}
                                 >
                                   {subItem.label}
                                 </Text>
@@ -424,9 +425,9 @@ export const Sidebar = ({ onToggle, onResize }) => {
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
-                    bg={isActive ? 'blue.100' : 'transparent'}
-                    _dark={{ bg: isActive ? '#27272A' : 'transparent' }}
-                    _hover={{ bg: isActive ? 'blue.200' : 'gray.100', _dark: { bg: isActive ? '#3f3f46' : 'gray.700' } }}
+                    bg={isActive ? colors.sidebar.light.hoverBg : 'transparent'}
+                    _dark={{ bg: isActive ? colors.sidebar.dark.activeBg : 'transparent' }}
+                    _hover={{ bg: isActive ? 'blue.200' : 'gray.100', _dark: { bg: isActive ? colors.sidebar.dark.hoverBg : 'gray.700' } }}
                     aria-label={item.label}
                     transition="all 0.2s"
                   >
@@ -434,8 +435,8 @@ export const Sidebar = ({ onToggle, onResize }) => {
                       size={20} 
                       style={{ 
                         color: isActive 
-                          ? (colorMode === 'dark' ? '#e4e4e7' : '#2563eb')
-                          : (colorMode === 'dark' ? '#d1d5db' : '#6b7280')
+                          ? (colorMode === 'dark' ? colors.sidebar.dark.activeText : colors.sidebar.light.activeText)
+                          : (colorMode === 'dark' ? colors.sidebar.dark.inactiveText : colors.sidebar.light.inactiveText)
                       }} 
                     />
                   </Box>
@@ -449,9 +450,9 @@ export const Sidebar = ({ onToggle, onResize }) => {
           p={isCollapsed ? 2 : 4}
           borderTop="1px solid"
           css={{
-            borderColor: 'rgba(0, 0, 0, 0.08) !important',
+            borderColor: `${getBorderColor('light')} !important`,
             '.dark &': {
-              borderColor: 'rgba(255, 255, 255, 0.1) !important',
+              borderColor: `${getBorderColor('dark')} !important`,
             }
           }}
         >
@@ -484,7 +485,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
                 transition="all 0.2s"
               >
                 <HStack spacing={3}>
-                  <FiLogOut size={18} color="#ef4444" />
+                  <FiLogOut size={18} color={colors.accent.red.primary} />
                   <Text
                     fontSize="sm"
                     fontWeight="medium"
@@ -501,7 +502,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
             <VStack spacing={2} align="center">
               <Box
                 as="button"
-                onClick={onOpen}
+                onClick={() => setIsLogoutDialogOpen(true)}
                 w="44px"
                 h="44px"
                 borderRadius="md"
@@ -513,7 +514,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
                 aria-label="Logout"
                 transition="all 0.2s"
               >
-                <FiLogOut size={20} style={{ color: '#ef4444' }} />
+                <FiLogOut size={20} style={{ color: colors.accent.red.primary }} />
               </Box>
             </VStack>
           )}
