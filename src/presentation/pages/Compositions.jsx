@@ -3,16 +3,26 @@ import {
   Text,
   HStack,
 } from '@chakra-ui/react';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 
 export const Compositions = () => {
+  const location = useLocation();
   const { kubernetesRepository, selectedContext } = useAppContext();
   const [loading, setLoading] = useState(true);
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
+  const [useAutoHeight, setUseAutoHeight] = useState(false);
+  const tableContainerRef = useRef(null);
+
+  // Close resource detail when route changes
+  useEffect(() => {
+    setSelectedResource(null);
+    setNavigationHistory([]);
+  }, [location.pathname]);
 
   // Server-side pagination fetch function - memoized to prevent unnecessary re-renders
   const fetchCompositions = useCallback(async (page, limit) => {
@@ -80,6 +90,36 @@ export const Compositions = () => {
       }
     setLoading(false); // DataTable will handle loading via fetchData
   }, [selectedContext]);
+
+  // Check if table height is less than 50% of viewport
+  useEffect(() => {
+    if (!selectedResource || !tableContainerRef.current) {
+      setUseAutoHeight(false);
+      return;
+    }
+
+    const checkTableHeight = () => {
+      const container = tableContainerRef.current;
+      if (!container) return;
+      
+      const viewportHeight = window.innerHeight;
+      const halfViewport = (viewportHeight - 100) * 0.5; // Account for header
+      const tableHeight = container.scrollHeight;
+      
+      setUseAutoHeight(tableHeight < halfViewport);
+    };
+
+    // Check immediately
+    checkTableHeight();
+
+    // Check on resize
+    const resizeObserver = new ResizeObserver(checkTableHeight);
+    resizeObserver.observe(tableContainerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [selectedResource, loading]);
 
   const handleRowClick = (item) => {
     const clickedResource = {
@@ -172,43 +212,52 @@ export const Compositions = () => {
     <Box
       display="flex"
       flexDirection="column"
-      h="calc(100vh - 100px)"
       position="relative"
-      overflowY="auto"
     >
-      <HStack justify="space-between" mb={6} flexShrink={0}>
+      <HStack justify="space-between" mb={6}>
         <Text fontSize="2xl" fontWeight="bold">Compositions</Text>
       </HStack>
 
       <Box
-        flex={selectedResource ? '0 0 calc(50% - 4px)' : '1'}
-        overflow="hidden"
         display="flex"
         flexDirection="column"
-        transition="flex 0.3s ease"
-        minH={0}
-        mt={4}
+        gap={4}
       >
-        <DataTable
-          data={[]}
-          columns={columns}
-          searchableFields={['name', 'compositeTypeRef.kind', 'mode']}
-          itemsPerPage={20}
-          onRowClick={handleRowClick}
-          fetchData={fetchCompositions}
-          serverSidePagination={true}
-          loading={loading}
-        />
+        <Box
+          ref={tableContainerRef}
+          flex={selectedResource ? (useAutoHeight ? '0 0 auto' : `0 0 50%`) : '1'}
+          display="flex"
+          flexDirection="column"
+          minH={0}
+        >
+          <DataTable
+              data={[]}
+              columns={columns}
+              searchableFields={['name', 'compositeTypeRef.kind', 'mode']}
+              itemsPerPage={20}
+              onRowClick={handleRowClick}
+              fetchData={fetchCompositions}
+              serverSidePagination={true}
+              loading={loading}
+            />
+        </Box>
+        
+        {selectedResource && (
+          <Box
+            flex="1"
+            display="flex"
+            flexDirection="column"
+            mb={8}
+          >
+            <ResourceDetails
+                resource={selectedResource}
+                onClose={handleClose}
+                onNavigate={handleNavigate}
+                onBack={navigationHistory.length > 0 ? handleBack : undefined}
+            />
+          </Box>
+        )}
       </Box>
-      
-      {selectedResource && (
-        <ResourceDetails
-            resource={selectedResource}
-            onClose={handleClose}
-            onNavigate={handleNavigate}
-            onBack={navigationHistory.length > 0 ? handleBack : undefined}
-        />
-      )}
     </Box>
   );
 };

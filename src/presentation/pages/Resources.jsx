@@ -4,6 +4,7 @@ import {
   HStack,
 } from '@chakra-ui/react';
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
@@ -12,6 +13,7 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
 import { getStatusColor, getStatusText, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
 
 export const Resources = () => {
+  const location = useLocation();
   const { kubernetesRepository, selectedContext } = useAppContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -19,7 +21,15 @@ export const Resources = () => {
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
   const [uniqueKinds, setUniqueKinds] = useState([]);
+  const [useAutoHeight, setUseAutoHeight] = useState(false);
   const continueTokensRef = useRef([null]);
+  const tableContainerRef = useRef(null);
+
+  // Close resource detail when route changes
+  useEffect(() => {
+    setSelectedResource(null);
+    setNavigationHistory([]);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!selectedContext) {
@@ -90,6 +100,36 @@ export const Resources = () => {
   useEffect(() => {
     continueTokensRef.current = [null];
   }, [selectedContext, kindFilter]);
+
+  // Check if table height is less than 50% of viewport
+  useEffect(() => {
+    if (!selectedResource || !tableContainerRef.current) {
+      setUseAutoHeight(false);
+      return;
+    }
+
+    const checkTableHeight = () => {
+      const container = tableContainerRef.current;
+      if (!container) return;
+      
+      const viewportHeight = window.innerHeight;
+      const halfViewport = (viewportHeight - 100) * 0.5; // Account for header
+      const tableHeight = container.scrollHeight;
+      
+      setUseAutoHeight(tableHeight < halfViewport);
+    };
+
+    // Check immediately
+    checkTableHeight();
+
+    // Check on resize
+    const resizeObserver = new ResizeObserver(checkTableHeight);
+    resizeObserver.observe(tableContainerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [selectedResource, loading]);
 
   if (loading) {
     return <LoadingSpinner message="Loading resources..." />;
@@ -239,53 +279,62 @@ export const Resources = () => {
     <Box
       display="flex"
       flexDirection="column"
-      h="calc(100vh - 100px)"
-      overflowY="auto"
       position="relative"
     >
       <Text fontSize="2xl" fontWeight="bold" mb={6}>Resources</Text>
 
       <Box
-        flex={selectedResource ? `0 0 calc(50% - 4px)` : '1'}
-        overflow="hidden"
         display="flex"
         flexDirection="column"
-        transition="flex 0.3s ease"
-        minH={0}
-        mt={4}
+        gap={4}
       >
-        <DataTable
-          data={[]}
-          columns={columns}
-          searchableFields={['name', 'kind']}
-          itemsPerPage={20}
-          onRowClick={handleRowClick}
-          serverSidePagination={true}
-          fetchData={fetchData}
-          loading={loading}
-          filters={
-            <Dropdown
-              minW="200px"
-              placeholder="All Kinds"
-              value={kindFilter}
-              onChange={setKindFilter}
-              options={[
-                { value: 'all', label: 'All Kinds' },
-                ...uniqueKinds.map(kind => ({ value: kind, label: kind }))
-              ]}
-            />
-          }
-        />
+        <Box
+          ref={tableContainerRef}
+          flex={selectedResource ? (useAutoHeight ? '0 0 auto' : `0 0 50%`) : '1'}
+          display="flex"
+          flexDirection="column"
+          minH={0}
+        >
+          <DataTable
+              data={[]}
+              columns={columns}
+              searchableFields={['name', 'kind']}
+              itemsPerPage={20}
+              onRowClick={handleRowClick}
+              serverSidePagination={true}
+              fetchData={fetchData}
+              loading={loading}
+              filters={
+                <Dropdown
+                  minW="200px"
+                  placeholder="All Kinds"
+                  value={kindFilter}
+                  onChange={setKindFilter}
+                  options={[
+                    { value: 'all', label: 'All Kinds' },
+                    ...uniqueKinds.map(kind => ({ value: kind, label: kind }))
+                  ]}
+                />
+            }
+          />
         </Box>
 
-      {selectedResource && (
-        <ResourceDetails
-          resource={selectedResource}
-          onClose={handleClose}
-          onNavigate={handleNavigate}
-          onBack={navigationHistory.length > 0 ? handleBack : undefined}
-        />
-      )}
+        {selectedResource && (
+          <Box
+            flex="1"
+            display="flex"
+            flexDirection="column"
+            mb={8}
+          >
+            <ResourceDetails
+              resource={selectedResource}
+              onClose={handleClose}
+              onNavigate={handleNavigate}
+              onBack={navigationHistory.length > 0 ? handleBack : undefined}
+            />
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 };

@@ -4,6 +4,7 @@ import {
   HStack,
 } from '@chakra-ui/react';
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
@@ -12,6 +13,7 @@ import { Dropdown } from '../components/common/Dropdown.jsx';
 import { getStatusColor, getStatusText, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
 
 export const Claims = () => {
+  const location = useLocation();
   const { kubernetesRepository, selectedContext } = useAppContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -21,7 +23,15 @@ export const Claims = () => {
   const [kindFilter, setKindFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [filterOptions, setFilterOptions] = useState({ namespaces: [], kinds: [] });
+  const [useAutoHeight, setUseAutoHeight] = useState(false);
   const continueTokensRef = useRef([null]);
+  const tableContainerRef = useRef(null);
+
+  // Close resource detail when route changes
+  useEffect(() => {
+    setSelectedResource(null);
+    setNavigationHistory([]);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!selectedContext) {
@@ -100,6 +110,36 @@ export const Claims = () => {
   useEffect(() => {
     continueTokensRef.current = [null];
   }, [selectedContext, namespaceFilter, kindFilter, statusFilter]);
+
+  // Check if table height is less than 50% of viewport
+  useEffect(() => {
+    if (!selectedResource || !tableContainerRef.current) {
+      setUseAutoHeight(false);
+      return;
+    }
+
+    const checkTableHeight = () => {
+      const container = tableContainerRef.current;
+      if (!container) return;
+      
+      const viewportHeight = window.innerHeight;
+      const halfViewport = (viewportHeight - 100) * 0.5; // Account for header
+      const tableHeight = container.scrollHeight;
+      
+      setUseAutoHeight(tableHeight < halfViewport);
+    };
+
+    // Check immediately
+    checkTableHeight();
+
+    // Check on resize
+    const resizeObserver = new ResizeObserver(checkTableHeight);
+    resizeObserver.observe(tableContainerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [selectedResource, loading]);
 
   if (loading) {
     return <LoadingSpinner message="Loading claims..." subMessage="Fetching data from cluster" />;
@@ -272,85 +312,94 @@ export const Claims = () => {
     <Box
       display="flex"
       flexDirection="column"
-      h="calc(100vh - 100px)"
-      overflowY="auto"
       position="relative"
     >
       <Text fontSize="2xl" fontWeight="bold" mb={6}>Claims</Text>
 
       <Box
-        flex={selectedResource ? `0 0 calc(50% - 4px)` : '1'}
-        overflow="hidden"
         display="flex"
         flexDirection="column"
-        transition="flex 0.3s ease"
-        minH={0}
-        mt={4}
+        gap={4}
       >
-        <DataTable
-          data={[]}
-          columns={columns}
-          searchableFields={['name', 'namespace', 'kind', 'compositionRef.name']}
-          itemsPerPage={20}
-          onRowClick={handleRowClick}
-          serverSidePagination={true}
-          fetchData={fetchData}
-          loading={loading}
-          filters={
-            <HStack spacing={3}>
-              <Dropdown
-                minW="180px"
-                placeholder="All Namespaces"
-                value={namespaceFilter}
-                onChange={setNamespaceFilter}
-                options={[
-                  { value: 'all', label: 'All Namespaces' },
-                  ...filterOptions.namespaces.map(ns => ({
-                    value: ns,
-                    label: ns
-                  })),
-                  { value: '', label: '(No Namespace)' }
-                ]}
-              />
-              <Dropdown
-                minW="180px"
-                placeholder="All Kinds"
-                value={kindFilter}
-                onChange={setKindFilter}
-                options={[
-                  { value: 'all', label: 'All Kinds' },
-                  ...filterOptions.kinds.map(kind => ({
-                    value: kind,
-                    label: kind
-                  }))
-                ]}
-              />
-              <Dropdown
-                minW="150px"
-                placeholder="All Statuses"
-                value={statusFilter}
-                onChange={setStatusFilter}
-                options={[
-                  { value: 'all', label: 'All Statuses' },
-                  { value: 'Ready', label: 'Ready' },
-                  { value: 'Not Ready', label: 'Not Ready' },
-                  { value: 'Pending', label: 'Pending' },
-                  { value: 'Unknown', label: 'Unknown' }
-                ]}
-              />
-            </HStack>
-          }
-        />
+        <Box
+          ref={tableContainerRef}
+          flex={selectedResource ? (useAutoHeight ? '0 0 auto' : `0 0 50%`) : '1'}
+          display="flex"
+          flexDirection="column"
+          minH={0}
+        >
+          <DataTable
+              data={[]}
+              columns={columns}
+              searchableFields={['name', 'namespace', 'kind', 'compositionRef.name']}
+              itemsPerPage={20}
+              onRowClick={handleRowClick}
+              serverSidePagination={true}
+              fetchData={fetchData}
+              loading={loading}
+              filters={
+                <HStack spacing={3}>
+                  <Dropdown
+                    minW="180px"
+                    placeholder="All Namespaces"
+                    value={namespaceFilter}
+                    onChange={setNamespaceFilter}
+                    options={[
+                      { value: 'all', label: 'All Namespaces' },
+                      ...filterOptions.namespaces.map(ns => ({
+                        value: ns,
+                        label: ns
+                      })),
+                      { value: '', label: '(No Namespace)' }
+                    ]}
+                  />
+                  <Dropdown
+                    minW="180px"
+                    placeholder="All Kinds"
+                    value={kindFilter}
+                    onChange={setKindFilter}
+                    options={[
+                      { value: 'all', label: 'All Kinds' },
+                      ...filterOptions.kinds.map(kind => ({
+                        value: kind,
+                        label: kind
+                      }))
+                    ]}
+                  />
+                  <Dropdown
+                    minW="150px"
+                    placeholder="All Statuses"
+                    value={statusFilter}
+                    onChange={setStatusFilter}
+                    options={[
+                      { value: 'all', label: 'All Statuses' },
+                      { value: 'Ready', label: 'Ready' },
+                      { value: 'Not Ready', label: 'Not Ready' },
+                      { value: 'Pending', label: 'Pending' },
+                      { value: 'Unknown', label: 'Unknown' }
+                    ]}
+                  />
+                </HStack>
+              }
+            />
+        </Box>
+        
+        {selectedResource && (
+          <Box
+            flex="1"
+            display="flex"
+            flexDirection="column"
+            mb={8}
+          >
+            <ResourceDetails
+                resource={selectedResource}
+                onClose={handleClose}
+                onNavigate={handleNavigate}
+                onBack={navigationHistory.length > 0 ? handleBack : undefined}
+            />
+          </Box>
+        )}
       </Box>
-      
-      {selectedResource && (
-        <ResourceDetails
-            resource={selectedResource}
-            onClose={handleClose}
-            onNavigate={handleNavigate}
-            onBack={navigationHistory.length > 0 ? handleBack : undefined}
-        />
-      )}
     </Box>
   );
 };

@@ -3,8 +3,8 @@ import {
   Text,
   HStack,
 } from '@chakra-ui/react';
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
@@ -15,6 +15,7 @@ import { getStatusColor, getStatusText, getSyncedStatus, getReadyStatus, getResp
 
 export const ResourceKind = () => {
   const { kind } = useParams();
+  const location = useLocation();
   const { kubernetesRepository, selectedContext } = useAppContext();
   const [resources, setResources] = useState([]);
   const [filteredResources, setFilteredResources] = useState([]);
@@ -23,6 +24,14 @@ export const ResourceKind = () => {
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [useAutoHeight, setUseAutoHeight] = useState(false);
+  const tableContainerRef = useRef(null);
+
+  // Close resource detail when route changes
+  useEffect(() => {
+    setSelectedResource(null);
+    setNavigationHistory([]);
+  }, [location.pathname]);
 
   useEffect(() => {
     const loadResources = async () => {
@@ -62,6 +71,36 @@ export const ResourceKind = () => {
     
     setFilteredResources(filtered);
   }, [resources, statusFilter]);
+
+  // Check if table height is less than 50% of viewport
+  useEffect(() => {
+    if (!selectedResource || !tableContainerRef.current) {
+      setUseAutoHeight(false);
+      return;
+    }
+
+    const checkTableHeight = () => {
+      const container = tableContainerRef.current;
+      if (!container) return;
+      
+      const viewportHeight = window.innerHeight;
+      const halfViewport = (viewportHeight - 100) * 0.5; // Account for header
+      const tableHeight = container.scrollHeight;
+      
+      setUseAutoHeight(tableHeight < halfViewport);
+    };
+
+    // Check immediately
+    checkTableHeight();
+
+    // Check on resize
+    const resizeObserver = new ResizeObserver(checkTableHeight);
+    resizeObserver.observe(tableContainerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [selectedResource, loading]);
 
   if (loading) {
     return <LoadingSpinner message={`Loading ${kind}...`} />;
@@ -209,57 +248,66 @@ export const ResourceKind = () => {
     <Box
       display="flex"
       flexDirection="column"
-      h="calc(100vh - 100px)"
-      overflowY="auto"
       position="relative"
     >
       <Text fontSize="2xl" fontWeight="bold" mb={6}>{kind}</Text>
 
       <Box
-        flex={selectedResource ? `0 0 calc(50% - 4px)` : '1'}
-        overflow="hidden"
         display="flex"
         flexDirection="column"
-        transition="flex 0.3s ease"
-        minH={0}
-        mt={4}
+        gap={4}
       >
-        <DataTable
-          data={filteredResources}
-          columns={columns}
-          searchableFields={['name', 'kind']}
-          itemsPerPage={20}
-          onRowClick={handleRowClick}
-          filters={
-            <Dropdown
-              minW="150px"
-              placeholder="All Statuses"
-              value={statusFilter}
-              onChange={setStatusFilter}
-              options={[
-                { value: 'all', label: 'All Statuses' },
-                { value: 'Ready', label: 'Ready' },
-                { value: 'Not Ready', label: 'Not Ready' },
-                { value: 'Pending', label: 'Pending' },
-                { value: 'Unknown', label: 'Unknown' },
-                { value: 'Healthy', label: 'Healthy' },
-                { value: 'Unhealthy', label: 'Unhealthy' },
-                { value: 'Active', label: 'Active' },
-                { value: 'Inactive', label: 'Inactive' }
-              ]}
+        <Box
+          ref={tableContainerRef}
+          flex={selectedResource ? (useAutoHeight ? '0 0 auto' : `0 0 50%`) : '1'}
+          display="flex"
+          flexDirection="column"
+          minH={0}
+        >
+          <DataTable
+              data={filteredResources}
+              columns={columns}
+              searchableFields={['name', 'kind']}
+              itemsPerPage={20}
+              onRowClick={handleRowClick}
+              filters={
+                <Dropdown
+                  minW="150px"
+                  placeholder="All Statuses"
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  options={[
+                    { value: 'all', label: 'All Statuses' },
+                    { value: 'Ready', label: 'Ready' },
+                    { value: 'Not Ready', label: 'Not Ready' },
+                    { value: 'Pending', label: 'Pending' },
+                    { value: 'Unknown', label: 'Unknown' },
+                    { value: 'Healthy', label: 'Healthy' },
+                    { value: 'Unhealthy', label: 'Unhealthy' },
+                    { value: 'Active', label: 'Active' },
+                    { value: 'Inactive', label: 'Inactive' }
+                  ]}
+                />
+              }
             />
-          }
-        />
+        </Box>
+        
+        {selectedResource && (
+          <Box
+            flex="1"
+            display="flex"
+            flexDirection="column"
+            mb={8}
+          >
+            <ResourceDetails
+                resource={selectedResource}
+                onClose={handleClose}
+                onNavigate={handleNavigate}
+                onBack={navigationHistory.length > 0 ? handleBack : undefined}
+            />
+          </Box>
+        )}
       </Box>
-      
-      {selectedResource && (
-        <ResourceDetails
-            resource={selectedResource}
-            onClose={handleClose}
-            onNavigate={handleNavigate}
-            onBack={navigationHistory.length > 0 ? handleBack : undefined}
-        />
-      )}
     </Box>
   );
 };

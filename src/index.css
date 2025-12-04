@@ -32,11 +32,11 @@ body {
 }
 
 html {
-  background-color: #f9fafb;
+  background-color: var(--color-bg-html-light, #f9fafb);
 }
 
 .dark html {
-  background-color: #111827;
+  background-color: var(--color-bg-html-dark, #111827);
 }
 
 :root {

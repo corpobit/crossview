@@ -3,6 +3,7 @@ import {
   Text,
 } from '@chakra-ui/react';
 import { useState } from 'react';
+import { getBorderColor } from '../../utils/theme.js';
 
 export const Dropdown = ({ 
   options = [], 
@@ -39,9 +40,9 @@ export const Dropdown = ({
         justifyContent="space-between"
         overflow="hidden"
         css={{
-          borderColor: 'rgba(0, 0, 0, 0.08) !important',
+          borderColor: `${getBorderColor('light')} !important`,
           '.dark &': {
-            borderColor: 'rgba(255, 255, 255, 0.1) !important',
+            borderColor: `${getBorderColor('dark')} !important`,
           }
         }}
       >
@@ -84,9 +85,9 @@ export const Dropdown = ({
             overflowY="auto"
             zIndex={999}
             css={{
-              borderColor: 'rgba(0, 0, 0, 0.08) !important',
+              borderColor: `${getBorderColor('light')} !important`,
               '.dark &': {
-                borderColor: 'rgba(255, 255, 255, 0.1) !important',
+                borderColor: `${getBorderColor('dark')} !important`,
               }
             }}
           >
@@ -112,9 +113,9 @@ export const Dropdown = ({
                   }}
                   borderBottom={index < options.length - 1 ? '1px solid' : 'none'}
                   css={{
-                    borderColor: 'rgba(0, 0, 0, 0.08) !important',
+                    borderColor: `${getBorderColor('light')} !important`,
                     '.dark &': {
-                      borderColor: 'rgba(255, 255, 255, 0.1) !important',
+                      borderColor: `${getBorderColor('dark')} !important`,
                     },
                     '.dark &': {
                       backgroundColor: isSelected ? 'var(--chakra-colors-blue-900)' : 'transparent',
