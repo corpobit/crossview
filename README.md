@@ -6,6 +6,8 @@
 
 A modern React-based dashboard for managing and monitoring Crossplane resources in Kubernetes. Visualize, search, and manage your infrastructure-as-code with ease.
 
+![Crossview Dashboard](public/images/dashboard.png)
+
 ## Architecture
 
 This project follows Clean Architecture principles with three main layers:

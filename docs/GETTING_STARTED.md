@@ -10,6 +10,8 @@ Crossview provides a visual interface for:
 - **Resource Discovery** - Advanced search and filtering capabilities
 - **Multi-Context Support** - Manage resources across multiple Kubernetes clusters
 
+![Crossview Dashboard](../public/images/dashboard.png)
+
 ## Quick Start
 
 ### Option 1: Helm (Recommended)
