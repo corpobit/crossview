@@ -2,8 +2,8 @@ import {
   Box,
   VStack,
   HStack,
-  IconButton,
   Text,
+  Button,
 } from '@chakra-ui/react';
 import { FiChevronLeft, FiChevronRight, FiChevronDown, FiChevronUp, FiLayout, FiSettings, FiLogOut, FiPackage, FiFileText, FiDatabase, FiLayers, FiBox, FiBook } from 'react-icons/fi';
 import { useState, useEffect, useRef } from 'react';
@@ -18,7 +18,9 @@ export const Sidebar = ({ onToggle, onResize }) => {
   const [expandedMenus, setExpandedMenus] = useState({});
   const [compositeResourceKinds, setCompositeResourceKinds] = useState([]);
   const [loadingCompositeKinds, setLoadingCompositeKinds] = useState(false);
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const sidebarRef = useRef(null);
+  const cancelRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, kubernetesRepository, selectedContext, colorMode } = useAppContext();
@@ -68,6 +70,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
 
   const handleLogout = async () => {
     try {
+      setIsLogoutDialogOpen(false);
       await logout();
       navigate('/login');
     } catch (error) {
@@ -477,7 +480,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
                 textAlign="left"
                 bg="transparent"
                 _hover={{ bg: 'red.50', _dark: { bg: 'red.900' } }}
-                onClick={handleLogout}
+                onClick={() => setIsLogoutDialogOpen(true)}
                 transition="all 0.2s"
               >
                 <HStack spacing={3}>
@@ -498,7 +501,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
             <VStack spacing={2} align="center">
               <Box
                 as="button"
-                onClick={handleLogout}
+                onClick={onOpen}
                 w="44px"
                 h="44px"
                 borderRadius="md"
@@ -516,6 +519,52 @@ export const Sidebar = ({ onToggle, onResize }) => {
           )}
         </Box>
       </VStack>
+
+      {isLogoutDialogOpen && (
+        <Box
+          position="fixed"
+          top={0}
+          left={0}
+          right={0}
+          bottom={0}
+          bg="blackAlpha.600"
+          zIndex={1000}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          onClick={() => setIsLogoutDialogOpen(false)}
+        >
+          <Box
+            p={6}
+            maxW="400px"
+            w="90%"
+            bg="white"
+            border="1px solid"
+            borderRadius="md"
+            borderColor="gray.200"
+            _dark={{ bg: 'gray.800', borderColor: 'gray.700' }}
+            boxShadow="xl"
+            onClick={(e) => e.stopPropagation()}
+            position="relative"
+            zIndex={1001}
+          >
+            <Text fontSize="lg" fontWeight="bold" mb={4}>
+              Confirm Logout
+            </Text>
+            <Text mb={6} color="gray.600" _dark={{ color: 'gray.400' }}>
+              Are you sure you want to logout? You will need to login again to access the application.
+            </Text>
+            <HStack justify="flex-end" spacing={3}>
+              <Button ref={cancelRef} onClick={() => setIsLogoutDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={handleLogout}>
+                Logout
+              </Button>
+            </HStack>
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 };
