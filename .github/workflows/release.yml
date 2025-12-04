@@ -59,11 +59,12 @@ jobs:
                 NEW_MINOR=$((MINOR + 1))
                 NEW_VERSION="0.$NEW_MINOR.0"
               else
-                # 0.9.0 -> 2.0.0
-                NEW_VERSION="2.0.0"
+                # 0.9.0 -> 1.0.0
+                NEW_VERSION="1.0.0"
               fi
             else
-              # We're in 2.x or higher series
+              # We're in 1.x or higher series
+              # Increment minor: 1.0.0 -> 1.1.0, 1.1.0 -> 1.2.0, etc.
               NEW_MINOR=$((MINOR + 1))
               NEW_VERSION="$MAJOR.$NEW_MINOR.0"
             fi
