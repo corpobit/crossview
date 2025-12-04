@@ -93,10 +93,19 @@ jobs:
           echo "Skipping Helm chart update - no release tag found"
           exit 0
 
+      - name: Checkout gh-pages branch
+        if: steps.chart-version.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
       - name: Update Chart.yaml with version
         if: steps.chart-version.outputs.skip != 'true'
         run: |
-          # Update Chart.yaml version
+          # Update Chart.yaml version in the main checkout (not gh-pages)
           sed -i "s/^version:.*/version: ${{ steps.chart-version.outputs.version }}/" helm/crossview/Chart.yaml
           sed -i "s/^appVersion:.*/appVersion: \"${{ steps.chart-version.outputs.version }}\"/" helm/crossview/Chart.yaml
           cat helm/crossview/Chart.yaml
@@ -106,15 +115,6 @@ jobs:
         run: |
           helm package helm/crossview --destination ./charts
           ls -la ./charts/
-
-      - name: Checkout gh-pages branch
-        if: steps.chart-version.outputs.skip != 'true'
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: gh-pages
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
 
       - name: Initialize gh-pages if empty
         if: steps.chart-version.outputs.skip != 'true'
@@ -168,6 +168,8 @@ jobs:
           # Configure git in the gh-pages directory
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Pull latest changes to avoid conflicts
+          git pull origin gh-pages --rebase || git pull origin gh-pages --no-rebase || true
           # Ensure we're on the gh-pages branch
           git checkout gh-pages || git checkout -b gh-pages
           git add .
@@ -177,6 +179,7 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "Update Helm chart to version ${{ steps.chart-version.outputs.version }}" || echo "Nothing to commit"
-            git push origin gh-pages
+            # Force push only if we had to rebase, otherwise normal push
+            git push origin gh-pages || git push origin gh-pages --force-with-lease
           fi
 
