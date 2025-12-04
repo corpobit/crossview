@@ -18,8 +18,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 jobs:
   release:
@@ -116,26 +114,7 @@ jobs:
           helm package helm/crossview --destination ./charts
           ls -la ./charts/
 
-      - name: Checkout gh-pages branch or create it
-        if: steps.chart-version.outputs.skip != 'true'
-        run: |
-          # Check if gh-pages branch exists
-          if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
-            echo "gh-pages branch exists, checking out..."
-            git checkout gh-pages
-          else
-            echo "gh-pages branch doesn't exist, creating..."
-            git checkout --orphan gh-pages
-            git rm -rf . || true
-            echo "apiVersion: v1" > index.yaml
-            echo "entries: {}" >> index.yaml
-            mkdir -p charts
-            git add index.yaml
-            git commit -m "Initial Helm chart repository"
-            git push origin gh-pages
-          fi
-
-      - name: Checkout gh-pages for workflow
+      - name: Checkout gh-pages branch
         if: steps.chart-version.outputs.skip != 'true'
         uses: actions/checkout@v4
         with:
@@ -143,6 +122,20 @@ jobs:
           path: gh-pages
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
+
+      - name: Initialize gh-pages if empty
+        if: steps.chart-version.outputs.skip != 'true'
+        run: |
+          if [ ! -f gh-pages/index.yaml ]; then
+            echo "Initializing gh-pages branch"
+            cd gh-pages
+            echo "apiVersion: v1" > index.yaml
+            echo "entries: {}" >> index.yaml
+            mkdir -p charts
+            git add index.yaml
+            git commit -m "Initial Helm chart repository" || true
+            git push origin gh-pages || true
+          fi
 
       - name: Create charts directory if it doesn't exist
         if: steps.chart-version.outputs.skip != 'true'
