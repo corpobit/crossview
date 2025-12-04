@@ -1,13 +1,6 @@
 name: Helm Chart Release
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'helm/**'
-      - '.github/workflows/helm-release.yml'
-      - 'package.json'
   workflow_dispatch:
   release:
     types: [published]
