@@ -1,6 +1,10 @@
 # Crossview - Crossplane Dashboard
 
-A React-based dashboard for managing and monitoring Crossplane resources in Kubernetes.
+[![GitHub stars](https://img.shields.io/github/stars/corpobit/crossview?style=social)](https://github.com/corpobit/crossview)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Helm Chart](https://img.shields.io/badge/Helm-Chart-blue)](https://corpobit.github.io/crossview)
+
+A modern React-based dashboard for managing and monitoring Crossplane resources in Kubernetes. Visualize, search, and manage your infrastructure-as-code with ease.
 
 ## Architecture
 
