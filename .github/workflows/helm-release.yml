@@ -132,6 +132,8 @@ jobs:
             echo "apiVersion: v1" > index.yaml
             echo "entries: {}" >> index.yaml
             mkdir -p charts
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
             git add index.yaml
             git commit -m "Initial Helm chart repository" || true
             git push origin gh-pages || true
@@ -159,10 +161,10 @@ jobs:
         run: |
           cd gh-pages
           # Remove any files that shouldn't be in the Helm repo
-          find . -type f ! -name 'index.yaml' ! -name '*.tgz' ! -path './charts/*' -delete 2>/dev/null || true
+          find . -type f ! -name 'index.yaml' ! -name '*.tgz' ! -name 'README.md' ! -path './charts/*' -delete 2>/dev/null || true
           find . -type d -empty -delete 2>/dev/null || true
-          # Remove directories that shouldn't be there
-          rm -rf config logs node_modules .git 2>/dev/null || true
+          # Remove directories that shouldn't be there (but keep .git)
+          rm -rf config logs node_modules 2>/dev/null || true
           # Ensure charts directory exists
           mkdir -p charts
 
@@ -170,9 +172,14 @@ jobs:
         if: steps.chart-version.outputs.skip != 'true'
         run: |
           cd gh-pages
+          # Configure git in the gh-pages directory
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Ensure we're on the gh-pages branch
+          git checkout gh-pages || git checkout -b gh-pages
           git add .
-          # Remove any untracked files
-          git clean -fd || true
+          # Remove any untracked files (but keep .git)
+          git clean -fd -e .git || true
           if git diff --staged --quiet && git diff --quiet; then
             echo "No changes to commit"
           else
