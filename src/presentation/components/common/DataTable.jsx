@@ -6,6 +6,7 @@ import {
 import { useState, useMemo, useEffect } from 'react';
 import { FiSearch, FiChevronUp, FiChevronDown } from 'react-icons/fi';
 import { Input } from './Input.jsx';
+import { colors, getBorderColor } from '../../utils/theme.js';
 
 export const DataTable = ({ 
   data = [], 
@@ -192,9 +193,9 @@ export const DataTable = ({
         display="flex"
         flexDirection="column"
         css={{
-          borderColor: 'rgba(0, 0, 0, 0.08) !important',
+          borderColor: `${getBorderColor('light')} !important`,
           '.dark &': {
-            borderColor: 'rgba(255, 255, 255, 0.1) !important',
+            borderColor: `${getBorderColor('dark')} !important`,
           }
         }}
       >
@@ -250,9 +251,9 @@ export const DataTable = ({
                       borderTopRightRadius: 'lg',
                     }}
                     css={{
-                      borderColor: 'rgba(0, 0, 0, 0.08) !important',
+                      borderColor: `${getBorderColor('light')} !important`,
                       '.dark &': {
-                        borderColor: 'rgba(255, 255, 255, 0.1) !important',
+                        borderColor: `${getBorderColor('dark')} !important`,
                         color: 'gray.200 !important',
                         backgroundColor: 'var(--chakra-colors-gray-900) !important',
                       },
@@ -372,9 +373,9 @@ export const DataTable = ({
                             borderBottomRightRadius: isLastRow ? 'lg' : '0',
                           }}
                       css={{
-                        borderColor: isLastRow ? 'transparent' : 'rgba(0, 0, 0, 0.08) !important',
+                        borderColor: isLastRow ? 'transparent' : `${getBorderColor('light')} !important`,
                         '.dark &': {
-                          borderColor: isLastRow ? 'transparent' : 'rgba(255, 255, 255, 0.1) !important',
+                          borderColor: isLastRow ? 'transparent' : `${getBorderColor('dark')} !important`,
                           color: 'gray.100 !important',
                           backgroundColor: 'var(--chakra-colors-gray-800) !important',
                         },
@@ -420,9 +421,9 @@ export const DataTable = ({
             fontSize="sm"
             fontWeight="500"
             css={{
-              borderColor: 'rgba(0, 0, 0, 0.08) !important',
+              borderColor: `${getBorderColor('light')} !important`,
               '.dark &': {
-                borderColor: 'rgba(255, 255, 255, 0.1) !important',
+                borderColor: `${getBorderColor('dark')} !important`,
                 backgroundColor: currentPage === 1 ? 'var(--chakra-colors-gray-700)' : 'var(--chakra-colors-gray-800)',
                 color: currentPage === 1 ? 'var(--chakra-colors-gray-500)' : 'white',
               },
@@ -471,9 +472,9 @@ export const DataTable = ({
                     fontWeight={currentPage === page ? '600' : '500'}
                     fontSize="sm"
                     css={{
-                      borderColor: currentPage === page ? '#2563eb !important' : 'rgba(0, 0, 0, 0.08) !important',
+                      borderColor: currentPage === page ? `${colors.accent.blue.secondary} !important` : `${getBorderColor('light')} !important`,
                       '.dark &': {
-                        borderColor: currentPage === page ? '#2563eb !important' : 'rgba(255, 255, 255, 0.1) !important',
+                        borderColor: currentPage === page ? `${colors.accent.blue.secondary} !important` : `${getBorderColor('dark')} !important`,
                         backgroundColor: currentPage === page ? 'var(--chakra-colors-blue-600)' : 'var(--chakra-colors-gray-800)',
                         color: 'white',
                       },
@@ -508,9 +509,9 @@ export const DataTable = ({
             fontSize="sm"
             fontWeight="500"
             css={{
-              borderColor: 'rgba(0, 0, 0, 0.08) !important',
+              borderColor: `${getBorderColor('light')} !important`,
               '.dark &': {
-                borderColor: 'rgba(255, 255, 255, 0.1) !important',
+                borderColor: `${getBorderColor('dark')} !important`,
                 backgroundColor: currentPage === totalPages ? 'var(--chakra-colors-gray-700)' : 'var(--chakra-colors-gray-800)',
                 color: currentPage === totalPages ? 'var(--chakra-colors-gray-500)' : 'white',
               },

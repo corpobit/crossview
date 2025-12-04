@@ -7,7 +7,8 @@ import {
   Badge,
 } from '@chakra-ui/react';
 import { FiSearch } from 'react-icons/fi';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
@@ -18,6 +19,7 @@ import { GetProvidersUseCase } from '../../domain/usecases/GetProvidersUseCase.j
 
 export const Providers = () => {
   const { kubernetesRepository, selectedContext } = useAppContext();
+  const location = useLocation();
   const [providers, setProviders] = useState([]);
   const [filteredProviders, setFilteredProviders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +28,14 @@ export const Providers = () => {
   const [navigationHistory, setNavigationHistory] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [useAutoHeight, setUseAutoHeight] = useState(false);
+  const gridContainerRef = useRef(null);
+
+  // Close resource detail when route changes
+  useEffect(() => {
+    setSelectedResource(null);
+    setNavigationHistory([]);
+  }, [location.pathname]);
 
   useEffect(() => {
     const loadProviders = async () => {
@@ -77,6 +87,36 @@ export const Providers = () => {
     
     setFilteredProviders(filtered);
   }, [providers, statusFilter, searchQuery]);
+
+  // Check if grid height is less than 50% of viewport
+  useEffect(() => {
+    if (!selectedResource || !gridContainerRef.current) {
+      setUseAutoHeight(false);
+      return;
+    }
+
+    const checkGridHeight = () => {
+      const container = gridContainerRef.current;
+      if (!container) return;
+      
+      const viewportHeight = window.innerHeight;
+      const halfViewport = (viewportHeight - 100) * 0.5; // Account for header
+      const gridHeight = container.scrollHeight;
+      
+      setUseAutoHeight(gridHeight < halfViewport);
+    };
+
+    // Check immediately
+    checkGridHeight();
+
+    // Check on resize
+    const resizeObserver = new ResizeObserver(checkGridHeight);
+    resizeObserver.observe(gridContainerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [selectedResource, filteredProviders]);
 
   if (loading) {
     return <LoadingSpinner message="Loading providers..." />;
@@ -176,18 +216,16 @@ export const Providers = () => {
     <Box
       display="flex"
       flexDirection="column"
-      h="calc(100vh - 100px)"
-      overflowY="auto"
       position="relative"
     >
-      <HStack justify="space-between" mb={6} flexShrink={0}>
+      <HStack justify="space-between" mb={6}>
         <Text fontSize="2xl" fontWeight="bold">Providers</Text>
         <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
           {filteredProviders.length} provider{filteredProviders.length !== 1 ? 's' : ''}
         </Text>
       </HStack>
 
-      <HStack spacing={4} mb={4} flexShrink={0}>
+      <HStack spacing={4} mb={4}>
         <Box flex={1} position="relative">
           <Box
             position="absolute"
@@ -221,106 +259,120 @@ export const Providers = () => {
       </HStack>
 
       <Box
-        flex={selectedResource ? `0 0 calc(50% - 4px)` : '1'}
-        overflowY="auto"
-        transition="flex 0.3s ease"
-        minH={0}
+        display="flex"
+        flexDirection="column"
+        gap={4}
       >
-        {filteredProviders.length === 0 ? (
-          <Container p={8} textAlign="center">
-            <Text color="gray.500" fontSize="lg">
-              No providers found
-            </Text>
-          </Container>
-        ) : (
-          <SimpleGrid
-            columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
-            spacing={6}
-            p={4}
-          >
-            {filteredProviders.map((provider) => (
-              <Container
-                key={provider.name}
-                p={4}
-                m={2}
-                cursor="pointer"
-                _hover={{
-                  transform: 'translateY(-2px)',
-                  boxShadow: 'md',
-                  transition: 'all 0.2s',
-                }}
-                onClick={() => handleCardClick(provider)}
-                transition="all 0.2s"
-              >
-                <VStack align="stretch" spacing={3}>
-                  <HStack justify="space-between" align="start">
-                    <Text
-                      fontSize="lg"
-                      fontWeight="bold"
-                      noOfLines={1}
-                      title={provider.name}
-                    >
-                      {provider.name}
-                    </Text>
-                    {getStatusBadge(provider)}
-                  </HStack>
-
-                  <VStack align="stretch" spacing={2}>
-                    <Box>
-                      <Text fontSize="xs" color="gray.500" mb={1}>
-                        Package
-                      </Text>
-                      <Text fontSize="sm" noOfLines={2} title={provider.package}>
-                        {provider.package || '-'}
-                      </Text>
-                    </Box>
-
-                    {provider.revision && (
-                      <Box>
-                        <Text fontSize="xs" color="gray.500" mb={1}>
-                          Revision
-                        </Text>
-                        <Text fontSize="sm">{provider.revision}</Text>
-                      </Box>
-                    )}
-
-                    {provider.controllerConfigRef && (
-                      <Box>
-                        <Text fontSize="xs" color="gray.500" mb={1}>
-                          Controller Config
-                        </Text>
-                        <Text fontSize="sm" noOfLines={1}>
-                          {provider.controllerConfigRef}
-                        </Text>
-                      </Box>
-                    )}
-
-                    {provider.creationTimestamp && (
-                      <Box>
-                        <Text fontSize="xs" color="gray.500" mb={1}>
-                          Created
-                        </Text>
-                        <Text fontSize="sm">
-                          {new Date(provider.creationTimestamp).toLocaleDateString()}
-                        </Text>
-                      </Box>
-                    )}
-                  </VStack>
-                </VStack>
+        <Box
+          ref={gridContainerRef}
+          flex={selectedResource ? (useAutoHeight ? '0 0 auto' : `0 0 50%`) : '1'}
+          display="flex"
+          flexDirection="column"
+          minH={0}
+        >
+          {filteredProviders.length === 0 ? (
+              <Container p={8} textAlign="center">
+                <Text color="gray.500" fontSize="lg">
+                  No providers found
+                </Text>
               </Container>
-            ))}
-          </SimpleGrid>
+            ) : (
+              <SimpleGrid
+                columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
+                spacing={6}
+                p={4}
+              >
+                {filteredProviders.map((provider) => (
+                  <Container
+                    key={provider.name}
+                    p={4}
+                    m={2}
+                    cursor="pointer"
+                    _hover={{
+                      transform: 'translateY(-2px)',
+                      boxShadow: 'md',
+                      transition: 'all 0.2s',
+                    }}
+                    onClick={() => handleCardClick(provider)}
+                    transition="all 0.2s"
+                  >
+                    <VStack align="stretch" spacing={3}>
+                      <HStack justify="space-between" align="start">
+                        <Text
+                          fontSize="lg"
+                          fontWeight="bold"
+                          noOfLines={1}
+                          title={provider.name}
+                        >
+                          {provider.name}
+                        </Text>
+                        {getStatusBadge(provider)}
+                      </HStack>
+
+                      <VStack align="stretch" spacing={2}>
+                        <Box>
+                          <Text fontSize="xs" color="gray.500" mb={1}>
+                            Package
+                          </Text>
+                          <Text fontSize="sm" noOfLines={2} title={provider.package}>
+                            {provider.package || '-'}
+                          </Text>
+                        </Box>
+
+                        {provider.revision && (
+                          <Box>
+                            <Text fontSize="xs" color="gray.500" mb={1}>
+                              Revision
+                            </Text>
+                            <Text fontSize="sm">{provider.revision}</Text>
+                          </Box>
+                        )}
+
+                        {provider.controllerConfigRef && (
+                          <Box>
+                            <Text fontSize="xs" color="gray.500" mb={1}>
+                              Controller Config
+                            </Text>
+                            <Text fontSize="sm" noOfLines={1}>
+                              {provider.controllerConfigRef}
+                            </Text>
+                          </Box>
+                        )}
+
+                        {provider.creationTimestamp && (
+                          <Box>
+                            <Text fontSize="xs" color="gray.500" mb={1}>
+                              Created
+                            </Text>
+                            <Text fontSize="sm">
+                              {new Date(provider.creationTimestamp).toLocaleDateString()}
+                            </Text>
+                          </Box>
+                        )}
+                      </VStack>
+                    </VStack>
+                  </Container>
+                ))}
+              </SimpleGrid>
+            )}
+        </Box>
+        
+        {selectedResource && (
+          <Box
+            flex="1"
+            display="flex"
+            flexDirection="column"
+            mb={8}
+          >
+            <ResourceDetails
+                resource={selectedResource}
+                onClose={handleClose}
+                onNavigate={handleNavigate}
+                onBack={navigationHistory.length > 0 ? handleBack : undefined}
+            />
+          </Box>
         )}
       </Box>
-      
-      {selectedResource && (
-        <ResourceDetails
-            resource={selectedResource}
-            onClose={handleClose}
-            onNavigate={handleNavigate}
-            onBack={navigationHistory.length > 0 ? handleBack : undefined}
-        />
-      )}
     </Box>
   );
 };
