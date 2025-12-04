@@ -15,6 +15,11 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # Only run if triggered by workflow_run and the triggering workflow succeeded
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'release' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     
     steps:
       - name: Checkout code
