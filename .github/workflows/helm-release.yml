@@ -1,0 +1,188 @@
+name: Helm Chart Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'helm/**'
+      - '.github/workflows/helm-release.yml'
+      - 'package.json'
+  workflow_dispatch:
+  release:
+    types: [published]
+  workflow_run:
+    workflows: ["Build and Release"]
+    types:
+      - completed
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: '3.13.0'
+
+      - name: Get chart version from release or calculate
+        id: chart-version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            # Use the release tag version (remove 'v' prefix if present)
+            VERSION="${{ github.event.release.tag_name }}"
+            VERSION=${VERSION#v}
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "workflow_run" ]; then
+            # When triggered by release workflow, get the latest release tag
+            LATEST_TAG=$(git describe --tags --match "v*" --abbrev=0 2>/dev/null || echo "")
+            if [ -z "$LATEST_TAG" ]; then
+              echo "No release tag found, skipping Helm chart update"
+              echo "skip=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            VERSION=${LATEST_TAG#v}
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          else
+            # Calculate version from latest release tag
+            LATEST_TAG=$(git describe --tags --match "v*" --abbrev=0 2>/dev/null || echo "")
+            
+            if [ -z "$LATEST_TAG" ]; then
+              NEW_VERSION="0.1.0"
+            else
+              VERSION=${LATEST_TAG#v}
+              MAJOR=$(echo $VERSION | cut -d. -f1)
+              MINOR=$(echo $VERSION | cut -d. -f2)
+              PATCH=$(echo $VERSION | cut -d. -f3)
+              
+              if [ -z "$PATCH" ]; then
+                PATCH=0
+              fi
+              
+              if [ "$MAJOR" = "0" ]; then
+                if [ "$MINOR" -lt 9 ]; then
+                  NEW_MINOR=$((MINOR + 1))
+                  NEW_VERSION="0.$NEW_MINOR.0"
+                else
+                  NEW_VERSION="2.0.0"
+                fi
+              else
+                NEW_MINOR=$((MINOR + 1))
+                NEW_VERSION="$MAJOR.$NEW_MINOR.0"
+              fi
+            fi
+            echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+            echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
+          fi
+          echo "Chart version: ${{ steps.chart-version.outputs.version }}"
+
+      - name: Check if we should skip
+        if: steps.chart-version.outputs.skip == 'true'
+        run: |
+          echo "Skipping Helm chart update - no release tag found"
+          exit 0
+
+      - name: Update Chart.yaml with version
+        if: steps.chart-version.outputs.skip != 'true'
+        run: |
+          # Update Chart.yaml version
+          sed -i "s/^version:.*/version: ${{ steps.chart-version.outputs.version }}/" helm/crossview/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"${{ steps.chart-version.outputs.version }}\"/" helm/crossview/Chart.yaml
+          cat helm/crossview/Chart.yaml
+
+      - name: Package Helm chart
+        if: steps.chart-version.outputs.skip != 'true'
+        run: |
+          helm package helm/crossview --destination ./charts
+          ls -la ./charts/
+
+      - name: Checkout gh-pages branch or create it
+        if: steps.chart-version.outputs.skip != 'true'
+        run: |
+          # Check if gh-pages branch exists
+          if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
+            echo "gh-pages branch exists, checking out..."
+            git checkout gh-pages
+          else
+            echo "gh-pages branch doesn't exist, creating..."
+            git checkout --orphan gh-pages
+            git rm -rf . || true
+            echo "apiVersion: v1" > index.yaml
+            echo "entries: {}" >> index.yaml
+            mkdir -p charts
+            git add index.yaml
+            git commit -m "Initial Helm chart repository"
+            git push origin gh-pages
+          fi
+
+      - name: Checkout gh-pages for workflow
+        if: steps.chart-version.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Create charts directory if it doesn't exist
+        if: steps.chart-version.outputs.skip != 'true'
+        run: |
+          mkdir -p gh-pages/charts
+
+      - name: Copy new chart package
+        if: steps.chart-version.outputs.skip != 'true'
+        run: |
+          cp charts/*.tgz gh-pages/charts/
+
+      - name: Update Helm repository index
+        if: steps.chart-version.outputs.skip != 'true'
+        run: |
+          cd gh-pages
+          helm repo index . --url https://corpobit.github.io/crossview
+          cat index.yaml
+
+      - name: Commit and push to gh-pages
+        if: steps.chart-version.outputs.skip != 'true'
+        run: |
+          cd gh-pages
+          git add .
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update Helm chart to version ${{ steps.chart-version.outputs.version }}"
+            git push origin gh-pages
+          fi
+
+      - name: Setup Pages
+        if: steps.chart-version.outputs.skip != 'true'
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        if: steps.chart-version.outputs.skip != 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: gh-pages
+
+      - name: Deploy to GitHub Pages
+        if: steps.chart-version.outputs.skip != 'true'
+        id: deploy
+        uses: actions/deploy-pages@v4
+
