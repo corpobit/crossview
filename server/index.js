@@ -871,7 +871,7 @@ app.get('/api/resource', requireAuth, async (req, res) => {
 });
 
 app.get('/api/claims', requireAuth, async (req, res) => {
-  const { context: contextParam, limit, continue: continueToken } = req.query;
+  const { context: contextParam, limit, continue: continueToken, claimType } = req.query;
   const context = contextParam;
   
   try {
@@ -892,13 +892,13 @@ app.get('/api/claims', requireAuth, async (req, res) => {
     const { GetClaimsUseCase } = await import('../src/domain/usecases/GetClaimsUseCase.js');
     const useCase = new GetClaimsUseCase(kubernetesRepository);
     const limitNum = limit ? parseInt(limit, 10) : null;
-    const result = await useCase.execute(context, limitNum, continueToken || null);
+    const result = await useCase.execute(context, limitNum, continueToken || null, claimType || null);
     
     res.json({
       items: result.items || [],
       continueToken: result.continueToken || null
     });
-    logger.debug('Claims retrieved', { context, count: result.items?.length || 0, continueToken: result.continueToken });
+    logger.debug('Claims retrieved', { context, count: result.items?.length || 0, continueToken: result.continueToken, claimType });
   } catch (error) {
     logger.error('Error getting claims', { error: error.message, stack: error.stack, context });
     res.status(500).json({ error: error.message });
@@ -906,7 +906,7 @@ app.get('/api/claims', requireAuth, async (req, res) => {
 });
 
 app.get('/api/composite-resources', requireAuth, async (req, res) => {
-  const { context: contextParam, limit, continue: continueToken } = req.query;
+  const { context: contextParam, limit, continue: continueToken, resourceType } = req.query;
   const context = contextParam;
   
   try {
@@ -927,13 +927,13 @@ app.get('/api/composite-resources', requireAuth, async (req, res) => {
     const { GetCompositeResourcesUseCase } = await import('../src/domain/usecases/GetCompositeResourcesUseCase.js');
     const useCase = new GetCompositeResourcesUseCase(kubernetesRepository);
     const limitNum = limit ? parseInt(limit, 10) : null;
-    const result = await useCase.execute(context, limitNum, continueToken || null);
+    const result = await useCase.execute(context, limitNum, continueToken || null, resourceType || null);
     
     res.json({
       items: result.items || [],
       continueToken: result.continueToken || null
     });
-    logger.debug('Composite resources retrieved', { context, count: result.items?.length || 0, continueToken: result.continueToken });
+    logger.debug('Composite resources retrieved', { context, count: result.items?.length || 0, continueToken: result.continueToken, resourceType });
   } catch (error) {
     logger.error('Error getting composite resources', { error: error.message, stack: error.stack, context });
     res.status(500).json({ error: error.message });
