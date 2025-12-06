@@ -171,16 +171,17 @@ export const Login = () => {
         backgroundPosition: '0 0, 20px 20px',
       }}
     >
-      <VStack spacing={12} align="center" w="100%" maxW="400px">
+      <VStack spacing={8} align="center" w="100%" maxW="400px">
         {/* Logo and Typography */}
-        <VStack spacing={6} align="center">
-          <HStack spacing={2} align="center">
+        <VStack spacing={4} align="center" w="100%">
+          <HStack spacing={3} align="center" justify="center">
             <Box
-              w="100px"
-              h="100px"
+              w="80px"
+              h="80px"
               display="flex"
               alignItems="center"
               justifyContent="center"
+              flexShrink={0}
             >
               <Box
                 as="img"
@@ -195,20 +196,23 @@ export const Login = () => {
               />
             </Box>
             <Text 
-              fontSize="3xl" 
+              fontSize="4xl" 
               fontWeight="500" 
-              letterSpacing="-1px"
+              letterSpacing="-0.5px"
               color={getTextColor(colorMode, 'primary')}
               fontFamily="'Quicksand', sans-serif"
+              lineHeight="1.2"
             >
               Crossview
             </Text>
           </HStack>
           <Text 
-            fontSize="md" 
+            fontSize="sm" 
             color={getTextColor(colorMode, 'secondary')}
-            fontWeight="500"
+            fontWeight="400"
             textAlign="center"
+            mt={2}
+            maxW="320px"
           >
             {isRegisterMode ? 'Create your admin account to get started' : 'Sign in to your account'}
           </Text>
