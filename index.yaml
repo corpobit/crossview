@@ -1,9 +1,37 @@
 apiVersion: v1
 entries:
   crossview:
+  - annotations:
+      artifacthub.io/images: |
+        - name: crossview
+          image: corpobit/crossview:latest
+        - name: postgres
+          image: postgres:16-alpine
+    apiVersion: v2
+    appVersion: 1.1.0
+    created: "2025-12-06T20:17:13.096647066Z"
+    description: A Helm chart for Crossview - Crossplane resource visualization and
+      management platform
+    digest: d541ec65cbd74708a9ecbee72d9564d565609f954360b75bec57ff9136b25b1c
+    home: https://github.com/corpobit/crossview
+    icon: https://corpobit.github.io/crossview/images/helm-logo.svg
+    keywords:
+    - kubernetes
+    - crossplane
+    - visualization
+    - management
+    maintainers:
+    - name: Crossview Team
+    name: crossview
+    sources:
+    - https://github.com/corpobit/crossview
+    type: application
+    urls:
+    - https://corpobit.github.io/crossview/charts/crossview-1.1.0.tgz
+    version: 1.1.0
   - apiVersion: v2
     appVersion: 1.0.0
-    created: "2025-12-06T18:10:25.686234054Z"
+    created: "2025-12-06T20:17:13.096034796Z"
     description: A Helm chart for Crossview - Kubernetes resource visualization and
       management platform
     digest: b9c050aa10bbe2271a2f1404fe260ba8b63b9aa36cf173e99363aee40492cb39
@@ -23,4 +51,4 @@ entries:
     urls:
     - https://corpobit.github.io/crossview/charts/crossview-1.0.0.tgz
     version: 1.0.0
-generated: "2025-12-06T18:10:25.685392703Z"
+generated: "2025-12-06T20:17:13.095247316Z"
