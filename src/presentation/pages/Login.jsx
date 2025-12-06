@@ -194,15 +194,6 @@ export const Login = () => {
               }}
             />
           </Box>
-          <Text 
-            fontSize="sm" 
-            color={getTextColor(colorMode, 'secondary')}
-            fontWeight="400"
-            textAlign="center"
-            maxW="320px"
-          >
-            {isRegisterMode ? 'Create your admin account to get started' : 'Sign in to your account'}
-          </Text>
         </VStack>
 
         {/* Login Form */}
