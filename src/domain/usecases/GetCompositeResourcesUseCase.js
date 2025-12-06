@@ -3,14 +3,21 @@ export class GetCompositeResourcesUseCase {
     this.kubernetesRepository = kubernetesRepository;
   }
 
-  async execute(context = null, limit = null, continueToken = null) {
+  async execute(context = null, limit = null, continueToken = null, resourceType = null) {
     try {
       const apiVersion = 'apiextensions.crossplane.io/v1';
       const xrdKind = 'CompositeResourceDefinition';
       
       let xrdsResult;
       try {
-        xrdsResult = await this.kubernetesRepository.getResources(apiVersion, xrdKind, null, context);
+        xrdsResult = await this.kubernetesRepository.getResources(
+          apiVersion, 
+          xrdKind, 
+          null, 
+          context,
+          null, // No limit on XRDs
+          null  // No continue token for XRDs
+        );
       } catch (error) {
         if (error.message && (error.message.includes('500') || error.message.includes('Failed to get'))) {
           return { items: [], continueToken: null };
@@ -38,68 +45,89 @@ export class GetCompositeResourcesUseCase {
         return { items: [], continueToken: null };
       }
       
-      const resourcePromises = resourceTypes.map(async ({ xrKind, xrApiVersion, xrPlural }) => {
-        try {
-          const xrsResult = await this.kubernetesRepository.getResources(
-            xrApiVersion,
-            xrKind,
-            null,
-            context,
-            limit ? Math.ceil(limit / resourceTypes.length) + 10 : null,
-            continueToken,
-            xrPlural
-          );
-          
-          const xrs = xrsResult.items || xrsResult;
-          const xrsArray = Array.isArray(xrs) ? xrs : [];
-          
-          return {
-            resources: xrsArray.map(xr => ({
-              name: xr.metadata?.name || 'unknown',
-              namespace: xr.metadata?.namespace || null,
-              uid: xr.metadata?.uid || '',
-              kind: xrKind,
-              apiVersion: xrApiVersion,
-              plural: xrPlural,
-              creationTimestamp: xr.metadata?.creationTimestamp || '',
-              labels: xr.metadata?.labels || {},
-              compositionRef: xr.spec?.compositionRef || null,
-              claimRef: xr.spec?.claimRef || null,
-              writeConnectionSecretsTo: xr.spec?.writeConnectionSecretsTo || null,
-              resourceRefs: xr.spec?.resourceRefs || [],
-              status: xr.status || {},
-              conditions: xr.status?.conditions || [],
-              spec: xr.spec || {},
-            })),
-            continueToken: xrsResult.continueToken || null
-          };
-        } catch (error) {
-          return { resources: [], continueToken: null };
+      // If specific resource type requested, only query that type with proper pagination
+      if (resourceType) {
+        const resType = resourceTypes.find(rt => 
+          rt.xrKind === resourceType || 
+          rt.xrPlural === resourceType ||
+          rt.xrApiVersion.includes(resourceType)
+        );
+        
+        if (!resType) {
+          return { items: [], continueToken: null };
         }
-      });
-      
-      const results = await Promise.all(resourcePromises);
-      
-      let allResources = [];
-      let lastContinueToken = null;
-      
-      for (const result of results) {
-        allResources.push(...result.resources);
-        if (result.continueToken) {
-          lastContinueToken = result.continueToken;
-        }
-        if (limit && allResources.length >= limit) {
-          break;
-        }
+        
+        // Direct pagination to Kubernetes API - no client-side aggregation
+        const xrsResult = await this.kubernetesRepository.getResources(
+          resType.xrApiVersion,
+          resType.xrKind,
+          null,
+          context,
+          limit, // Pass limit directly to Kubernetes API
+          continueToken, // Pass continue token directly to Kubernetes API
+          resType.xrPlural
+        );
+        
+        const xrs = xrsResult.items || xrsResult;
+        const xrsArray = Array.isArray(xrs) ? xrs : [];
+        
+        return {
+          items: xrsArray.map(xr => ({
+            name: xr.metadata?.name || 'unknown',
+            namespace: xr.metadata?.namespace || null,
+            uid: xr.metadata?.uid || '',
+            kind: resType.xrKind,
+            apiVersion: resType.xrApiVersion,
+            plural: resType.xrPlural,
+            creationTimestamp: xr.metadata?.creationTimestamp || '',
+            labels: xr.metadata?.labels || {},
+            compositionRef: xr.spec?.compositionRef || null,
+            claimRef: xr.spec?.claimRef || null,
+            writeConnectionSecretsTo: xr.spec?.writeConnectionSecretsTo || null,
+            resourceRefs: xr.spec?.resourceRefs || [],
+            status: xr.status || {},
+            conditions: xr.status?.conditions || [],
+            spec: xr.spec || {},
+          })),
+          continueToken: xrsResult.continueToken || null
+        };
       }
       
-      if (limit && allResources.length > limit) {
-        allResources = allResources.slice(0, limit);
-      }
+      // Multiple resource types: query first type with pagination, return its results
+      // This ensures proper Kubernetes pagination instead of client-side aggregation
+      const firstResType = resourceTypes[0];
+      const xrsResult = await this.kubernetesRepository.getResources(
+        firstResType.xrApiVersion,
+        firstResType.xrKind,
+        null,
+        context,
+        limit, // Pass limit directly to Kubernetes API
+        continueToken, // Pass continue token directly to Kubernetes API
+        firstResType.xrPlural
+      );
+      
+      const xrs = xrsResult.items || xrsResult;
+      const xrsArray = Array.isArray(xrs) ? xrs : [];
       
       return {
-        items: allResources,
-        continueToken: lastContinueToken
+        items: xrsArray.map(xr => ({
+          name: xr.metadata?.name || 'unknown',
+          namespace: xr.metadata?.namespace || null,
+          uid: xr.metadata?.uid || '',
+          kind: firstResType.xrKind,
+          apiVersion: firstResType.xrApiVersion,
+          plural: firstResType.xrPlural,
+          creationTimestamp: xr.metadata?.creationTimestamp || '',
+          labels: xr.metadata?.labels || {},
+          compositionRef: xr.spec?.compositionRef || null,
+          claimRef: xr.spec?.claimRef || null,
+          writeConnectionSecretsTo: xr.spec?.writeConnectionSecretsTo || null,
+          resourceRefs: xr.spec?.resourceRefs || [],
+          status: xr.status || {},
+          conditions: xr.status?.conditions || [],
+          spec: xr.spec || {},
+        })),
+        continueToken: xrsResult.continueToken || null
       };
     } catch (error) {
       if (error.message?.includes('500')) {
