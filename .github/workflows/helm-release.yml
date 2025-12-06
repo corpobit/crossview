@@ -89,20 +89,47 @@ jobs:
           cd gh-pages
           cat > index.html << 'EOF'
           <!DOCTYPE html>
-          <html>
+          <html lang="en">
           <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Crossview Helm Chart Repository</title>
-            <meta http-equiv="refresh" content="0; url=https://github.com/corpobit/crossview" />
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                max-width: 800px;
+                margin: 50px auto;
+                padding: 20px;
+                line-height: 1.6;
+              }
+              pre {
+                background: #f4f4f4;
+                padding: 15px;
+                border-radius: 5px;
+                overflow-x: auto;
+              }
+              a {
+                color: #0366d6;
+                text-decoration: none;
+              }
+              a:hover {
+                text-decoration: underline;
+              }
+            </style>
           </head>
           <body>
             <h1>Crossview Helm Chart Repository</h1>
-            <p>This repository hosts Helm charts for Crossview.</p>
-            <p>To add this repository:</p>
+            <p>This repository hosts Helm charts for Crossview - A Kubernetes resource visualization and management platform.</p>
+            <h2>Add the Repository</h2>
             <pre>helm repo add crossview https://corpobit.github.io/crossview
           helm repo update</pre>
-            <p>To install:</p>
-            <pre>helm install crossview crossview/crossview</pre>
+            <h2>Install Crossview</h2>
+            <pre>helm install crossview crossview/crossview \
+          --namespace crossview \
+          --create-namespace</pre>
+            <h2>More Information</h2>
             <p>For more information, visit <a href="https://github.com/corpobit/crossview">the project repository</a>.</p>
+            <p>Helm repository index: <a href="index.yaml">index.yaml</a></p>
           </body>
           </html>
           EOF
@@ -110,9 +137,13 @@ jobs:
       - name: Clean up gh-pages branch
         run: |
           cd gh-pages
-          find . -type f ! -name 'index.yaml' ! -name 'index.html' ! -name '*.tgz' ! -name 'README.md' ! -path './charts/*' -delete 2>/dev/null || true
-          find . -type d -empty -delete 2>/dev/null || true
-          rm -rf config logs node_modules 2>/dev/null || true
+          # Remove any files that shouldn't be in the Helm repo (keep only index.yaml, index.html, *.tgz, README.md, and charts/)
+          find . -type f ! -name 'index.yaml' ! -name 'index.html' ! -name '*.tgz' ! -name 'README.md' ! -path './charts/*' ! -path './.git/*' -delete 2>/dev/null || true
+          # Remove directories that shouldn't be there (but keep .git and charts)
+          find . -type d ! -name '.git' ! -name 'charts' ! -name '.' -empty -delete 2>/dev/null || true
+          # Remove common build directories
+          rm -rf dist build config logs node_modules src public .github 2>/dev/null || true
+          # Ensure charts directory exists
           mkdir -p charts
 
       - name: Commit and push to gh-pages
