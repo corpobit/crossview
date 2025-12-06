@@ -1,0 +1,25 @@
+apiVersion: v1
+entries:
+  crossview:
+  - apiVersion: v2
+    appVersion: 0.8.0
+    created: "2025-12-06T16:51:42.75804159Z"
+    description: A Helm chart for Crossview - Kubernetes resource visualization and
+      management platform
+    digest: d5677434210bf02d0b7625c5d769b560023d0020dec4b93523c3f39d18d97ca5
+    home: https://github.com/corpobit/crossview
+    keywords:
+    - kubernetes
+    - crossplane
+    - visualization
+    - management
+    maintainers:
+    - name: Crossview Team
+    name: crossview
+    sources:
+    - https://github.com/corpobit/crossview
+    type: application
+    urls:
+    - https://corpobit.github.io/crossview/charts/crossview-0.8.0.tgz
+    version: 0.8.0
+generated: "2025-12-06T16:51:42.757221685Z"
