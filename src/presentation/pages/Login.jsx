@@ -175,8 +175,8 @@ export const Login = () => {
         {/* Logo and Typography */}
         <VStack spacing={4} align="center" w="100%">
           <Box
-            w="140px"
-            h="140px"
+            w="180px"
+            h="180px"
             display="flex"
             alignItems="center"
             justifyContent="center"
