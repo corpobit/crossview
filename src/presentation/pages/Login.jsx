@@ -164,8 +164,8 @@ export const Login = () => {
       bg={getBackgroundColor(colorMode, 'html')}
       css={{
         background: colorMode === 'dark' 
-          ? 'linear-gradient(135deg, #0a0a0f 0%, #111118 50%, #0a0a0f 100%)'
-          : 'linear-gradient(135deg, #f9fafb 0%, #ffffff 50%, #f9fafb 100%)',
+          ? `linear-gradient(135deg, ${getBackgroundColor(colorMode, 'primary')} 0%, ${getBackgroundColor(colorMode, 'secondary')} 50%, ${getBackgroundColor(colorMode, 'primary')} 100%)`
+          : `linear-gradient(135deg, ${getBackgroundColor(colorMode, 'html')} 0%, ${getBackgroundColor(colorMode, 'primary')} 50%, ${getBackgroundColor(colorMode, 'html')} 100%)`,
         '&::before': {
           content: '""',
           position: 'absolute',
@@ -199,8 +199,8 @@ export const Login = () => {
           borderColor={getBorderColor(colorMode, 'default')}
           p={8}
           boxShadow={colorMode === 'dark' 
-            ? '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)'
-            : '0 20px 60px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04)'
+            ? `0 20px 60px ${colors.shadow.dark}, 0 0 0 1px ${getBorderColor(colorMode, 'default')}`
+            : `0 20px 60px ${colors.shadow.light}, 0 0 0 1px ${getBorderColor(colorMode, 'default')}`
           }
           css={{
             backdropFilter: 'blur(10px)',
@@ -391,16 +391,14 @@ export const Login = () => {
               mt={4}
               bg={colorMode === 'dark' ? getTextColor(colorMode, 'primary') : getTextColor('light', 'primary')}
               _hover={{ 
-                bg: colorMode === 'dark' ? getTextColor(colorMode, 'secondary') : 'gray.800',
+                bg: colorMode === 'dark' ? getTextColor(colorMode, 'secondary') : getTextColor('light', 'secondary'),
                 transform: 'translateY(-1px)',
-                boxShadow: colorMode === 'dark' 
-                  ? '0 4px 12px rgba(255, 255, 255, 0.1)'
-                  : '0 4px 12px rgba(0, 0, 0, 0.15)'
+                boxShadow: `0 4px 12px ${colors.shadow[colorMode]}`
               }}
               _active={{
                 transform: 'translateY(0)',
               }}
-              color={colorMode === 'dark' ? getBackgroundColor(colorMode, 'primary') : 'white'}
+              color={colorMode === 'dark' ? getBackgroundColor(colorMode, 'primary') : getBackgroundColor('light', 'primary')}
               disabled={loading}
               py={6}
               fontSize="md"
@@ -414,7 +412,7 @@ export const Login = () => {
                     w="16px"
                     h="16px"
                     border="2px solid"
-                    borderColor={colorMode === 'dark' ? getBackgroundColor(colorMode, 'primary') : 'white'}
+                    borderColor={colorMode === 'dark' ? getBackgroundColor(colorMode, 'primary') : getBackgroundColor('light', 'primary')}
                     borderTopColor="transparent"
                     borderRadius="full"
                     animation="spin 0.8s linear infinite"
@@ -455,9 +453,7 @@ export const Login = () => {
                     _hover={{ 
                       bg: getBackgroundColor(colorMode, 'secondary'),
                       transform: 'translateY(-1px)',
-                      boxShadow: colorMode === 'dark' 
-                        ? '0 4px 12px rgba(0, 0, 0, 0.3)'
-                        : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                      boxShadow: `0 4px 12px ${colors.shadow[colorMode]}`
                     }}
                     _active={{
                       transform: 'translateY(0)',
@@ -498,9 +494,7 @@ export const Login = () => {
                     _hover={{ 
                       bg: getBackgroundColor(colorMode, 'secondary'),
                       transform: 'translateY(-1px)',
-                      boxShadow: colorMode === 'dark' 
-                        ? '0 4px 12px rgba(0, 0, 0, 0.3)'
-                        : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                      boxShadow: `0 4px 12px ${colors.shadow[colorMode]}`
                     }}
                     _active={{
                       transform: 'translateY(0)',
