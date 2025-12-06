@@ -173,13 +173,14 @@ export const Login = () => {
     >
       <VStack spacing={8} align="center" w="100%" maxW="320px">
         {/* Logo and Typography */}
-        <VStack spacing={4} align="center" w="100%">
+        <VStack spacing={2} align="center" w="100%">
           <Box
             w="240px"
             h="240px"
             display="flex"
             alignItems="center"
             justifyContent="center"
+            mb={2}
           >
             <Box
               as="img"
@@ -198,7 +199,6 @@ export const Login = () => {
             color={getTextColor(colorMode, 'secondary')}
             fontWeight="400"
             textAlign="center"
-            mt={2}
             maxW="320px"
           >
             {isRegisterMode ? 'Create your admin account to get started' : 'Sign in to your account'}
