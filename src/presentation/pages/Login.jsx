@@ -174,33 +174,35 @@ export const Login = () => {
       <VStack spacing={12} align="center" w="100%" maxW="400px">
         {/* Logo and Typography */}
         <VStack spacing={6} align="center">
-          <Box
-            w="120px"
-            h="120px"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-          >
+          <HStack spacing={4} align="center">
             <Box
-              as="img"
-              src="/images/crossview-logo.svg"
-              alt="Crossview Logo"
-              w="100%"
-              h="100%"
-              objectFit="contain"
-              css={{
-                filter: colorMode === 'dark' ? 'invert(1)' : 'none',
-              }}
-            />
-          </Box>
-          <Text 
-            fontSize="5xl" 
-            fontWeight="800" 
-            letterSpacing="-1px"
-            color={getTextColor(colorMode, 'primary')}
-          >
-            Crossview
-          </Text>
+              w="60px"
+              h="60px"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Box
+                as="img"
+                src="/images/crossview-logo.svg"
+                alt="Crossview Logo"
+                w="100%"
+                h="100%"
+                objectFit="contain"
+                css={{
+                  filter: colorMode === 'dark' ? 'invert(1)' : 'none',
+                }}
+              />
+            </Box>
+            <Text 
+              fontSize="5xl" 
+              fontWeight="800" 
+              letterSpacing="-1px"
+              color={getTextColor(colorMode, 'primary')}
+            >
+              Crossview
+            </Text>
+          </HStack>
           <Text 
             fontSize="md" 
             color={getTextColor(colorMode, 'secondary')}
