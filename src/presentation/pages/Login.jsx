@@ -176,8 +176,8 @@ export const Login = () => {
         <VStack spacing={6} align="center">
           <HStack spacing={4} align="center">
             <Box
-              w="60px"
-              h="60px"
+              w="100px"
+              h="100px"
               display="flex"
               alignItems="center"
               justifyContent="center"
@@ -195,7 +195,7 @@ export const Login = () => {
               />
             </Box>
             <Text 
-              fontSize="5xl" 
+              fontSize="3xl" 
               fontWeight="800" 
               letterSpacing="-1px"
               color={getTextColor(colorMode, 'primary')}
