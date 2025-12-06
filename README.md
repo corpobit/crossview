@@ -1,31 +1,16 @@
-# Crossview - Crossplane Dashboard
+<div align="center">
+  <img src="public/images/readme-logo.png" alt="Crossview Logo" width="200"/>
+  
+  # Crossview - Crossplane Dashboard
+  
+  A modern React-based dashboard for managing and monitoring Crossplane resources in Kubernetes. Visualize, search, and manage your infrastructure-as-code with ease.
 
 [![GitHub stars](https://img.shields.io/github/stars/corpobit/crossview?style=social)](https://github.com/corpobit/crossview)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Helm Chart](https://img.shields.io/badge/Helm-Chart-blue)](https://corpobit.github.io/crossview)
-
-A modern React-based dashboard for managing and monitoring Crossplane resources in Kubernetes. Visualize, search, and manage your infrastructure-as-code with ease.
+  [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/crossview)](https://artifacthub.io/packages/search?repo=crossview)
+</div>
 
 ![Crossview Dashboard](public/images/dashboard.png)
-
-## Architecture
-
-This project follows Clean Architecture principles with three main layers:
-
-### Domain Layer (`src/domain/`)
-- **Entities**: Domain models (e.g., `CrossplaneResource`)
-- **Repositories**: Repository interfaces (e.g., `IKubernetesRepository`)
-- **Use Cases**: Business logic (e.g., `GetDashboardDataUseCase`)
-
-### Data Layer (`src/data/`)
-- **Repositories**: Concrete implementations of repository interfaces
-  - `KubernetesApiRepository`: Frontend implementation that calls backend API
-  - `KubernetesRepository`: Node.js implementation for backend (reads from ~/.kube/config)
-
-### Presentation Layer (`src/presentation/`)
-- **Components**: Reusable UI components
-- **Pages**: Page-level components
-- **Providers**: Context providers for dependency injection
 
 ## Getting Started
 
