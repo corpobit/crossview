@@ -207,7 +207,7 @@ export const Login = () => {
             transition: 'all 0.3s ease',
           }}
         >
-          <VStack spacing={6} align="center" w="100%">
+          <VStack spacing={8} align="center" w="100%">
             {/* Logo */}
             <Box
               w="180px"
@@ -215,6 +215,7 @@ export const Login = () => {
               display="flex"
               alignItems="center"
               justifyContent="center"
+              mb={4}
             >
               <Box
                 as="img"
