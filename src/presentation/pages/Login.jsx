@@ -176,7 +176,7 @@ export const Login = () => {
         <VStack spacing={2} align="center" w="100%">
           <Box
             w="240px"
-            h="180px"
+            h="140px"
             display="flex"
             alignItems="center"
             justifyContent="center"
