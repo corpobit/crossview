@@ -277,9 +277,6 @@ The application loads configuration in this order (highest to lowest priority):
 - [SSO Setup](docs/SSO_SETUP.md) - Configure Single Sign-On (OIDC/SAML)
 - [SSO Protocols](docs/SSO_PROTOCOLS.md) - Understanding OIDC and SAML
 
-### Development
-- [API Testing Guide](docs/API_TESTING.md) - Test API endpoints with Postman
-
 ### Support
 - [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
 - [Kubernetes Manifests](k8s/README.md) - Reference for Kubernetes manifests

@@ -163,56 +163,78 @@ export const Login = () => {
       overflow="hidden"
       bg={getBackgroundColor(colorMode, 'html')}
       css={{
-        backgroundImage: `
-          radial-gradient(circle at 1px 1px, ${colors.pattern[colorMode].primary} 1px, transparent 0),
-          radial-gradient(circle at 1px 1px, ${colors.pattern[colorMode].secondary} 1px, transparent 0)
-        `,
-        backgroundSize: '40px 40px, 20px 20px',
-        backgroundPosition: '0 0, 20px 20px',
+        background: colorMode === 'dark' 
+          ? `linear-gradient(135deg, ${getBackgroundColor(colorMode, 'primary')} 0%, ${getBackgroundColor(colorMode, 'secondary')} 50%, ${getBackgroundColor(colorMode, 'primary')} 100%)`
+          : `linear-gradient(135deg, ${getBackgroundColor(colorMode, 'html')} 0%, ${getBackgroundColor(colorMode, 'primary')} 50%, ${getBackgroundColor(colorMode, 'html')} 100%)`,
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundImage: `
+            radial-gradient(circle at 1px 1px, ${colors.pattern[colorMode].primary} 1px, transparent 0),
+            radial-gradient(circle at 1px 1px, ${colors.pattern[colorMode].secondary} 1px, transparent 0)
+          `,
+          backgroundSize: '40px 40px, 20px 20px',
+          backgroundPosition: '0 0, 20px 20px',
+          opacity: 0.3,
+          pointerEvents: 'none',
+        }
       }}
     >
-      <VStack spacing={12} align="center" w="100%" maxW="400px">
-        {/* Logo and Typography */}
-        <VStack spacing={6} align="center">
-          <Box
-            w="120px"
-            h="120px"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-          >
+      <Box
+        w="100%"
+        maxW="400px"
+        position="relative"
+        zIndex={1}
+      >
+        {/* Login Form Card */}
+        <Box
+          w="100%"
+          bg={getBackgroundColor(colorMode, 'primary')}
+          borderRadius="xl"
+          border="1px solid"
+          borderColor={getBorderColor(colorMode, 'default')}
+          p={8}
+          boxShadow={colorMode === 'dark' 
+            ? `0 20px 60px ${colors.shadow.dark}, 0 0 0 1px ${getBorderColor(colorMode, 'default')}`
+            : `0 20px 60px ${colors.shadow.light}, 0 0 0 1px ${getBorderColor(colorMode, 'default')}`
+          }
+          css={{
+            backdropFilter: 'blur(10px)',
+            transition: 'all 0.3s ease',
+          }}
+        >
+          <VStack spacing={8} align="center" w="100%">
+            {/* Logo */}
             <Box
-              as="img"
-              src="/images/crossview-logo.svg"
-              alt="Crossview Logo"
-              w="100%"
-              h="100%"
-              objectFit="contain"
-              css={{
-                filter: colorMode === 'dark' ? 'invert(1)' : 'none',
-              }}
-            />
-          </Box>
-          <Text 
-            fontSize="5xl" 
-            fontWeight="800" 
-            letterSpacing="-1px"
-            color={getTextColor(colorMode, 'primary')}
-          >
-            Crossview
-          </Text>
-          <Text 
-            fontSize="md" 
-            color={getTextColor(colorMode, 'secondary')}
-            fontWeight="500"
-            textAlign="center"
-          >
-            {isRegisterMode ? 'Create your admin account to get started' : 'Sign in to your account'}
-          </Text>
-        </VStack>
+              w="180px"
+              h="110px"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              mb={4}
+            >
+              <Box
+                as="img"
+                src="/images/crossview-logo.svg"
+                alt="Crossview Logo"
+                w="100%"
+                h="100%"
+                objectFit="contain"
+                css={{
+                  filter: colorMode === 'dark' ? 'invert(1)' : 'none',
+                  transition: 'transform 0.3s ease',
+                  '&:hover': {
+                    transform: 'scale(1.02)',
+                  }
+                }}
+              />
+            </Box>
 
-        {/* Login Form */}
-        <VStack spacing={6} align="stretch" w="100%">
+            <VStack spacing={6} align="stretch" w="100%">
 
           {error && (
             <Box
@@ -258,70 +280,34 @@ export const Login = () => {
                   >
                     Account Information
                   </Text>
-                  <Box>
-                    <Text 
-                      fontSize="sm" 
-                      fontWeight="500" 
-                      mb={2} 
-                      color={getTextColor(colorMode, 'secondary')}
-                    >
-                      Username
-                    </Text>
-                    <Input
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      required
-                    />
-                  </Box>
-                  <Box>
-                    <Text 
-                      fontSize="sm" 
-                      fontWeight="500" 
-                      mb={2} 
-                      color={getTextColor(colorMode, 'secondary')}
-                    >
-                      Email
-                    </Text>
-                    <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </Box>
-                  <Box>
-                    <Text 
-                      fontSize="sm" 
-                      fontWeight="500" 
-                      mb={2} 
-                      color={getTextColor(colorMode, 'secondary')}
-                    >
-                      Password
-                    </Text>
-                    <Input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </Box>
-                  <Box>
-                    <Text 
-                      fontSize="sm" 
-                      fontWeight="500" 
-                      mb={2} 
-                      color={getTextColor(colorMode, 'secondary')}
-                    >
-                      Confirm Password
-                    </Text>
-                    <Input
-                      type="password"
-                      value={passwordConfirmation}
-                      onChange={(e) => setPasswordConfirmation(e.target.value)}
-                      required
-                    />
-                  </Box>
+                  <Input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Username"
+                    required
+                  />
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email"
+                    required
+                  />
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Password"
+                    required
+                  />
+                  <Input
+                    type="password"
+                    value={passwordConfirmation}
+                    onChange={(e) => setPasswordConfirmation(e.target.value)}
+                    placeholder="Confirm Password"
+                    required
+                  />
                 </VStack>
 
                 <VStack spacing={4} align="stretch">
@@ -346,106 +332,79 @@ export const Login = () => {
                     borderColor={getBorderColor(colorMode, 'default')}
                   >
                     <VStack spacing={3} align="stretch">
-                      <Box>
-                        <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'secondary')}>
-                          Host
-                        </Text>
-                        <Input
-                          type="text"
-                          value={dbHost}
-                          onChange={(e) => setDbHost(e.target.value)}
-                          placeholder="localhost"
-                        />
-                      </Box>
-                      <Box>
-                        <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'secondary')}>
-                          Port
-                        </Text>
-                        <Input
-                          type="number"
-                          value={dbPort}
-                          onChange={(e) => setDbPort(e.target.value)}
-                          placeholder="5432"
-                        />
-                      </Box>
-                      <Box>
-                        <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'secondary')}>
-                          Database
-                        </Text>
-                        <Input
-                          type="text"
-                          value={dbDatabase}
-                          onChange={(e) => setDbDatabase(e.target.value)}
-                          placeholder="crossview"
-                        />
-                      </Box>
-                      <Box>
-                        <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'secondary')}>
-                          Username
-                        </Text>
-                        <Input
-                          type="text"
-                          value={dbUsername}
-                          onChange={(e) => setDbUsername(e.target.value)}
-                          placeholder="postgres"
-                        />
-                      </Box>
-                      <Box>
-                        <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'secondary')}>
-                          Password
-                        </Text>
-                        <Input
-                          type="password"
-                          value={dbPassword}
-                          onChange={(e) => setDbPassword(e.target.value)}
-                          placeholder="Database password"
-                        />
-                      </Box>
+                      <Input
+                        type="text"
+                        value={dbHost}
+                        onChange={(e) => setDbHost(e.target.value)}
+                        placeholder="Host (e.g., localhost)"
+                      />
+                      <Input
+                        type="number"
+                        value={dbPort}
+                        onChange={(e) => setDbPort(e.target.value)}
+                        placeholder="Port (e.g., 5432)"
+                      />
+                      <Input
+                        type="text"
+                        value={dbDatabase}
+                        onChange={(e) => setDbDatabase(e.target.value)}
+                        placeholder="Database name (e.g., crossview)"
+                      />
+                      <Input
+                        type="text"
+                        value={dbUsername}
+                        onChange={(e) => setDbUsername(e.target.value)}
+                        placeholder="Database username (e.g., postgres)"
+                      />
+                      <Input
+                        type="password"
+                        value={dbPassword}
+                        onChange={(e) => setDbPassword(e.target.value)}
+                        placeholder="Database password"
+                      />
                     </VStack>
                   </Box>
                 </VStack>
               </VStack>
             ) : (
               <VStack spacing={4} align="stretch">
-                <Box>
-                  <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'secondary')}>
-                    Username
-                  </Text>
-                  <Input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                  />
-                </Box>
-                <Box>
-                  <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'secondary')}>
-                    Password
-                  </Text>
-                  <Input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </Box>
+                <Input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Username"
+                  required
+                />
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  required
+                />
               </VStack>
             )}
 
             <Button
               type="submit"
               w="100%"
-              mt={2}
+              mt={4}
               bg={colorMode === 'dark' ? getTextColor(colorMode, 'primary') : getTextColor('light', 'primary')}
               _hover={{ 
-                bg: colorMode === 'dark' ? getTextColor(colorMode, 'secondary') : 'gray.800',
-                opacity: 0.9
+                bg: colorMode === 'dark' ? getTextColor(colorMode, 'secondary') : getTextColor('light', 'secondary'),
+                transform: 'translateY(-1px)',
+                boxShadow: `0 4px 12px ${colors.shadow[colorMode]}`
               }}
-              color={colorMode === 'dark' ? getBackgroundColor(colorMode, 'primary') : 'white'}
+              _active={{
+                transform: 'translateY(0)',
+              }}
+              color={colorMode === 'dark' ? getBackgroundColor(colorMode, 'primary') : getBackgroundColor('light', 'primary')}
               disabled={loading}
               py={6}
               fontSize="md"
               fontWeight="600"
+              borderRadius="lg"
+              transition="all 0.2s ease"
             >
               {loading ? (
                 <HStack spacing={2}>
@@ -453,7 +412,7 @@ export const Login = () => {
                     w="16px"
                     h="16px"
                     border="2px solid"
-                    borderColor={colorMode === 'dark' ? getBackgroundColor(colorMode, 'primary') : 'white'}
+                    borderColor={colorMode === 'dark' ? getBackgroundColor(colorMode, 'primary') : getBackgroundColor('light', 'primary')}
                     borderTopColor="transparent"
                     borderRadius="full"
                     animation="spin 0.8s linear infinite"
@@ -493,7 +452,11 @@ export const Login = () => {
                     bg={getBackgroundColor(colorMode, 'primary')}
                     _hover={{ 
                       bg: getBackgroundColor(colorMode, 'secondary'),
-                      transform: 'translateY(-1px)'
+                      transform: 'translateY(-1px)',
+                      boxShadow: `0 4px 12px ${colors.shadow[colorMode]}`
+                    }}
+                    _active={{
+                      transform: 'translateY(0)',
                     }}
                     color={getTextColor(colorMode, 'primary')}
                     border="1px solid"
@@ -501,7 +464,7 @@ export const Login = () => {
                     borderRadius="lg"
                     fontWeight="600"
                     fontSize="sm"
-                    transition="all 0.2s"
+                    transition="all 0.2s ease"
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
@@ -530,7 +493,11 @@ export const Login = () => {
                     bg={getBackgroundColor(colorMode, 'primary')}
                     _hover={{ 
                       bg: getBackgroundColor(colorMode, 'secondary'),
-                      transform: 'translateY(-1px)'
+                      transform: 'translateY(-1px)',
+                      boxShadow: `0 4px 12px ${colors.shadow[colorMode]}`
+                    }}
+                    _active={{
+                      transform: 'translateY(0)',
                     }}
                     color={getTextColor(colorMode, 'primary')}
                     border="1px solid"
@@ -538,7 +505,7 @@ export const Login = () => {
                     borderRadius="lg"
                     fontWeight="600"
                     fontSize="sm"
-                    transition="all 0.2s"
+                    transition="all 0.2s ease"
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
@@ -573,8 +540,10 @@ export const Login = () => {
               Need an account? Contact an administrator
             </Text>
           )}
-        </VStack>
-      </VStack>
+            </VStack>
+          </VStack>
+        </Box>
+      </Box>
     </Box>
   );
 };
