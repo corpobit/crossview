@@ -199,6 +199,7 @@ export const Login = () => {
               fontWeight="800" 
               letterSpacing="-1px"
               color={getTextColor(colorMode, 'primary')}
+              fontFamily="'Quicksand', sans-serif"
             >
               Crossview
             </Text>
