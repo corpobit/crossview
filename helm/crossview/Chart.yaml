@@ -2,8 +2,8 @@ apiVersion: v2
 name: crossview
 description: A Helm chart for Crossview - Crossplane resource visualization and management platform
 type: application
-version: 1.2.0
-appVersion: "1.2.0"
+version: 1.3.0
+appVersion: "1.3.0"
 icon: https://corpobit.github.io/crossview/images/helm-logo.svg
 keywords:
   - kubernetes
