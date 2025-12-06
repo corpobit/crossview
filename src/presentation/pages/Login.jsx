@@ -196,7 +196,7 @@ export const Login = () => {
             </Box>
             <Text 
               fontSize="3xl" 
-              fontWeight="800" 
+              fontWeight="500" 
               letterSpacing="-1px"
               color={getTextColor(colorMode, 'primary')}
               fontFamily="'Quicksand', sans-serif"
