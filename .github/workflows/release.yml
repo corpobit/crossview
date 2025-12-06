@@ -294,7 +294,7 @@ jobs:
           </head>
           <body>
             <h1>Crossview Helm Chart Repository</h1>
-            <p>This repository hosts Helm charts for Crossview - A Kubernetes resource visualization and management platform.</p>
+            <p>This repository hosts Helm charts for Crossview - A Crossplane resource visualization and management platform.</p>
             <h2>Add the Repository</h2>
             <pre>helm repo add crossview https://corpobit.github.io/crossview
           helm repo update</pre>
