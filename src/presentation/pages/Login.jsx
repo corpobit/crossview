@@ -163,24 +163,42 @@ export const Login = () => {
       overflow="hidden"
       bg={getBackgroundColor(colorMode, 'html')}
       css={{
-        backgroundImage: `
-          radial-gradient(circle at 1px 1px, ${colors.pattern[colorMode].primary} 1px, transparent 0),
-          radial-gradient(circle at 1px 1px, ${colors.pattern[colorMode].secondary} 1px, transparent 0)
-        `,
-        backgroundSize: '40px 40px, 20px 20px',
-        backgroundPosition: '0 0, 20px 20px',
+        background: colorMode === 'dark' 
+          ? 'linear-gradient(135deg, #0a0a0f 0%, #111118 50%, #0a0a0f 100%)'
+          : 'linear-gradient(135deg, #f9fafb 0%, #ffffff 50%, #f9fafb 100%)',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundImage: `
+            radial-gradient(circle at 1px 1px, ${colors.pattern[colorMode].primary} 1px, transparent 0),
+            radial-gradient(circle at 1px 1px, ${colors.pattern[colorMode].secondary} 1px, transparent 0)
+          `,
+          backgroundSize: '40px 40px, 20px 20px',
+          backgroundPosition: '0 0, 20px 20px',
+          opacity: 0.3,
+          pointerEvents: 'none',
+        }
       }}
     >
-      <VStack spacing={8} align="center" w="100%" maxW="320px">
-        {/* Logo and Typography */}
-        <VStack spacing={2} align="center" w="100%">
+      <Box
+        w="100%"
+        maxW="400px"
+        position="relative"
+        zIndex={1}
+      >
+        <VStack spacing={6} align="center" w="100%">
+          {/* Logo */}
           <Box
-            w="240px"
-            h="140px"
+            w="200px"
+            h="120px"
             display="flex"
             alignItems="center"
             justifyContent="center"
-            mb={2}
+            mb={4}
           >
             <Box
               as="img"
@@ -191,13 +209,32 @@ export const Login = () => {
               objectFit="contain"
               css={{
                 filter: colorMode === 'dark' ? 'invert(1)' : 'none',
+                transition: 'transform 0.3s ease',
+                '&:hover': {
+                  transform: 'scale(1.02)',
+                }
               }}
             />
           </Box>
-        </VStack>
 
-        {/* Login Form */}
-        <VStack spacing={6} align="stretch" w="100%">
+          {/* Login Form Card */}
+          <Box
+            w="100%"
+            bg={getBackgroundColor(colorMode, 'primary')}
+            borderRadius="xl"
+            border="1px solid"
+            borderColor={getBorderColor(colorMode, 'default')}
+            p={8}
+            boxShadow={colorMode === 'dark' 
+              ? '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+              : '0 20px 60px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04)'
+            }
+            css={{
+              backdropFilter: 'blur(10px)',
+              transition: 'all 0.3s ease',
+            }}
+          >
+            <VStack spacing={6} align="stretch" w="100%">
 
           {error && (
             <Box
@@ -420,17 +457,25 @@ export const Login = () => {
             <Button
               type="submit"
               w="100%"
-              mt={2}
+              mt={4}
               bg={colorMode === 'dark' ? getTextColor(colorMode, 'primary') : getTextColor('light', 'primary')}
               _hover={{ 
                 bg: colorMode === 'dark' ? getTextColor(colorMode, 'secondary') : 'gray.800',
-                opacity: 0.9
+                transform: 'translateY(-1px)',
+                boxShadow: colorMode === 'dark' 
+                  ? '0 4px 12px rgba(255, 255, 255, 0.1)'
+                  : '0 4px 12px rgba(0, 0, 0, 0.15)'
+              }}
+              _active={{
+                transform: 'translateY(0)',
               }}
               color={colorMode === 'dark' ? getBackgroundColor(colorMode, 'primary') : 'white'}
               disabled={loading}
               py={6}
               fontSize="md"
               fontWeight="600"
+              borderRadius="lg"
+              transition="all 0.2s ease"
             >
               {loading ? (
                 <HStack spacing={2}>
@@ -478,7 +523,13 @@ export const Login = () => {
                     bg={getBackgroundColor(colorMode, 'primary')}
                     _hover={{ 
                       bg: getBackgroundColor(colorMode, 'secondary'),
-                      transform: 'translateY(-1px)'
+                      transform: 'translateY(-1px)',
+                      boxShadow: colorMode === 'dark' 
+                        ? '0 4px 12px rgba(0, 0, 0, 0.3)'
+                        : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                    }}
+                    _active={{
+                      transform: 'translateY(0)',
                     }}
                     color={getTextColor(colorMode, 'primary')}
                     border="1px solid"
@@ -486,7 +537,7 @@ export const Login = () => {
                     borderRadius="lg"
                     fontWeight="600"
                     fontSize="sm"
-                    transition="all 0.2s"
+                    transition="all 0.2s ease"
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
@@ -515,7 +566,13 @@ export const Login = () => {
                     bg={getBackgroundColor(colorMode, 'primary')}
                     _hover={{ 
                       bg: getBackgroundColor(colorMode, 'secondary'),
-                      transform: 'translateY(-1px)'
+                      transform: 'translateY(-1px)',
+                      boxShadow: colorMode === 'dark' 
+                        ? '0 4px 12px rgba(0, 0, 0, 0.3)'
+                        : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                    }}
+                    _active={{
+                      transform: 'translateY(0)',
                     }}
                     color={getTextColor(colorMode, 'primary')}
                     border="1px solid"
@@ -523,7 +580,7 @@ export const Login = () => {
                     borderRadius="lg"
                     fontWeight="600"
                     fontSize="sm"
-                    transition="all 0.2s"
+                    transition="all 0.2s ease"
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
@@ -558,8 +615,10 @@ export const Login = () => {
               Need an account? Contact an administrator
             </Text>
           )}
+            </VStack>
+          </Box>
         </VStack>
-      </VStack>
+      </Box>
     </Box>
   );
 };
