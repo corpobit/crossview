@@ -1,13 +1,15 @@
 name: Helm Chart Release
 
+# This workflow can be used to manually update the Helm chart repository
+# The main release.yml workflow handles this automatically on each release
+
 on:
   workflow_dispatch:
-  release:
-    types: [published]
-  workflow_run:
-    workflows: ["Build and Release"]
-    types:
-      - completed
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.0)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -15,11 +17,6 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    # Only run if triggered by workflow_run and the triggering workflow succeeded
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'release' ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     
     steps:
       - name: Checkout code
@@ -37,69 +34,20 @@ jobs:
         with:
           version: '3.13.0'
 
-      - name: Get chart version from release or calculate
-        id: chart-version
+      - name: Update Chart.yaml with version
         run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            # Use the release tag version (remove 'v' prefix if present)
-            VERSION="${{ github.event.release.tag_name }}"
-            VERSION=${VERSION#v}
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-            echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event_name }}" = "workflow_run" ]; then
-            # When triggered by release workflow, get the latest release tag
-            LATEST_TAG=$(git describe --tags --match "v*" --abbrev=0 2>/dev/null || echo "")
-            if [ -z "$LATEST_TAG" ]; then
-              echo "No release tag found, skipping Helm chart update"
-              echo "skip=true" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-            VERSION=${LATEST_TAG#v}
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-            echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
-          else
-            # Calculate version from latest release tag
-            LATEST_TAG=$(git describe --tags --match "v*" --abbrev=0 2>/dev/null || echo "")
-            
-            if [ -z "$LATEST_TAG" ]; then
-              NEW_VERSION="0.1.0"
-            else
-              VERSION=${LATEST_TAG#v}
-              MAJOR=$(echo $VERSION | cut -d. -f1)
-              MINOR=$(echo $VERSION | cut -d. -f2)
-              PATCH=$(echo $VERSION | cut -d. -f3)
-              
-              if [ -z "$PATCH" ]; then
-                PATCH=0
-              fi
-              
-              if [ "$MAJOR" = "0" ]; then
-                if [ "$MINOR" -lt 9 ]; then
-                  NEW_MINOR=$((MINOR + 1))
-                  NEW_VERSION="0.$NEW_MINOR.0"
-                else
-                  # 0.9.0 -> 1.0.0
-                  NEW_VERSION="1.0.0"
-                fi
-              else
-                # 1.x or higher: increment minor (1.0.0 -> 1.1.0, 1.1.0 -> 1.2.0, etc.)
-                NEW_MINOR=$((MINOR + 1))
-                NEW_VERSION="$MAJOR.$NEW_MINOR.0"
-              fi
-            fi
-            echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-            echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
-          fi
-          echo "Chart version: ${{ steps.chart-version.outputs.version }}"
+          VERSION="${{ github.event.inputs.version }}"
+          sed -i "s/^version:.*/version: $VERSION/" helm/crossview/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"$VERSION\"/" helm/crossview/Chart.yaml
+          echo "Updated Chart.yaml to version $VERSION:"
+          cat helm/crossview/Chart.yaml
 
-      - name: Check if we should skip
-        if: steps.chart-version.outputs.skip == 'true'
+      - name: Package Helm chart
         run: |
-          echo "Skipping Helm chart update - no release tag found"
-          exit 0
+          helm package helm/crossview --destination ./charts
+          ls -la ./charts/
 
       - name: Checkout gh-pages branch
-        if: steps.chart-version.outputs.skip != 'true'
         uses: actions/checkout@v4
         with:
           ref: gh-pages
@@ -107,22 +55,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Update Chart.yaml with version
-        if: steps.chart-version.outputs.skip != 'true'
-        run: |
-          # Update Chart.yaml version in the main checkout (not gh-pages)
-          sed -i "s/^version:.*/version: ${{ steps.chart-version.outputs.version }}/" helm/crossview/Chart.yaml
-          sed -i "s/^appVersion:.*/appVersion: \"${{ steps.chart-version.outputs.version }}\"/" helm/crossview/Chart.yaml
-          cat helm/crossview/Chart.yaml
-
-      - name: Package Helm chart
-        if: steps.chart-version.outputs.skip != 'true'
-        run: |
-          helm package helm/crossview --destination ./charts
-          ls -la ./charts/
-
       - name: Initialize gh-pages if empty
-        if: steps.chart-version.outputs.skip != 'true'
         run: |
           if [ ! -f gh-pages/index.yaml ]; then
             echo "Initializing gh-pages branch"
@@ -138,53 +71,62 @@ jobs:
           fi
 
       - name: Create charts directory if it doesn't exist
-        if: steps.chart-version.outputs.skip != 'true'
         run: |
           mkdir -p gh-pages/charts
 
       - name: Copy new chart package
-        if: steps.chart-version.outputs.skip != 'true'
         run: |
           cp charts/*.tgz gh-pages/charts/
 
       - name: Update Helm repository index
-        if: steps.chart-version.outputs.skip != 'true'
         run: |
           cd gh-pages
           helm repo index . --url https://corpobit.github.io/crossview
           cat index.yaml
 
-      - name: Clean up gh-pages branch (remove unnecessary files)
-        if: steps.chart-version.outputs.skip != 'true'
+      - name: Create index.html for GitHub Pages
         run: |
           cd gh-pages
-          # Remove any files that shouldn't be in the Helm repo
-          find . -type f ! -name 'index.yaml' ! -name '*.tgz' ! -name 'README.md' ! -path './charts/*' -delete 2>/dev/null || true
+          cat > index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Crossview Helm Chart Repository</title>
+            <meta http-equiv="refresh" content="0; url=https://github.com/corpobit/crossview" />
+          </head>
+          <body>
+            <h1>Crossview Helm Chart Repository</h1>
+            <p>This repository hosts Helm charts for Crossview.</p>
+            <p>To add this repository:</p>
+            <pre>helm repo add crossview https://corpobit.github.io/crossview
+          helm repo update</pre>
+            <p>To install:</p>
+            <pre>helm install crossview crossview/crossview</pre>
+            <p>For more information, visit <a href="https://github.com/corpobit/crossview">the project repository</a>.</p>
+          </body>
+          </html>
+          EOF
+
+      - name: Clean up gh-pages branch
+        run: |
+          cd gh-pages
+          find . -type f ! -name 'index.yaml' ! -name 'index.html' ! -name '*.tgz' ! -name 'README.md' ! -path './charts/*' -delete 2>/dev/null || true
           find . -type d -empty -delete 2>/dev/null || true
-          # Remove directories that shouldn't be there (but keep .git)
           rm -rf config logs node_modules 2>/dev/null || true
-          # Ensure charts directory exists
           mkdir -p charts
 
       - name: Commit and push to gh-pages
-        if: steps.chart-version.outputs.skip != 'true'
         run: |
           cd gh-pages
-          # Configure git in the gh-pages directory
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Pull latest changes to avoid conflicts
           git pull origin gh-pages --rebase || git pull origin gh-pages --no-rebase || true
-          # Ensure we're on the gh-pages branch
           git checkout gh-pages || git checkout -b gh-pages
           git add .
-          # Remove any untracked files (but keep .git)
           git clean -fd -e .git || true
           if git diff --staged --quiet && git diff --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Update Helm chart to version ${{ steps.chart-version.outputs.version }}" || echo "Nothing to commit"
-            # Force push only if we had to rebase, otherwise normal push
+            git commit -m "Update Helm chart to version ${{ github.event.inputs.version }}"
             git push origin gh-pages || git push origin gh-pages --force-with-lease
           fi
-

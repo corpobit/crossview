@@ -4,6 +4,7 @@ import {
   HStack,
   Text,
   Button,
+  Image,
 } from '@chakra-ui/react';
 import { FiChevronLeft, FiChevronRight, FiChevronDown, FiChevronUp, FiLayout, FiSettings, FiLogOut, FiPackage, FiFileText, FiDatabase, FiLayers, FiBox, FiBook } from 'react-icons/fi';
 import { useState, useEffect, useRef } from 'react';
@@ -243,9 +244,18 @@ export const Sidebar = ({ onToggle, onResize }) => {
         >
           <HStack justify={isCollapsed ? 'center' : 'space-between'} mb={isCollapsed ? 0 : 4}>
             {!isCollapsed && (
-              <Text fontSize="xl" fontWeight="bold" color="blue.600" _dark={{ color: 'blue.400' }}>
-                Crossview
-              </Text>
+              <HStack spacing={3} align="center">
+                <Image 
+                  src="/images/cross-view-logo-sidebar.svg" 
+                  alt="Crossview Logo" 
+                  h="32px"
+                  w="auto"
+                  _dark={{ filter: 'brightness(0) invert(1)' }}
+                />
+                <Text fontSize="xl" fontWeight="bold" color="black" _dark={{ color: 'white' }}>
+                  Crossview
+                </Text>
+              </HStack>
             )}
             <Box
               as="button"
