@@ -190,50 +190,49 @@ export const Login = () => {
         position="relative"
         zIndex={1}
       >
-        <VStack spacing={6} align="center" w="100%">
-          {/* Logo */}
-          <Box
-            w="200px"
-            h="120px"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            mb={4}
-          >
+        {/* Login Form Card */}
+        <Box
+          w="100%"
+          bg={getBackgroundColor(colorMode, 'primary')}
+          borderRadius="xl"
+          border="1px solid"
+          borderColor={getBorderColor(colorMode, 'default')}
+          p={8}
+          boxShadow={colorMode === 'dark' 
+            ? '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+            : '0 20px 60px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04)'
+          }
+          css={{
+            backdropFilter: 'blur(10px)',
+            transition: 'all 0.3s ease',
+          }}
+        >
+          <VStack spacing={6} align="center" w="100%">
+            {/* Logo */}
             <Box
-              as="img"
-              src="/images/crossview-logo.svg"
-              alt="Crossview Logo"
-              w="100%"
-              h="100%"
-              objectFit="contain"
-              css={{
-                filter: colorMode === 'dark' ? 'invert(1)' : 'none',
-                transition: 'transform 0.3s ease',
-                '&:hover': {
-                  transform: 'scale(1.02)',
-                }
-              }}
-            />
-          </Box>
+              w="180px"
+              h="110px"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Box
+                as="img"
+                src="/images/crossview-logo.svg"
+                alt="Crossview Logo"
+                w="100%"
+                h="100%"
+                objectFit="contain"
+                css={{
+                  filter: colorMode === 'dark' ? 'invert(1)' : 'none',
+                  transition: 'transform 0.3s ease',
+                  '&:hover': {
+                    transform: 'scale(1.02)',
+                  }
+                }}
+              />
+            </Box>
 
-          {/* Login Form Card */}
-          <Box
-            w="100%"
-            bg={getBackgroundColor(colorMode, 'primary')}
-            borderRadius="xl"
-            border="1px solid"
-            borderColor={getBorderColor(colorMode, 'default')}
-            p={8}
-            boxShadow={colorMode === 'dark' 
-              ? '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)'
-              : '0 20px 60px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04)'
-            }
-            css={{
-              backdropFilter: 'blur(10px)',
-              transition: 'all 0.3s ease',
-            }}
-          >
             <VStack spacing={6} align="stretch" w="100%">
 
           {error && (
@@ -616,8 +615,8 @@ export const Login = () => {
             </Text>
           )}
             </VStack>
-          </Box>
-        </VStack>
+          </VStack>
+        </Box>
       </Box>
     </Box>
   );
