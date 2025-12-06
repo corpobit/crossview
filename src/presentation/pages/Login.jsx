@@ -279,70 +279,34 @@ export const Login = () => {
                   >
                     Account Information
                   </Text>
-                  <Box>
-                    <Text 
-                      fontSize="sm" 
-                      fontWeight="500" 
-                      mb={2} 
-                      color={getTextColor(colorMode, 'secondary')}
-                    >
-                      Username
-                    </Text>
-                    <Input
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      required
-                    />
-                  </Box>
-                  <Box>
-                    <Text 
-                      fontSize="sm" 
-                      fontWeight="500" 
-                      mb={2} 
-                      color={getTextColor(colorMode, 'secondary')}
-                    >
-                      Email
-                    </Text>
-                    <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </Box>
-                  <Box>
-                    <Text 
-                      fontSize="sm" 
-                      fontWeight="500" 
-                      mb={2} 
-                      color={getTextColor(colorMode, 'secondary')}
-                    >
-                      Password
-                    </Text>
-                    <Input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </Box>
-                  <Box>
-                    <Text 
-                      fontSize="sm" 
-                      fontWeight="500" 
-                      mb={2} 
-                      color={getTextColor(colorMode, 'secondary')}
-                    >
-                      Confirm Password
-                    </Text>
-                    <Input
-                      type="password"
-                      value={passwordConfirmation}
-                      onChange={(e) => setPasswordConfirmation(e.target.value)}
-                      required
-                    />
-                  </Box>
+                  <Input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Username"
+                    required
+                  />
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email"
+                    required
+                  />
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Password"
+                    required
+                  />
+                  <Input
+                    type="password"
+                    value={passwordConfirmation}
+                    onChange={(e) => setPasswordConfirmation(e.target.value)}
+                    placeholder="Confirm Password"
+                    required
+                  />
                 </VStack>
 
                 <VStack spacing={4} align="stretch">
@@ -367,89 +331,56 @@ export const Login = () => {
                     borderColor={getBorderColor(colorMode, 'default')}
                   >
                     <VStack spacing={3} align="stretch">
-                      <Box>
-                        <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'secondary')}>
-                          Host
-                        </Text>
-                        <Input
-                          type="text"
-                          value={dbHost}
-                          onChange={(e) => setDbHost(e.target.value)}
-                          placeholder="localhost"
-                        />
-                      </Box>
-                      <Box>
-                        <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'secondary')}>
-                          Port
-                        </Text>
-                        <Input
-                          type="number"
-                          value={dbPort}
-                          onChange={(e) => setDbPort(e.target.value)}
-                          placeholder="5432"
-                        />
-                      </Box>
-                      <Box>
-                        <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'secondary')}>
-                          Database
-                        </Text>
-                        <Input
-                          type="text"
-                          value={dbDatabase}
-                          onChange={(e) => setDbDatabase(e.target.value)}
-                          placeholder="crossview"
-                        />
-                      </Box>
-                      <Box>
-                        <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'secondary')}>
-                          Username
-                        </Text>
-                        <Input
-                          type="text"
-                          value={dbUsername}
-                          onChange={(e) => setDbUsername(e.target.value)}
-                          placeholder="postgres"
-                        />
-                      </Box>
-                      <Box>
-                        <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'secondary')}>
-                          Password
-                        </Text>
-                        <Input
-                          type="password"
-                          value={dbPassword}
-                          onChange={(e) => setDbPassword(e.target.value)}
-                          placeholder="Database password"
-                        />
-                      </Box>
+                      <Input
+                        type="text"
+                        value={dbHost}
+                        onChange={(e) => setDbHost(e.target.value)}
+                        placeholder="Host (e.g., localhost)"
+                      />
+                      <Input
+                        type="number"
+                        value={dbPort}
+                        onChange={(e) => setDbPort(e.target.value)}
+                        placeholder="Port (e.g., 5432)"
+                      />
+                      <Input
+                        type="text"
+                        value={dbDatabase}
+                        onChange={(e) => setDbDatabase(e.target.value)}
+                        placeholder="Database name (e.g., crossview)"
+                      />
+                      <Input
+                        type="text"
+                        value={dbUsername}
+                        onChange={(e) => setDbUsername(e.target.value)}
+                        placeholder="Database username (e.g., postgres)"
+                      />
+                      <Input
+                        type="password"
+                        value={dbPassword}
+                        onChange={(e) => setDbPassword(e.target.value)}
+                        placeholder="Database password"
+                      />
                     </VStack>
                   </Box>
                 </VStack>
               </VStack>
             ) : (
               <VStack spacing={4} align="stretch">
-                <Box>
-                  <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'secondary')}>
-                    Username
-                  </Text>
-                  <Input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                  />
-                </Box>
-                <Box>
-                  <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'secondary')}>
-                    Password
-                  </Text>
-                  <Input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </Box>
+                <Input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Username"
+                  required
+                />
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  required
+                />
               </VStack>
             )}
 
