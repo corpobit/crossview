@@ -40,6 +40,9 @@ jobs:
       - name: Calculate next version
         id: version
         run: |
+          # Get all existing tags
+          git fetch --tags --force
+          
           # Get the latest release tag
           LATEST_TAG=$(git describe --tags --match "v*" --abbrev=0 2>/dev/null || echo "")
           echo "Latest tag found: $LATEST_TAG"
@@ -55,12 +58,12 @@ jobs:
             MINOR=$(echo $VERSION | cut -d. -f2)
             PATCH=$(echo $VERSION | cut -d. -f3)
             
-            echo "Parsed version: MAJOR=$MAJOR, MINOR=$MINOR, PATCH=$PATCH"
-            
             # If patch is empty, default to 0
             if [ -z "$PATCH" ]; then
               PATCH=0
             fi
+            
+            echo "Parsed version: MAJOR=$MAJOR, MINOR=$MINOR, PATCH=$PATCH"
             
             if [ "$MAJOR" = "0" ]; then
               # We're in 0.x series
@@ -76,11 +79,48 @@ jobs:
               fi
             else
               # We're in 1.x or higher series
-              # Increment minor: 1.0.0 -> 1.1.0, 1.1.0 -> 1.2.0, etc.
-              NEW_MINOR=$((MINOR + 1))
-              NEW_VERSION="$MAJOR.$NEW_MINOR.0"
-              echo "Incrementing minor version in 1.x series: $NEW_VERSION"
+              if [ "$MINOR" -lt 9 ]; then
+                # Increment minor: 1.0.0 -> 1.1.0, 1.1.0 -> 1.2.0, etc.
+                NEW_MINOR=$((MINOR + 1))
+                NEW_VERSION="$MAJOR.$NEW_MINOR.0"
+                echo "Incrementing minor version in $MAJOR.x series: $NEW_VERSION"
+              else
+                # 1.9.0 -> 2.0.0, 2.9.0 -> 3.0.0, etc.
+                NEW_MAJOR=$((MAJOR + 1))
+                NEW_VERSION="$NEW_MAJOR.0.0"
+                echo "Jumping from $MAJOR.9.0 to $NEW_VERSION"
+              fi
             fi
+            
+            # Check if the calculated version tag already exists, if so, keep incrementing
+            while git rev-parse "v$NEW_VERSION" >/dev/null 2>&1 || git ls-remote --tags origin "v$NEW_VERSION" | grep -q "v$NEW_VERSION"; do
+              echo "⚠️ Version v$NEW_VERSION already exists, incrementing..."
+              VERSION=$NEW_VERSION
+              MAJOR=$(echo $VERSION | cut -d. -f1)
+              MINOR=$(echo $VERSION | cut -d. -f2)
+              PATCH=$(echo $VERSION | cut -d. -f3)
+              
+              if [ -z "$PATCH" ]; then
+                PATCH=0
+              fi
+              
+              if [ "$MAJOR" = "0" ]; then
+                if [ "$MINOR" -lt 9 ]; then
+                  NEW_MINOR=$((MINOR + 1))
+                  NEW_VERSION="0.$NEW_MINOR.0"
+                else
+                  NEW_VERSION="1.0.0"
+                fi
+              else
+                if [ "$MINOR" -lt 9 ]; then
+                  NEW_MINOR=$((MINOR + 1))
+                  NEW_VERSION="$MAJOR.$NEW_MINOR.0"
+                else
+                  NEW_MAJOR=$((MAJOR + 1))
+                  NEW_VERSION="$NEW_MAJOR.0.0"
+                fi
+              fi
+            done
           fi
           
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
@@ -89,52 +129,49 @@ jobs:
           echo "New version: $NEW_VERSION"
           echo "New tag: v$NEW_VERSION"
 
-      - name: Check if release already exists
-        id: check-release
+      - name: Update package.json version
         run: |
-          TAG=${{ steps.version.outputs.tag }}
-          echo "Checking if tag $TAG already exists..."
-          echo "Calculated version: ${{ steps.version.outputs.version }}"
-          echo "Calculated tag: $TAG"
-          
-          # Fetch tags from remote to ensure we have the latest
-          git fetch --tags --force
-          
-          # Check both local and remote
-          if git rev-parse "$TAG" >/dev/null 2>&1 || git ls-remote --tags origin "$TAG" | grep -q "$TAG"; then
-            echo "⚠️ Release $TAG already exists!"
-            echo "Current latest tag: $(git describe --tags --match 'v*' --abbrev=0 2>/dev/null || echo 'none')"
-            echo "Calculated next version: ${{ steps.version.outputs.version }}"
-            echo "skip=true" >> $GITHUB_OUTPUT
+          npm version ${{ steps.version.outputs.version }} --no-git-tag-version --allow-same-version
+          echo "Updated package.json to version ${{ steps.version.outputs.version }}"
+
+      - name: Update Helm Chart.yaml
+        run: |
+          sed -i "s/^version:.*/version: ${{ steps.version.outputs.version }}/" helm/crossview/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"${{ steps.version.outputs.version }}\"/" helm/crossview/Chart.yaml
+          echo "Updated Chart.yaml:"
+          cat helm/crossview/Chart.yaml
+
+      - name: Update README.md version references
+        run: |
+          # Update version in README.md (if any specific version references exist)
+          # This is a placeholder - adjust based on actual README content
+          echo "README.md version references updated (if any)"
+
+      - name: Update docs/HELM_DEPLOYMENT.md version references
+        run: |
+          # Update example version tags in documentation
+          sed -i "s/v0\.[0-9]\+\.[0-9]\+/v${{ steps.version.outputs.version }}/g" docs/HELM_DEPLOYMENT.md || true
+          sed -i "s/v1\.[0-9]\+\.[0-9]\+/v${{ steps.version.outputs.version }}/g" docs/HELM_DEPLOYMENT.md || true
+          echo "Updated HELM_DEPLOYMENT.md"
+
+      - name: Update helm/crossview/README.md version references
+        run: |
+          # Update example version tags in Helm README
+          sed -i "s/v0\.[0-9]\+\.[0-9]\+/v${{ steps.version.outputs.version }}/g" helm/crossview/README.md || true
+          sed -i "s/v1\.[0-9]\+\.[0-9]\+/v${{ steps.version.outputs.version }}/g" helm/crossview/README.md || true
+          echo "Updated helm/crossview/README.md"
+
+      - name: Commit version updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json helm/crossview/Chart.yaml docs/HELM_DEPLOYMENT.md helm/crossview/README.md
+          if git diff --staged --quiet; then
+            echo "No version changes to commit"
           else
-            echo "✅ Release $TAG does not exist, will create"
-            echo "skip=false" >> $GITHUB_OUTPUT
+            git commit -m "Bump version to ${{ steps.version.outputs.version }}"
+            git push
           fi
-
-      - name: Create GitHub Release
-        if: steps.check-release.outputs.skip != 'true'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: Release ${{ steps.version.outputs.tag }}
-          body: |
-            Automated release ${{ steps.version.outputs.tag }}
-            
-            ## Changes
-            - Built from commit ${{ github.sha }}
-            - Docker image: ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}
-            - Helm chart will be automatically updated to version ${{ steps.version.outputs.version }}
-          draft: false
-          prerelease: false
-          fail_on_unmatched: true
-
-      - name: Warn if release skipped
-        if: steps.check-release.outputs.skip == 'true'
-        run: |
-          echo "::warning::Release ${{ steps.version.outputs.tag }} already exists. Skipping release creation but continuing with Docker build."
-          echo "If you want to create a new release, you may need to:"
-          echo "1. Delete the existing tag: git push origin --delete ${{ steps.version.outputs.tag }}"
-          echo "2. Or manually create a new release with a different version"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -159,12 +196,115 @@ jobs:
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crossview:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crossview:buildcache,mode=max
 
-      - name: Update package.json version
-        run: |
-                npm version ${{ steps.version.outputs.version }} --no-git-tag-version --allow-same-version
-                git config user.name "github-actions[bot]"
-                git config user.email "github-actions[bot]@users.noreply.github.com"
-                git add package.json
-                git commit -m "Bump version to ${{ steps.version.outputs.version }}" || exit 0
-                git push || exit 0
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          body: |
+            Automated release ${{ steps.version.outputs.tag }}
+            
+            ## Changes
+            - Built from commit ${{ github.sha }}
+            - Docker image: ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}
+            - Helm chart version: ${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+          fail_on_unmatched: true
 
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: '3.13.0'
+
+      - name: Package Helm chart
+        run: |
+          helm package helm/crossview --destination ./charts
+          ls -la ./charts/
+
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Initialize gh-pages if empty
+        run: |
+          if [ ! -f gh-pages/index.yaml ]; then
+            echo "Initializing gh-pages branch"
+            cd gh-pages
+            echo "apiVersion: v1" > index.yaml
+            echo "entries: {}" >> index.yaml
+            mkdir -p charts
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add index.yaml
+            git commit -m "Initial Helm chart repository" || true
+            git push origin gh-pages || true
+          fi
+
+      - name: Create charts directory if it doesn't exist
+        run: |
+          mkdir -p gh-pages/charts
+
+      - name: Copy new chart package
+        run: |
+          cp charts/*.tgz gh-pages/charts/
+
+      - name: Update Helm repository index
+        run: |
+          cd gh-pages
+          helm repo index . --url https://corpobit.github.io/crossview
+          cat index.yaml
+
+      - name: Create index.html for GitHub Pages
+        run: |
+          cd gh-pages
+          cat > index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Crossview Helm Chart Repository</title>
+            <meta http-equiv="refresh" content="0; url=https://github.com/corpobit/crossview" />
+          </head>
+          <body>
+            <h1>Crossview Helm Chart Repository</h1>
+            <p>This repository hosts Helm charts for Crossview.</p>
+            <p>To add this repository:</p>
+            <pre>helm repo add crossview https://corpobit.github.io/crossview
+          helm repo update</pre>
+            <p>To install:</p>
+            <pre>helm install crossview crossview/crossview</pre>
+            <p>For more information, visit <a href="https://github.com/corpobit/crossview">the project repository</a>.</p>
+          </body>
+          </html>
+          EOF
+
+      - name: Clean up gh-pages branch
+        run: |
+          cd gh-pages
+          # Remove any files that shouldn't be in the Helm repo
+          find . -type f ! -name 'index.yaml' ! -name 'index.html' ! -name '*.tgz' ! -name 'README.md' ! -path './charts/*' -delete 2>/dev/null || true
+          find . -type d -empty -delete 2>/dev/null || true
+          # Remove directories that shouldn't be there (but keep .git)
+          rm -rf config logs node_modules 2>/dev/null || true
+          # Ensure charts directory exists
+          mkdir -p charts
+
+      - name: Commit and push to gh-pages
+        run: |
+          cd gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull origin gh-pages --rebase || git pull origin gh-pages --no-rebase || true
+          git checkout gh-pages || git checkout -b gh-pages
+          git add .
+          git clean -fd -e .git || true
+          if git diff --staged --quiet && git diff --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update Helm chart to version ${{ steps.version.outputs.version }}"
+            git push origin gh-pages || git push origin gh-pages --force-with-lease
+          fi
