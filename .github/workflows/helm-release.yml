@@ -73,10 +73,12 @@ jobs:
       - name: Create charts directory if it doesn't exist
         run: |
           mkdir -p gh-pages/charts
+          mkdir -p gh-pages/images
 
-      - name: Copy new chart package
+      - name: Copy new chart package and logo
         run: |
           cp charts/*.tgz gh-pages/charts/
+          cp public/images/helm-logo.svg gh-pages/images/helm-logo.svg
 
       - name: Update Helm repository index
         run: |
@@ -102,6 +104,14 @@ jobs:
                 padding: 20px;
                 line-height: 1.6;
               }
+              .logo-container {
+                text-align: center;
+                margin: 20px 0;
+              }
+              .logo-container img {
+                max-width: 200px;
+                height: auto;
+              }
               pre {
                 background: #f4f4f4;
                 padding: 15px;
@@ -118,6 +128,9 @@ jobs:
             </style>
           </head>
           <body>
+            <div class="logo-container">
+              <img src="images/helm-logo.svg" alt="Crossview Helm Chart Logo" />
+            </div>
             <h1>Crossview Helm Chart Repository</h1>
             <p>This repository hosts Helm charts for Crossview - A Crossplane resource visualization and management platform.</p>
             <h2>Add the Repository</h2>
@@ -147,13 +160,13 @@ jobs:
         run: |
           cd gh-pages
           # Remove any files that shouldn't be in the Helm repo (keep only index.yaml, index.html, artifacthub-repo.yml, *.tgz, README.md, and charts/)
-          find . -type f ! -name 'index.yaml' ! -name 'index.html' ! -name 'artifacthub-repo.yml' ! -name '*.tgz' ! -name 'README.md' ! -path './charts/*' ! -path './.git/*' -delete 2>/dev/null || true
-          # Remove directories that shouldn't be there (but keep .git and charts)
-          find . -type d ! -name '.git' ! -name 'charts' ! -name '.' -empty -delete 2>/dev/null || true
+          find . -type f ! -name 'index.yaml' ! -name 'index.html' ! -name 'artifacthub-repo.yml' ! -name '*.tgz' ! -name 'README.md' ! -name '*.svg' ! -path './charts/*' ! -path './images/*' ! -path './.git/*' -delete 2>/dev/null || true
+          # Remove directories that shouldn't be there (but keep .git, charts, and images)
+          find . -type d ! -name '.git' ! -name 'charts' ! -name 'images' ! -name '.' -empty -delete 2>/dev/null || true
           # Remove common build directories
           rm -rf dist build config logs node_modules src public .github 2>/dev/null || true
-          # Ensure charts directory exists
-          mkdir -p charts
+          # Ensure charts and images directories exist
+          mkdir -p charts images
 
       - name: Commit and push to gh-pages
         run: |
