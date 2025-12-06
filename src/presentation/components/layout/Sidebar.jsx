@@ -253,8 +253,8 @@ export const Sidebar = ({ onToggle, onResize }) => {
                   _dark={{ filter: 'brightness(0) invert(1)' }}
                 />
                 <Text fontSize="xl" fontWeight="bold" color="black" _dark={{ color: 'white' }}>
-                  Crossview
-                </Text>
+                Crossview
+              </Text>
               </HStack>
             )}
             <Box

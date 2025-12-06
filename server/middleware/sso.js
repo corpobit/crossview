@@ -1,6 +1,6 @@
 import passport from 'passport';
 import { Strategy as OAuth2Strategy } from 'passport-oauth2';
-import { Strategy as SamlStrategy } from 'passport-saml';
+import { Strategy as SamlStrategy } from '@node-saml/passport-saml';
 import crypto from 'crypto';
 import fs from 'fs';
 import { getConfig } from '../../config/loader.js';
