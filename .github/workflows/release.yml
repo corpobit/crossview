@@ -80,9 +80,9 @@ jobs:
             else
               # We're in 1.x or higher series
               if [ "$MINOR" -lt 9 ]; then
-                # Increment minor: 1.0.0 -> 1.1.0, 1.1.0 -> 1.2.0, etc.
-                NEW_MINOR=$((MINOR + 1))
-                NEW_VERSION="$MAJOR.$NEW_MINOR.0"
+              # Increment minor: 1.0.0 -> 1.1.0, 1.1.0 -> 1.2.0, etc.
+              NEW_MINOR=$((MINOR + 1))
+              NEW_VERSION="$MAJOR.$NEW_MINOR.0"
                 echo "Incrementing minor version in $MAJOR.x series: $NEW_VERSION"
               else
                 # 1.9.0 -> 2.0.0, 2.9.0 -> 3.0.0, etc.
@@ -238,8 +238,8 @@ jobs:
             echo "apiVersion: v1" > index.yaml
             echo "entries: {}" >> index.yaml
             mkdir -p charts
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
+                git config user.name "github-actions[bot]"
+                git config user.email "github-actions[bot]@users.noreply.github.com"
             git add index.yaml
             git commit -m "Initial Helm chart repository" || true
             git push origin gh-pages || true
@@ -309,11 +309,20 @@ jobs:
           </html>
           EOF
 
+      - name: Create Artifact Hub repository metadata
+        run: |
+          cd gh-pages
+          cat > artifacthub-repo.yml << 'EOF'
+          repositoryID: d73e91d5-f8ca-4b1a-bea7-b274f432462c
+          EOF
+          echo "Created artifacthub-repo.yml:"
+          cat artifacthub-repo.yml
+
       - name: Clean up gh-pages branch
         run: |
           cd gh-pages
-          # Remove any files that shouldn't be in the Helm repo (keep only index.yaml, index.html, *.tgz, README.md, and charts/)
-          find . -type f ! -name 'index.yaml' ! -name 'index.html' ! -name '*.tgz' ! -name 'README.md' ! -path './charts/*' ! -path './.git/*' -delete 2>/dev/null || true
+          # Remove any files that shouldn't be in the Helm repo (keep only index.yaml, index.html, artifacthub-repo.yml, *.tgz, README.md, and charts/)
+          find . -type f ! -name 'index.yaml' ! -name 'index.html' ! -name 'artifacthub-repo.yml' ! -name '*.tgz' ! -name 'README.md' ! -path './charts/*' ! -path './.git/*' -delete 2>/dev/null || true
           # Remove directories that shouldn't be there (but keep .git and charts)
           find . -type d ! -name '.git' ! -name 'charts' ! -name '.' -empty -delete 2>/dev/null || true
           # Remove common build directories
