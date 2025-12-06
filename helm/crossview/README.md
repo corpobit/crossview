@@ -1,6 +1,6 @@
 # Crossview Helm Chart
 
-This Helm chart deploys Crossview, a Kubernetes resource visualization and management platform, on a Kubernetes cluster.
+This Helm chart deploys Crossview, a Crossplane resource visualization and management platform, on a Kubernetes cluster.
 
 ## Prerequisites
 
