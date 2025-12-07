@@ -6,7 +6,7 @@
   A modern React-based dashboard for managing and monitoring Crossplane resources in Kubernetes. Visualize, search, and manage your infrastructure-as-code with ease.
 
 [![GitHub stars](https://img.shields.io/github/stars/corpobit/crossview?style=social)](https://github.com/corpobit/crossview)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
   [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/crossview)](https://artifacthub.io/packages/search?repo=crossview)
 </div>
 
@@ -309,4 +309,4 @@ Feel free to open an issue for questions or discussions about the project.
 
 ## License
 
-This project is open source and available under the [MIT License](LICENSE).
+This project is open source and available under the [Apache License 2.0](LICENSE).
