@@ -17,6 +17,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+      security-events: write
     
     steps:
       - name: Checkout code
@@ -35,6 +36,11 @@ jobs:
           npm ci
           # Fix for rollup optional dependencies issue: ensure platform-specific packages are installed
           npm install --no-save @rollup/rollup-linux-x64-gnu || true
+
+      - name: Run npm audit
+        run: |
+          echo "Checking for npm vulnerabilities..."
+          npm audit --audit-level=moderate || echo "⚠️ Some vulnerabilities found, but continuing build"
 
       - name: Build application
         run: npm run build
@@ -204,6 +210,33 @@ jobs:
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crossview:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crossview:buildcache,mode=max
 
+      - name: Scan Docker image with Trivy (table output)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}'
+          format: 'table'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          exit-code: '0'
+          ignore-unfixed: false
+        continue-on-error: true
+
+      - name: Scan Docker image with Trivy (SARIF)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+          ignore-unfixed: false
+        continue-on-error: true
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -261,6 +294,7 @@ jobs:
       - name: Copy new chart package and logo
         run: |
           cp charts/*.tgz gh-pages/charts/
+          cp public/images/crossview-logo.svg gh-pages/images/crossview-logo.svg
           cp public/images/helm-logo.svg gh-pages/images/helm-logo.svg
 
       - name: Update Helm repository index
@@ -394,7 +428,7 @@ jobs:
           <body>
             <div class="container">
               <header>
-                <img src="images/helm-logo.svg" alt="Helm" class="logo">
+                <img src="images/crossview-logo.svg" alt="Crossview" class="logo">
                 <h1>Crossview Helm Charts</h1>
                 <p class="tagline">Official Helm repository for Crossview – Crossplane visualization platform</p>
               </header>
