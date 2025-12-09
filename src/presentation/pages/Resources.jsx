@@ -22,7 +22,7 @@ export const Resources = () => {
   const [navigationHistory, setNavigationHistory] = useState([]);
   const [uniqueKinds, setUniqueKinds] = useState([]);
   const [useAutoHeight, setUseAutoHeight] = useState(false);
-  const continueTokensRef = useRef([null]);
+  const [allManagedResources, setAllManagedResources] = useState([]);
   const tableContainerRef = useRef(null);
 
   // Close resource detail when route changes
@@ -34,51 +34,41 @@ export const Resources = () => {
   useEffect(() => {
     if (!selectedContext) {
       setUniqueKinds([]);
+      setAllManagedResources([]);
       return;
     }
     
-    const loadFilterOptions = async () => {
+    const loadManagedResources = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
-        const { GetResourcesUseCase } = await import('../../domain/usecases/GetResourcesUseCase.js');
-        const useCase = new GetResourcesUseCase(kubernetesRepository);
-        const result = await useCase.execute(contextName, null, 20, null);
-        const data = Array.isArray(result) ? result : (result?.items || []);
-        const filtered = data.filter(r => r.kind === 'Composition' || r.kind === 'CompositeResourceDefinition');
-        setUniqueKinds([...new Set(filtered.map(r => r.kind).filter(Boolean))].sort());
+        const { GetManagedResourcesUseCase } = await import('../../domain/usecases/GetManagedResourcesUseCase.js');
+        const useCase = new GetManagedResourcesUseCase(kubernetesRepository);
+        const resources = await useCase.execute(contextName, null);
+        setAllManagedResources(Array.isArray(resources) ? resources : []);
+        setUniqueKinds([...new Set(resources.map(r => r.kind).filter(Boolean))].sort());
+        setLoading(false);
       } catch (err) {
-        console.warn('Failed to load filter options:', err);
+        console.warn('Failed to load managed resources:', err);
+        setError(err.message);
+        setAllManagedResources([]);
+        setUniqueKinds([]);
+        setLoading(false);
       }
     };
     
-    loadFilterOptions();
-    continueTokensRef.current = [null];
+    loadManagedResources();
   }, [selectedContext, kubernetesRepository]);
 
   const fetchData = useCallback(async (page, pageSize) => {
-    if (!selectedContext) {
+    if (!selectedContext || allManagedResources.length === 0) {
       return { items: [], totalCount: 0 };
     }
     
     try {
       setError(null);
-      const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
-      const { GetResourcesUseCase } = await import('../../domain/usecases/GetResourcesUseCase.js');
-      const useCase = new GetResourcesUseCase(kubernetesRepository);
-      const continueToken = continueTokensRef.current[page - 1] || null;
-      const hasFilters = kindFilter !== 'all';
-      const fetchLimit = hasFilters ? pageSize * 2 : pageSize;
-      const result = await useCase.execute(contextName, null, fetchLimit, continueToken);
-      
-      if (result.continueToken) {
-        while (continueTokensRef.current.length < page) {
-          continueTokensRef.current.push(null);
-        }
-        continueTokensRef.current[page] = result.continueToken;
-      }
-      
-      const data = result.items || [];
-      let filtered = Array.isArray(data) ? data.filter(r => r.kind === 'Composition' || r.kind === 'CompositeResourceDefinition') : [];
+      let filtered = [...allManagedResources];
       
       if (kindFilter !== 'all') {
         filtered = filtered.filter(r => r.kind === kindFilter);
@@ -89,17 +79,14 @@ export const Resources = () => {
       
       return {
         items: paginated,
-        totalCount: result.continueToken ? (page * pageSize) + 1 : startIndex + filtered.length
+        totalCount: filtered.length
       };
     } catch (err) {
       setError(err.message);
       return { items: [], totalCount: 0 };
     }
-  }, [selectedContext, kubernetesRepository, kindFilter]);
+  }, [selectedContext, allManagedResources, kindFilter]);
 
-  useEffect(() => {
-    continueTokensRef.current = [null];
-  }, [selectedContext, kindFilter]);
 
   // Check if table height is less than 50% of viewport
   useEffect(() => {
@@ -138,7 +125,7 @@ export const Resources = () => {
   if (error) {
     return (
       <Box>
-        <Text fontSize="2xl" fontWeight="bold" mb={6}>Resources</Text>
+        <Text fontSize="2xl" fontWeight="bold" mb={6}>Managed Resources</Text>
         <Box
           p={6}
           bg="red.50"
@@ -148,7 +135,7 @@ export const Resources = () => {
           borderRadius="md"
           color="red.800"
         >
-          <Text fontWeight="bold" mb={2}>Error loading resources</Text>
+          <Text fontWeight="bold" mb={2}>Error loading managed resources</Text>
           <Text>{error}</Text>
         </Box>
       </Box>
@@ -281,7 +268,10 @@ export const Resources = () => {
       flexDirection="column"
       position="relative"
     >
-      <Text fontSize="2xl" fontWeight="bold" mb={6}>Resources</Text>
+      <Text fontSize="2xl" fontWeight="bold" mb={2}>Managed Resources</Text>
+      <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }} mb={6}>
+        Kubernetes resources created and managed by Crossplane (Deployments, Services, etc.)
+      </Text>
 
       <Box
         display="flex"

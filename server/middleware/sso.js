@@ -136,10 +136,8 @@ export const initializeSAML = () => {
   try {
     const samlConfig = ssoConfig.saml;
     
-    // Handle certificate - could be a file path or certificate content
     let cert = samlConfig.cert;
     if (cert && fs.existsSync && fs.existsSync(cert)) {
-      // If it's a file path, read the file
       try {
         cert = fs.readFileSync(cert, 'utf8');
       } catch (readError) {
@@ -147,7 +145,6 @@ export const initializeSAML = () => {
       }
     }
     
-    // Log SAML configuration for debugging
     logger.info('Initializing SAML strategy', {
       entryPoint: samlConfig.entryPoint,
       issuer: samlConfig.issuer,
@@ -159,7 +156,7 @@ export const initializeSAML = () => {
       entryPoint: samlConfig.entryPoint,
       issuer: samlConfig.issuer, // This must match the Keycloak client ID exactly
       callbackUrl: samlConfig.callbackURL, // This becomes AssertionConsumerServiceURL in SAML request
-      cert: cert,
+      idpCert: cert,
       identifierFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
       // Keycloak-specific options
       acceptedClockSkewMs: -1, // Disable clock skew check

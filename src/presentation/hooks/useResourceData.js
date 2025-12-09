@@ -291,20 +291,24 @@ export const useResourceData = (resource) => {
     
     if (!isClusterScoped && resourceKind && resourceName) {
       if (resourceNamespace) {
-      try {
-        setEventsLoading(true);
-        const eventsData = await kubernetesRepository.getEvents(
-          resourceKind,
-          resourceName,
-          resourceNamespace,
-          contextName
-        );
-        allEvents.push(...eventsData);
-      } catch (error) {
-        console.warn('[useResourceData] Failed to load events for resource:', error);
+        try {
+          setEventsLoading(true);
+          console.log('[useResourceData] Loading events for resource:', { kind: resourceKind, name: resourceName, namespace: resourceNamespace });
+          const eventsData = await kubernetesRepository.getEvents(
+            resourceKind,
+            resourceName,
+            resourceNamespace,
+            contextName
+          );
+          console.log('[useResourceData] Events loaded:', { count: eventsData.length, events: eventsData });
+          allEvents.push(...eventsData);
+        } catch (error) {
+          console.warn('[useResourceData] Failed to load events for resource:', error);
         } finally {
           setEventsLoading(false);
         }
+      } else {
+        console.warn('[useResourceData] Skipping events - no namespace for resource:', { kind: resourceKind, name: resourceName });
       }
     }
     
