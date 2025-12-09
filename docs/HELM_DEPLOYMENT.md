@@ -41,7 +41,7 @@ helm install crossview crossview/crossview \
 helm install crossview crossview/crossview \
   --namespace crossview \
   --create-namespace \
-  --set image.tag=v1.4.0 \
+  --set image.tag=v1.5.0 \
   --set secrets.dbPassword=your-password \
   --set secrets.sessionSecret=$(openssl rand -base64 32)
 ```
@@ -107,7 +107,7 @@ Create `my-values.yaml`:
 
 ```yaml
 image:
-  tag: v1.4.0
+  tag: v1.5.0
 
 app:
   replicas: 3
@@ -178,7 +178,7 @@ helm repo update
 # Upgrade
 helm upgrade crossview crossview/crossview \
   --namespace crossview \
-  --set image.tag=v1.4.0 \
+  --set image.tag=v1.5.0 \
   --set secrets.dbPassword=your-password \
   --set secrets.sessionSecret=your-session-secret
 ```
