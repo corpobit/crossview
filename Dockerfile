@@ -1,30 +1,29 @@
-FROM node:20-slim AS builder
+
+# ---------- Builder Stage ----------
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends python3 make g++ && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache python3 make g++ bash
 
 COPY package*.json ./
 
 RUN npm install
 
 COPY . .
+
 RUN npm run build
 
 RUN npm prune --production
 
-RUN apt-get purge -y python3 make g++ && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk del python3 make g++ bash
 
-FROM node:20-slim AS runtime
+# ---------- Runtime Stage ----------
+FROM node:20-alpine AS runtime
 
 WORKDIR /app
 
 COPY package*.json ./
-
 COPY --from=builder /app/node_modules ./node_modules
 
 COPY --from=builder /app/dist ./dist
@@ -40,4 +39,3 @@ RUN mkdir -p /app/.kube
 EXPOSE 3001
 
 CMD ["node", "server/index.js"]
-
