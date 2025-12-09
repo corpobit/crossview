@@ -1,20 +1,24 @@
 
 # ---------- Builder Stage ----------
-FROM node:20-slim AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 # Install build dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apk add --no-cache \
     python3 \
-    make \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+    build-base \
+    && rm -rf /var/cache/apk/*
 
 COPY package*.json ./
 
+# Run npm audit before installing to check for vulnerabilities
+RUN npm audit --audit-level=moderate || true
+
 RUN npm install
+
+# Run npm audit fix for fixable vulnerabilities
+RUN npm audit fix --force || true
 
 COPY . .
 
@@ -23,12 +27,10 @@ RUN npm run build
 RUN npm prune --production
 
 # Remove build dependencies
-RUN apt-get purge -y python3 make g++ && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk del python3 build-base || true
 
 # ---------- Runtime Stage ----------
-FROM node:20-slim AS runtime
+FROM node:20-alpine AS runtime
 
 WORKDIR /app
 
@@ -43,7 +45,12 @@ COPY --from=builder /app/src ./src
 ENV NODE_ENV=production
 ENV PORT=3001
 
-RUN mkdir -p /app/.kube
+RUN mkdir -p /app/.kube && \
+    addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 && \
+    chown -R nodejs:nodejs /app
+
+USER nodejs
 
 EXPOSE 3001
 
