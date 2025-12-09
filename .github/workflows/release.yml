@@ -328,10 +328,11 @@ jobs:
                 --natural-800: #292524;
                 --natural-900: #1c1917;
                 --natural-950: #0c0a09;
-                --bg:        var(--natural-950);
-                --text:      var(--natural-100);
-                --muted:     var(--natural-400);
-                --accent:    var(--natural-300);
+                /* Light mode colors */
+                --bg:        var(--natural-50);
+                --text:      var(--natural-900);
+                --muted:     var(--natural-600);
+                --accent:    var(--natural-800);
               }
               body {
                 margin: 0;
@@ -376,12 +377,12 @@ jobs:
               }
               h2::before {
                 content: "$";
-                color: #a3e635; /* lime-500 – feels fresh */
+                color: #16a34a; /* green-600 for light mode */
                 font-weight: bold;
               }
               pre {
-                background: var(--natural-900);   /* very dark natural */
-                color: var(--natural-100);
+                background: var(--natural-100);
+                color: var(--natural-900);
                 padding: 28px;
                 border-radius: 12px;
                 font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
@@ -390,14 +391,15 @@ jobs:
                 overflow-x: auto;
                 position: relative;
                 margin: 0;
+                border: 1px solid var(--natural-200);
               }
               .copy {
                 position: absolute;
                 top: 14px;
                 right: 16px;
-                background: var(--natural-800);
-                color: var(--natural-200);
-                border: none;
+                background: var(--natural-200);
+                color: var(--natural-800);
+                border: 1px solid var(--natural-300);
                 padding: 6px 12px;
                 border-radius: 6px;
                 font-size: 13px;
@@ -406,7 +408,7 @@ jobs:
                 transition: opacity 0.2s;
               }
               pre:hover .copy { opacity: 1; }
-              .copy:hover { background: var(--natural-700); }
+              .copy:hover { background: var(--natural-300); }
               .footer {
                 text-align: center;
                 margin-top: 120px;
