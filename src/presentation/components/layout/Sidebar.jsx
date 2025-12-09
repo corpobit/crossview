@@ -6,7 +6,7 @@ import {
   Button,
   Image,
 } from '@chakra-ui/react';
-import { FiChevronLeft, FiChevronRight, FiChevronDown, FiChevronUp, FiLayout, FiSettings, FiLogOut, FiPackage, FiFileText, FiDatabase, FiLayers, FiBox, FiBook } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiChevronDown, FiChevronUp, FiLayout, FiSettings, FiLogOut, FiPackage, FiFileText, FiLayers, FiBox, FiBook, FiServer, FiUsers, FiSliders } from 'react-icons/fi';
 import { useState, useEffect, useRef } from 'react';
 import { ContextSelector } from './ContextSelector.jsx';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -80,8 +80,6 @@ export const Sidebar = ({ onToggle, onResize }) => {
     }
   };
 
-  const resourceKinds = ['Composition', 'CompositeResourceDefinition'];
-
   // Fetch composite resource kinds dynamically (lightweight - only gets kinds from XRDs)
   useEffect(() => {
     let isMounted = true;
@@ -137,14 +135,17 @@ export const Sidebar = ({ onToggle, onResize }) => {
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: FiLayout, path: '/' },
-    { id: 'providers', label: 'Providers', icon: FiPackage, path: '/providers' },
-    { id: 'compositions', label: 'Compositions', icon: FiLayers, path: '/compositions' },
-    { id: 'xrds', label: 'XRDs', icon: FiBook, path: '/xrds' },
+    // Core Crossplane Resources (building blocks)
+    { id: 'providers', label: 'Providers', icon: FiPackage, path: '/providers', tooltip: 'Crossplane providers that extend Kubernetes capabilities' },
+    { id: 'xrds', label: 'XRDs', icon: FiBook, path: '/xrds', tooltip: 'Composite Resource Definitions - define custom resource types' },
+    { id: 'compositions', label: 'Compositions', icon: FiLayers, path: '/compositions', tooltip: 'Templates that define how to compose resources' },
+    // Crossplane Instances (created resources)
     { 
       id: 'composite-resources', 
       label: 'Composite Resources', 
       icon: FiBox, 
       path: '/composite-resources',
+      tooltip: 'Composite Resources (XRs) - instances created from Compositions',
       hasSubMenu: true,
       getSubMenuItems: () => compositeResourceKinds.map(kind => ({
         id: `composite-resource-${kind.toLowerCase()}`,
@@ -152,20 +153,19 @@ export const Sidebar = ({ onToggle, onResize }) => {
         path: `/composite-resources/${kind}`
       }))
     },
-    { id: 'claims', label: 'Claims', icon: FiFileText, path: '/claims' },
+    { id: 'claims', label: 'Claims', icon: FiFileText, path: '/claims', tooltip: 'User-facing abstractions that create Composite Resources' },
+    { id: 'managed-resources', label: 'Managed Resources', icon: FiServer, path: '/managed-resources', tooltip: 'Kubernetes resources created and managed by Crossplane (Deployments, Services, etc.)' },
     { 
-      id: 'resources', 
-      label: 'Resources', 
-      icon: FiDatabase, 
-      path: '/resources',
+      id: 'settings', 
+      label: 'Settings', 
+      icon: FiSettings, 
+      path: '/settings',
       hasSubMenu: true,
-      subMenuItems: resourceKinds.map(kind => ({
-        id: `resource-${kind.toLowerCase()}`,
-        label: kind,
-        path: `/resources/${kind}`
-      }))
+      subMenuItems: [
+        { id: 'settings-appearance', label: 'Appearance', icon: FiSliders, path: '/settings/appearance' },
+        { id: 'settings-users', label: 'User Management', icon: FiUsers, path: '/settings/user-management' },
+      ]
     },
-    { id: 'settings', label: 'Settings', icon: FiSettings, path: '/settings' },
   ];
 
   // Auto-expand menu if a sub-menu item is active
