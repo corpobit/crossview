@@ -9,8 +9,9 @@ global:
 image:
   repository: corpobit/crossview
   pullPolicy: Always
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: "latest"
+  # Overrides the image tag whose default is the chart appVersion with "v" prefix.
+  # Default will be "v{appVersion}" (e.g., "v1.5.0")
+  tag: ""
 
 # Application configuration
 app:
@@ -103,7 +104,9 @@ database:
 env:
   NODE_ENV: "production"
   PORT: "3001"
-  DB_HOST: "crossview-postgres"
+  # DB_HOST will be automatically set to the postgres service name based on release name
+  # If you need to override, set it explicitly (e.g., for external database)
+  DB_HOST: ""  # Empty means use template: {{ include "crossview.fullname" . }}-postgres
   DB_PORT: "5432"
   DB_NAME: "crossview"
   DB_USER: "postgres"
