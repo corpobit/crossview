@@ -8,7 +8,7 @@ metadata:
 data:
   NODE_ENV: {{ .Values.env.NODE_ENV | quote }}
   PORT: {{ .Values.env.PORT | quote }}
-  DB_HOST: {{ .Values.env.DB_HOST | quote }}
+  DB_HOST: {{ if .Values.env.DB_HOST }}{{ .Values.env.DB_HOST | quote }}{{ else }}{{ include "crossview.fullname" . }}-postgres{{ end }}
   DB_PORT: {{ .Values.env.DB_PORT | quote }}
   DB_NAME: {{ .Values.env.DB_NAME | quote }}
   DB_USER: {{ .Values.env.DB_USER | quote }}
