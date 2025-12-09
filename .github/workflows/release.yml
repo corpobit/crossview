@@ -31,7 +31,10 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          # Fix for rollup optional dependencies issue: ensure platform-specific packages are installed
+          npm install --no-save @rollup/rollup-linux-x64-gnu || true
 
       - name: Build application
         run: npm run build
