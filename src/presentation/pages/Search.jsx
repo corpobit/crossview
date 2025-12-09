@@ -14,7 +14,6 @@ import { useSearchParams, useLocation } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
-import { AdvancedFilters } from '../components/common/AdvancedFilters.jsx';
 import { QuickFilters } from '../components/common/QuickFilters.jsx';
 import { Input } from '../components/common/Input.jsx';
 import { SearchResourcesUseCase } from '../../domain/usecases/SearchResourcesUseCase.js';
@@ -353,7 +352,11 @@ export const Search = () => {
       accessor: 'kind',
       minWidth: '150px',
       render: (row) => (
-        <Badge colorScheme="blue" fontSize="xs">{row.kind}</Badge>
+        row.kind ? (
+          <Badge colorScheme="blue" fontSize="xs">{row.kind}</Badge>
+        ) : (
+          <Text fontSize="sm" color="gray.400" _dark={{ color: 'gray.500' }}>-</Text>
+        )
       ),
     },
     {
@@ -761,14 +764,6 @@ export const Search = () => {
             />
           </Box>
 
-          <Box mb={4}>
-            <AdvancedFilters
-              filters={filters}
-              onFiltersChange={setFilters}
-              availableKinds={availableKinds}
-              availableNamespaces={availableNamespaces}
-            />
-          </Box>
 
           <Box
             display="flex"

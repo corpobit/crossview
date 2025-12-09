@@ -8,6 +8,22 @@ export const getStatusColor = (conditions, kind) => {
     return 'yellow';
   }
   
+  if (kind === 'CompositeResourceDefinition') {
+    const establishedCondition = conditions.find(c => c.type === 'Established');
+    const offeredCondition = conditions.find(c => c.type === 'Offered');
+    if (establishedCondition && offeredCondition) {
+      if (establishedCondition.status === 'True' && offeredCondition.status === 'True') return 'green';
+      if (establishedCondition.status === 'False' || offeredCondition.status === 'False') return 'red';
+      return 'yellow';
+    }
+    if (establishedCondition) {
+      return establishedCondition.status === 'True' ? 'green' : 'red';
+    }
+    if (offeredCondition) {
+      return offeredCondition.status === 'True' ? 'green' : 'red';
+    }
+  }
+  
   const syncedCondition = conditions.find(c => c.type === 'Synced');
   const readyCondition = conditions.find(c => c.type === 'Ready');
   
@@ -47,6 +63,23 @@ export const getStatusText = (conditions, kind) => {
     const installedCondition = conditions.find(c => c.type === 'Installed');
     if (installedCondition?.status === 'True') return 'Installed';
     return 'Pending';
+  }
+  
+  if (kind === 'CompositeResourceDefinition') {
+    const establishedCondition = conditions.find(c => c.type === 'Established');
+    const offeredCondition = conditions.find(c => c.type === 'Offered');
+    if (establishedCondition && offeredCondition) {
+      if (establishedCondition.status === 'True' && offeredCondition.status === 'True') return 'Established & Offered';
+      if (establishedCondition.status === 'False') return 'Not Established';
+      if (offeredCondition.status === 'False') return 'Not Offered';
+      return 'Pending';
+    }
+    if (establishedCondition) {
+      return establishedCondition.status === 'True' ? 'Established' : 'Not Established';
+    }
+    if (offeredCondition) {
+      return offeredCondition.status === 'True' ? 'Offered' : 'Not Offered';
+    }
   }
   
   const syncedCondition = conditions.find(c => c.type === 'Synced');
@@ -99,6 +132,26 @@ export const getResponsiveStatus = (conditions) => {
   return {
     text: responsiveCondition.status === 'True' ? 'Responsive' : 'Not Responsive',
     color: responsiveCondition.status === 'True' ? 'green' : (responsiveCondition.status === 'False' ? 'red' : 'yellow')
+  };
+};
+
+export const getEstablishedStatus = (conditions) => {
+  if (!conditions || conditions.length === 0) return null;
+  const establishedCondition = conditions.find(c => c.type === 'Established');
+  if (!establishedCondition) return null;
+  return {
+    text: establishedCondition.status === 'True' ? 'Established' : 'Not Established',
+    color: establishedCondition.status === 'True' ? 'green' : (establishedCondition.status === 'False' ? 'red' : 'yellow')
+  };
+};
+
+export const getOfferedStatus = (conditions) => {
+  if (!conditions || conditions.length === 0) return null;
+  const offeredCondition = conditions.find(c => c.type === 'Offered');
+  if (!offeredCondition) return null;
+  return {
+    text: offeredCondition.status === 'True' ? 'Offered' : 'Not Offered',
+    color: offeredCondition.status === 'True' ? 'green' : (offeredCondition.status === 'False' ? 'red' : 'yellow')
   };
 };
 

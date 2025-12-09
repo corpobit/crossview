@@ -11,6 +11,7 @@ import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
 import { Dropdown } from '../components/common/Dropdown.jsx';
 import { GetCompositeResourceDefinitionsUseCase } from '../../domain/usecases/GetCompositeResourceDefinitionsUseCase.js';
+import { getStatusColor, getStatusText, getEstablishedStatus, getOfferedStatus } from '../utils/resourceStatus.js';
 
 export const CompositeResourceDefinitions = () => {
   const location = useLocation();
@@ -111,6 +112,60 @@ export const CompositeResourceDefinitions = () => {
       accessor: 'claimNames.kind',
       minWidth: '150px',
       render: (row) => row.claimNames?.kind || '-',
+    },
+    {
+      header: 'Status',
+      accessor: 'status',
+      minWidth: '160px',
+      render: (row) => {
+        const establishedStatus = getEstablishedStatus(row.conditions);
+        const offeredStatus = getOfferedStatus(row.conditions);
+        const statusText = getStatusText(row.conditions, 'CompositeResourceDefinition');
+        
+        const statusBadges = [establishedStatus, offeredStatus].filter(Boolean);
+        
+        if (statusBadges.length > 0) {
+          return (
+            <HStack spacing={2}>
+              {statusBadges.map((status, idx) => (
+                <Box
+                  key={idx}
+                  as="span"
+                  display="inline-block"
+                  px={2}
+                  py={1}
+                  borderRadius="md"
+                  fontSize="xs"
+                  fontWeight="semibold"
+                  bg={`${status.color}.100`}
+                  _dark={{ bg: `${status.color}.800`, color: `${status.color}.100` }}
+                  color={`${status.color}.800`}
+                >
+                  {status.text}
+                </Box>
+              ))}
+            </HStack>
+          );
+        }
+        
+        const statusColor = getStatusColor(row.conditions, 'CompositeResourceDefinition');
+        return (
+          <Box
+            as="span"
+            display="inline-block"
+            px={2}
+            py={1}
+            borderRadius="md"
+            fontSize="xs"
+            fontWeight="semibold"
+            bg={`${statusColor}.100`}
+            _dark={{ bg: `${statusColor}.800`, color: `${statusColor}.100` }}
+            color={`${statusColor}.800`}
+          >
+            {statusText}
+          </Box>
+        );
+      },
     },
     {
       header: 'Versions',

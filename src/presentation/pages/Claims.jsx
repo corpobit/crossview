@@ -190,7 +190,7 @@ export const Claims = () => {
         const syncedStatus = getSyncedStatus(row.conditions);
         const readyStatus = getReadyStatus(row.conditions);
         const responsiveStatus = getResponsiveStatus(row.conditions);
-        const statusText = getStatusText(row.conditions);
+        const statusText = getStatusText(row.conditions, row.kind || 'Claim');
         
         const statusBadges = [syncedStatus, readyStatus, responsiveStatus].filter(Boolean);
         

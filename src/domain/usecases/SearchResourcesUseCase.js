@@ -3,6 +3,7 @@ import { GetClaimsUseCase } from './GetClaimsUseCase.js';
 import { GetCompositionsUseCase } from './GetCompositionsUseCase.js';
 import { GetCompositeResourceDefinitionsUseCase } from './GetCompositeResourceDefinitionsUseCase.js';
 import { GetProvidersUseCase } from './GetProvidersUseCase.js';
+import { GetManagedResourcesUseCase } from './GetManagedResourcesUseCase.js';
 
 export class SearchResourcesUseCase {
   constructor(kubernetesRepository) {
@@ -18,6 +19,7 @@ export class SearchResourcesUseCase {
         compositions,
         xrds,
         providers,
+        managedResources,
       ] = await Promise.all([
         new GetCompositeResourcesUseCase(this.kubernetesRepository)
           .execute(context)
@@ -34,10 +36,14 @@ export class SearchResourcesUseCase {
         new GetProvidersUseCase(this.kubernetesRepository)
           .execute(context)
           .catch(() => []),
+        new GetManagedResourcesUseCase(this.kubernetesRepository)
+          .execute(context)
+          .catch(() => []),
       ]);
 
       const compositeResources = Array.isArray(compositeResourcesResult) ? compositeResourcesResult : (compositeResourcesResult?.items || []);
       const claims = Array.isArray(claimsResult) ? claimsResult : (claimsResult?.items || []);
+      const managedResourcesArray = Array.isArray(managedResources) ? managedResources : [];
 
       // Combine all resources
       const allResources = [
@@ -46,6 +52,7 @@ export class SearchResourcesUseCase {
         ...compositions.map(r => ({ ...r, resourceType: 'Composition' })),
         ...xrds.map(r => ({ ...r, resourceType: 'XRD' })),
         ...providers.map(r => ({ ...r, resourceType: 'Provider' })),
+        ...managedResourcesArray.map(r => ({ ...r, resourceType: 'ManagedResource' })),
       ];
 
       // Apply search and filters

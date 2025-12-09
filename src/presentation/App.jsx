@@ -75,7 +75,8 @@ function App() {
                 <Route path="composite-resources" element={<CompositeResources />} />
                 <Route path="composite-resources/:kind" element={<CompositeResourceKind />} />
                 <Route path="claims" element={<Claims />} />
-                <Route path="resources" element={<Resources />} />
+                <Route path="managed-resources" element={<Resources />} />
+                <Route path="resources" element={<Navigate to="/managed-resources" replace />} />
                 <Route path="resources/:kind" element={<ResourceKind />} />
                 <Route path="search" element={<Search />} />
                 <Route path="settings/*" element={<Settings />} />

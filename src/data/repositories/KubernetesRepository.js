@@ -321,9 +321,34 @@ export class KubernetesRepository extends IKubernetesRepository {
 
   async getResources(apiVersion, kind, namespace = null, context = null, limit = null, continueToken = null, plural = null) {
     await this.ensureContext(context);
+    if (!this.customObjectsApi) {
+      throw new Error('Kubernetes CustomObjectsApi is not initialized');
+    }
     try {
-      const group = apiVersion.split('/')[0];
-      const version = apiVersion.split('/')[1] || 'v1';
+      if (!apiVersion) {
+        throw new Error('apiVersion is required');
+      }
+      const apiVersionParts = apiVersion.split('/');
+      let group = apiVersionParts[0];
+      let version = apiVersionParts[1] || 'v1';
+      
+      if (group) {
+        group = group.trim();
+      }
+      if (version) {
+        version = version.trim();
+      }
+      
+      if (!group || group === '' || typeof group !== 'string') {
+        throw new Error(`Invalid apiVersion format: ${apiVersion}. Expected format: group/version. Got group: ${JSON.stringify(group)}`);
+      }
+      
+      if (!version || version === '' || typeof version !== 'string') {
+        throw new Error(`Invalid apiVersion format: ${apiVersion}. Version is required. Got version: ${JSON.stringify(version)}`);
+      }
+      
+      logger.debug('Getting resources', { apiVersion, kind, group, version, namespace, context, groupType: typeof group, versionType: typeof version });
+      
       let resourcePlural = plural;
       if (!resourcePlural) {
         resourcePlural = await this.getPluralName(apiVersion, kind, context);
@@ -332,7 +357,10 @@ export class KubernetesRepository extends IKubernetesRepository {
         }
       }
       
-      if (namespace) {
+      if (namespace && namespace !== 'undefined' && namespace !== 'null') {
+        if (!group || !version || !resourcePlural || !namespace) {
+          throw new Error(`Missing required parameters: group=${group}, version=${version}, resourcePlural=${resourcePlural}, namespace=${namespace}`);
+        }
         const response = await this.customObjectsApi.listNamespacedCustomObject(
           group,
           version,
@@ -351,10 +379,32 @@ export class KubernetesRepository extends IKubernetesRepository {
           remainingItemCount: response.body.metadata?.remainingItemCount || null
         };
       } else {
+        if (!group || !version || !resourcePlural) {
+          throw new Error(`Missing required parameters: group=${group}, version=${version}, resourcePlural=${resourcePlural}`);
+        }
+        logger.debug('Calling listClusterCustomObject', { 
+          group: group, 
+          version: version, 
+          resourcePlural: resourcePlural,
+          groupType: typeof group,
+          groupLength: group?.length,
+          hasCustomObjectsApi: !!this.customObjectsApi
+        });
+        
+        if (typeof group !== 'string' || group.length === 0) {
+          throw new Error(`Invalid group parameter: ${JSON.stringify(group)} (type: ${typeof group})`);
+        }
+        if (typeof version !== 'string' || version.length === 0) {
+          throw new Error(`Invalid version parameter: ${JSON.stringify(version)} (type: ${typeof version})`);
+        }
+        if (typeof resourcePlural !== 'string' || resourcePlural.length === 0) {
+          throw new Error(`Invalid resourcePlural parameter: ${JSON.stringify(resourcePlural)} (type: ${typeof resourcePlural})`);
+        }
+        
         const response = await this.customObjectsApi.listClusterCustomObject(
-          group,
-          version,
-          resourcePlural,
+          String(group),
+          String(version),
+          String(resourcePlural),
           undefined,
           undefined,
           continueToken || undefined,

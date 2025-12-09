@@ -16,7 +16,7 @@
     "@chakra-ui/react": "^3.30.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@kubernetes/client-node": "^1.4.0",
+    "@kubernetes/client-node": "^0.20.0",
     "@node-saml/passport-saml": "^5.0.0",
     "@xyflow/react": "^12.9.3",
     "bcrypt": "^5.1.1",
