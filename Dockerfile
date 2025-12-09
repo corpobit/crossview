@@ -1,10 +1,16 @@
 
 # ---------- Builder Stage ----------
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
-RUN apk add --no-cache python3 make g++ bash
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
 
@@ -16,10 +22,13 @@ RUN npm run build
 
 RUN npm prune --production
 
-RUN apk del python3 make g++ bash
+# Remove build dependencies
+RUN apt-get purge -y python3 make g++ && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 # ---------- Runtime Stage ----------
-FROM node:20-alpine AS runtime
+FROM node:20-slim AS runtime
 
 WORKDIR /app
 
