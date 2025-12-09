@@ -1,0 +1,457 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Crossview Helm Chart Values",
+  "description": "Configuration values for the Crossview Helm chart",
+  "properties": {
+    "global": {
+      "type": "object",
+      "description": "Global settings",
+      "properties": {
+        "namespace": {
+          "type": "string",
+          "description": "Namespace for the deployment",
+          "default": "crossview"
+        }
+      }
+    },
+    "image": {
+      "type": "object",
+      "description": "Docker image configuration",
+      "properties": {
+        "repository": {
+          "type": "string",
+          "description": "Image repository",
+          "default": "corpobit/crossview"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "description": "Image pull policy",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "default": "Always"
+        },
+        "tag": {
+          "type": "string",
+          "description": "Image tag (defaults to v{appVersion} if empty)",
+          "default": ""
+        }
+      },
+      "required": ["repository", "pullPolicy"]
+    },
+    "app": {
+      "type": "object",
+      "description": "Application configuration",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Application name",
+          "default": "crossview"
+        },
+        "port": {
+          "type": "integer",
+          "description": "Application port",
+          "minimum": 1,
+          "maximum": 65535,
+          "default": 3001
+        },
+        "replicas": {
+          "type": "integer",
+          "description": "Number of replicas",
+          "minimum": 1,
+          "default": 3
+        }
+      },
+      "required": ["name", "port", "replicas"]
+    },
+    "deployment": {
+      "type": "object",
+      "description": "Deployment strategy configuration",
+      "properties": {
+        "strategy": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["RollingUpdate", "Recreate"],
+              "default": "RollingUpdate"
+            },
+            "rollingUpdate": {
+              "type": "object",
+              "properties": {
+                "maxSurge": {
+                  "type": ["string", "integer"],
+                  "description": "Maximum number of pods that can be created over the desired number",
+                  "default": 1
+                },
+                "maxUnavailable": {
+                  "type": ["string", "integer"],
+                  "description": "Maximum number of pods that can be unavailable during update",
+                  "default": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "description": "Resource limits and requests",
+      "properties": {
+        "requests": {
+          "type": "object",
+          "properties": {
+            "memory": {
+              "type": "string",
+              "pattern": "^[0-9]+(\\.[0-9]+)?(Mi|Gi|M|G)$",
+              "description": "Memory request (e.g., 256Mi)"
+            },
+            "cpu": {
+              "type": "string",
+              "pattern": "^[0-9]+(\\.[0-9]+)?(m|)$",
+              "description": "CPU request (e.g., 250m or 0.25)"
+            }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "memory": {
+              "type": "string",
+              "pattern": "^[0-9]+(\\.[0-9]+)?(Mi|Gi|M|G)$",
+              "description": "Memory limit (e.g., 512Mi)"
+            },
+            "cpu": {
+              "type": "string",
+              "pattern": "^[0-9]+(\\.[0-9]+)?(m|)$",
+              "description": "CPU limit (e.g., 500m or 0.5)"
+            }
+          }
+        }
+      }
+    },
+    "healthCheck": {
+      "type": "object",
+      "description": "Health check configuration",
+      "properties": {
+        "livenessProbe": {
+          "type": "object",
+          "description": "Liveness probe configuration"
+        },
+        "readinessProbe": {
+          "type": "object",
+          "description": "Readiness probe configuration"
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "description": "Service configuration",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"],
+          "default": "LoadBalancer"
+        },
+        "port": {
+          "type": "integer",
+          "description": "Service port",
+          "minimum": 1,
+          "maximum": 65535,
+          "default": 80
+        },
+        "targetPort": {
+          "type": ["integer", "string"],
+          "description": "Target port",
+          "default": 3001
+        },
+        "sessionAffinity": {
+          "type": "string",
+          "enum": ["None", "ClientIP"],
+          "default": "ClientIP"
+        },
+        "sessionAffinityTimeout": {
+          "type": "integer",
+          "description": "Session affinity timeout in seconds",
+          "default": 10800
+        }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "description": "Ingress configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable ingress",
+          "default": false
+        },
+        "className": {
+          "type": "string",
+          "description": "Ingress class name",
+          "default": "nginx"
+        },
+        "annotations": {
+          "type": "object",
+          "description": "Ingress annotations",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "hosts": {
+          "type": "array",
+          "description": "Ingress hosts",
+          "items": {
+            "type": "object",
+            "properties": {
+              "host": {
+                "type": "string",
+                "description": "Hostname"
+              },
+              "paths": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "pathType": {
+                      "type": "string",
+                      "enum": ["Exact", "Prefix", "ImplementationSpecific"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tls": {
+          "type": "array",
+          "description": "TLS configuration",
+          "items": {
+            "type": "object",
+            "properties": {
+              "secretName": {
+                "type": "string"
+              },
+              "hosts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "database": {
+      "type": "object",
+      "description": "Database configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable PostgreSQL database",
+          "default": true
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "description": "PostgreSQL image repository",
+              "default": "postgres"
+            },
+            "tag": {
+              "type": "string",
+              "description": "PostgreSQL image tag",
+              "default": "16.3-alpine"
+            }
+          }
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": {
+                "memory": {
+                  "type": "string"
+                },
+                "cpu": {
+                  "type": "string"
+                }
+              }
+            },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "memory": {
+                  "type": "string"
+                },
+                "cpu": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "persistence": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "size": {
+              "type": "string",
+              "pattern": "^[0-9]+(\\.[0-9]+)?(Gi|Mi)$",
+              "description": "Storage size (e.g., 10Gi)",
+              "default": "10Gi"
+            },
+            "accessMode": {
+              "type": "string",
+              "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany"],
+              "default": "ReadWriteOnce"
+            },
+            "storageClass": {
+              "type": "string",
+              "description": "Storage class name (empty for default)"
+            }
+          }
+        }
+      }
+    },
+    "env": {
+      "type": "object",
+      "description": "Environment variables",
+      "properties": {
+        "NODE_ENV": {
+          "type": "string",
+          "enum": ["production", "development", "test"],
+          "default": "production"
+        },
+        "PORT": {
+          "type": "string",
+          "default": "3001"
+        },
+        "DB_HOST": {
+          "type": "string",
+          "description": "Database host (empty for auto-detection)"
+        },
+        "DB_PORT": {
+          "type": "string",
+          "default": "5432"
+        },
+        "DB_NAME": {
+          "type": "string",
+          "default": "crossview"
+        },
+        "DB_USER": {
+          "type": "string",
+          "default": "postgres"
+        }
+      }
+    },
+    "secrets": {
+      "type": "object",
+      "description": "Secret values (should be set via --set or secrets file)",
+      "properties": {
+        "dbPassword": {
+          "type": "string",
+          "description": "Database password"
+        },
+        "sessionSecret": {
+          "type": "string",
+          "description": "Session secret for authentication"
+        }
+      }
+    },
+    "serviceAccount": {
+      "type": "object",
+      "description": "Service account configuration",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create service account",
+          "default": true
+        },
+        "name": {
+          "type": "string",
+          "description": "Service account name",
+          "default": "crossview-sa"
+        },
+        "annotations": {
+          "type": "object",
+          "description": "Service account annotations",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "rbac": {
+      "type": "object",
+      "description": "RBAC configuration",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create RBAC resources",
+          "default": true
+        },
+        "clusterRole": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "default": "crossview-role"
+            }
+          }
+        },
+        "clusterRoleBinding": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "default": "crossview-binding"
+            }
+          }
+        }
+      }
+    },
+    "affinity": {
+      "type": "object",
+      "description": "Pod affinity configuration"
+    },
+    "nodeSelector": {
+      "type": "object",
+      "description": "Node selector",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "tolerations": {
+      "type": "array",
+      "description": "Pod tolerations",
+      "items": {
+        "type": "object"
+      }
+    },
+    "podAnnotations": {
+      "type": "object",
+      "description": "Pod annotations",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "podLabels": {
+      "type": "object",
+      "description": "Pod labels",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  }
+}
+
