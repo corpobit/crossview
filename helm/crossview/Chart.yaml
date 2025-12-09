@@ -4,7 +4,7 @@ description: A Helm chart for Crossview - Crossplane resource visualization and 
 type: application
 version: 1.5.0
 appVersion: "1.5.0"
-icon: https://corpobit.github.io/crossview/images/helm-logo.svg
+icon: https://corpobit.github.io/crossview/images/crossview-logo.svg
 keywords:
   - kubernetes
   - crossplane
@@ -20,6 +20,6 @@ annotations:
     - name: crossview
       image: corpobit/crossview:latest
     - name: postgres
-      image: postgres:16-alpine
+      image: postgres:16.3-alpine
 dependencies: []
 

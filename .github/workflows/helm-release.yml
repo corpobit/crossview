@@ -78,6 +78,7 @@ jobs:
       - name: Copy new chart package and logo
         run: |
           cp charts/*.tgz gh-pages/charts/
+          cp public/images/crossview-logo.svg gh-pages/images/crossview-logo.svg
           cp public/images/helm-logo.svg gh-pages/images/helm-logo.svg
 
       - name: Update Helm repository index
@@ -211,7 +212,7 @@ jobs:
           <body>
             <div class="container">
               <header>
-                <img src="images/helm-logo.svg" alt="Helm" class="logo">
+                <img src="images/crossview-logo.svg" alt="Crossview" class="logo">
                 <h1>Crossview Helm Charts</h1>
                 <p class="tagline">Official Helm repository for Crossview – Crossplane visualization platform</p>
               </header>

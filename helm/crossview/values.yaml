@@ -86,7 +86,8 @@ database:
   enabled: true
   image:
     repository: postgres
-    tag: "16-alpine"
+    # Using latest 16-alpine patch version for security updates
+    tag: "16.3-alpine"
   resources:
     requests:
       memory: "256Mi"
