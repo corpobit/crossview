@@ -222,7 +222,7 @@ jobs:
               </pre>
               <h2>Install</h2>
               <pre><code id="install">helm install crossview crossview/crossview \
-            --namespace crossview \
+          --namespace crossview \
             --create-namespace</code>
                 <button class="copy" onclick="copy(this)">Copy</button>
               </pre>

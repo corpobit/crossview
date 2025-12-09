@@ -1,7 +1,7 @@
 <div align="center">
   <img src="public/images/readme-logo.png" alt="Crossview Logo" width="200"/>
   
-  # Crossview - Crossplane Dashboard
+# Crossview - Crossplane Dashboard
   
   A modern React-based dashboard for managing and monitoring Crossplane resources in Kubernetes. Visualize, search, and manage your infrastructure-as-code with ease.
 

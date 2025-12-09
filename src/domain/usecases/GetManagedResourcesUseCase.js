@@ -6,93 +6,80 @@ export class GetManagedResourcesUseCase {
   async execute(context = null, namespace = null) {
     try {
       const managedResources = [];
-      const apiVersion = 'apiextensions.crossplane.io/v1';
-      const xrdKind = 'CompositeResourceDefinition';
-      
-      const xrdsResult = await this.kubernetesRepository.getResources(apiVersion, xrdKind, null, context);
-      const xrds = xrdsResult.items || xrdsResult; // Support both new format and legacy array format
-      const xrdsArray = Array.isArray(xrds) ? xrds : [];
       const namespaces = namespace ? [{ name: namespace }] : await this.kubernetesRepository.getNamespaces(context);
       
-      const providerApiGroups = new Set();
+      const standardKinds = [
+        // Apps API
+        { apiVersion: 'apps/v1', kind: 'Deployment' },
+        { apiVersion: 'apps/v1', kind: 'ReplicaSet' },
+        { apiVersion: 'apps/v1', kind: 'StatefulSet' },
+        { apiVersion: 'apps/v1', kind: 'DaemonSet' },
+        // Core API
+        { apiVersion: 'v1', kind: 'Service' },
+        { apiVersion: 'v1', kind: 'ConfigMap' },
+        { apiVersion: 'v1', kind: 'Secret' },
+        { apiVersion: 'v1', kind: 'PersistentVolumeClaim' },
+        { apiVersion: 'v1', kind: 'Pod' },
+        { apiVersion: 'v1', kind: 'ServiceAccount' },
+        { apiVersion: 'v1', kind: 'Endpoints' },
+        // Networking API
+        { apiVersion: 'networking.k8s.io/v1', kind: 'Ingress' },
+        { apiVersion: 'networking.k8s.io/v1', kind: 'NetworkPolicy' },
+        // Batch API
+        { apiVersion: 'batch/v1', kind: 'Job' },
+        { apiVersion: 'batch/v1', kind: 'CronJob' },
+        // Autoscaling API
+        { apiVersion: 'autoscaling/v2', kind: 'HorizontalPodAutoscaler' },
+        // Policy API
+        { apiVersion: 'policy/v1', kind: 'PodDisruptionBudget' },
+        // RBAC API
+        { apiVersion: 'rbac.authorization.k8s.io/v1', kind: 'Role' },
+        { apiVersion: 'rbac.authorization.k8s.io/v1', kind: 'RoleBinding' },
+      ];
       
-      for (const xrd of xrdsArray) {
-        const resources = xrd.spec?.resources || [];
-        for (const resource of resources) {
-          if (resource.base && resource.base.apiVersion) {
-            const group = resource.base.apiVersion.split('/')[0];
-            if (group && !group.includes('crossplane.io') && !group.includes('apiextensions')) {
-              providerApiGroups.add(group);
-            }
-          }
-        }
-      }
+      const allPromises = [];
       
-      for (const group of providerApiGroups) {
-        try {
-          const crdsResult = await this.kubernetesRepository.getResources(
-            'apiextensions.k8s.io/v1',
-            'CustomResourceDefinition',
-            null,
-            context
+      for (const { apiVersion, kind } of standardKinds) {
+        for (const ns of namespaces) {
+          allPromises.push(
+            this.kubernetesRepository.getResources(
+              apiVersion,
+              kind,
+              ns.name,
+              context
+            ).then(resourcesResult => {
+              const resources = resourcesResult.items || resourcesResult;
+              const resourcesArray = Array.isArray(resources) ? resources : [];
+              
+              return resourcesArray.filter(resource => {
+                const hasManagedLabel = resource.metadata?.labels?.['crossplane.io/managed'] === 'true';
+                const hasExternalName = resource.metadata?.annotations?.['crossplane.io/external-name'];
+                return hasManagedLabel || hasExternalName;
+              }).map(resource => ({
+                name: resource.metadata?.name || 'unknown',
+                namespace: resource.metadata?.namespace || ns.name,
+                uid: resource.metadata?.uid || '',
+                kind: kind,
+                apiVersion: apiVersion,
+                creationTimestamp: resource.metadata?.creationTimestamp || '',
+                labels: resource.metadata?.labels || {},
+                annotations: resource.metadata?.annotations || {},
+                externalName: resource.metadata?.annotations?.['crossplane.io/external-name'] || null,
+                provider: resource.metadata?.labels?.['crossplane.io/provider'] || null,
+                status: resource.status || {},
+                conditions: resource.status?.conditions || [],
+              }));
+            }).catch(error => {
+              return [];
+            })
           );
-          const crds = crdsResult.items || crdsResult; // Support both formats
-          const crdsArray = Array.isArray(crds) ? crds : [];
-          
-          const managedCrds = crdsArray.filter(crd => {
-            const crdGroup = crd.spec?.group || '';
-            return crdGroup === group && 
-                   crd.spec?.names?.kind &&
-                   !crd.spec.names.kind.includes('Claim') &&
-                   !crd.spec.names.kind.includes('Composition') &&
-                   !crd.spec.names.kind.includes('Provider') &&
-                   !crd.spec.names.kind.includes('ProviderConfig');
-          });
-          
-          for (const crd of managedCrds) {
-            const kind = crd.spec?.names?.kind;
-            const version = crd.spec?.versions?.[0]?.name || crd.spec?.version || 'v1';
-            const apiVersion = `${group}/${version}`;
-            
-            for (const ns of namespaces) {
-              try {
-                const resourcesResult = await this.kubernetesRepository.getResources(
-                  apiVersion,
-                  kind,
-                  ns.name,
-                  context
-                );
-                const resources = resourcesResult.items || resourcesResult; // Support both formats
-                const resourcesArray = Array.isArray(resources) ? resources : [];
-                
-                for (const resource of resourcesArray) {
-                  if (resource.metadata?.labels?.['crossplane.io/managed'] === 'true' ||
-                      resource.metadata?.annotations?.['crossplane.io/external-name']) {
-                    managedResources.push({
-                      name: resource.metadata?.name || 'unknown',
-                      namespace: resource.metadata?.namespace || ns.name,
-                      uid: resource.metadata?.uid || '',
-                      kind: kind,
-                      apiVersion: apiVersion,
-                      creationTimestamp: resource.metadata?.creationTimestamp || '',
-                      labels: resource.metadata?.labels || {},
-                      annotations: resource.metadata?.annotations || {},
-                      externalName: resource.metadata?.annotations?.['crossplane.io/external-name'] || null,
-                      provider: resource.metadata?.labels?.['crossplane.io/provider'] || null,
-                      status: resource.status || {},
-                      conditions: resource.status?.conditions || [],
-                    });
-                  }
-                }
-              } catch (error) {
-              }
-            }
-          }
-        } catch (error) {
         }
       }
       
-      return managedResources;
+      const results = await Promise.all(allPromises);
+      const allResources = results.flat();
+      
+      return allResources;
     } catch (error) {
       throw new Error(`Failed to get managed resources: ${error.message}`);
     }

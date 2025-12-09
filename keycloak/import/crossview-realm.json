@@ -57,7 +57,7 @@
         "saml_name_id_format": "username",
         "saml.signature.algorithm": "RSA_SHA256"
       },
-      "validRedirectUris": [
+      "redirectUris": [
         "http://localhost:3001/api/auth/saml/callback"
       ],
       "baseUrl": "http://localhost:3001",
