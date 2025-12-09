@@ -5,7 +5,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install build dependencies
-RUN apk add --no-cache \
+# Using --no-scripts to avoid busybox trigger issues in multi-arch builds
+RUN apk add --no-cache --no-scripts \
     python3 \
     build-base \
     && rm -rf /var/cache/apk/*
@@ -26,8 +27,9 @@ RUN npm run build
 
 RUN npm prune --production
 
-# Remove build dependencies
-RUN apk del python3 build-base || true
+# Note: Build dependencies (python3, build-base) are not removed here
+# because they're in the builder stage and won't be in the final image anyway.
+# Removing them can cause busybox trigger issues in multi-arch builds.
 
 # ---------- Runtime Stage ----------
 FROM node:20-alpine AS runtime
