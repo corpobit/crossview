@@ -4,7 +4,8 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-RUN apk add --no-cache python3 make g++ bash
+RUN apk add --no-cache python3 bash build-base
+
 
 COPY package*.json ./
 
