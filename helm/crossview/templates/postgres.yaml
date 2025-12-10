@@ -85,6 +85,10 @@ metadata:
   labels:
     {{- include "crossview.labels" . | nindent 4 }}
     app: {{ include "crossview.fullname" . }}-postgres
+  {{- with .Values.database.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: ClusterIP
   ports:
