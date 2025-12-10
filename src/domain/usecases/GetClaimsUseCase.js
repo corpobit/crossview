@@ -8,14 +8,13 @@ export class GetClaimsUseCase {
       const apiVersion = 'apiextensions.crossplane.io/v1';
       const xrdKind = 'CompositeResourceDefinition';
       
-      // Get XRDs with pagination if no specific claim type requested
       const xrdsResult = await this.kubernetesRepository.getResources(
         apiVersion, 
         xrdKind, 
         null, 
         context,
-        null, // No limit on XRDs - we need all to know claim types
-        null  // No continue token for XRDs
+        null,
+        null
       );
       const xrds = xrdsResult.items || xrdsResult;
       const xrdsArray = Array.isArray(xrds) ? xrds : [];
@@ -41,7 +40,6 @@ export class GetClaimsUseCase {
         return { items: [], continueToken: null };
       }
       
-      // If specific claim type requested, only query that type with proper pagination
       if (claimType) {
         const claimDef = claimDefinitions.find(cd => 
           cd.kind === claimType || 
@@ -53,14 +51,13 @@ export class GetClaimsUseCase {
           return { items: [], continueToken: null };
         }
         
-        // Direct pagination to Kubernetes API - no client-side aggregation
         const result = await this.kubernetesRepository.getResources(
           claimDef.apiVersion,
           claimDef.kind,
           null,
           context,
-          limit, // Pass limit directly to Kubernetes API
-          continueToken, // Pass continue token directly to Kubernetes API
+          limit,
+          continueToken,
           claimDef.plural
         );
         
@@ -88,40 +85,65 @@ export class GetClaimsUseCase {
         };
       }
       
-      // Multiple claim types: query first type with pagination, return its results
-      // This ensures proper Kubernetes pagination instead of client-side aggregation
-      const firstClaimDef = claimDefinitions[0];
-      const result = await this.kubernetesRepository.getResources(
-        firstClaimDef.apiVersion,
-        firstClaimDef.kind,
-        null,
-        context,
-        limit, // Pass limit directly to Kubernetes API
-        continueToken, // Pass continue token directly to Kubernetes API
-        firstClaimDef.plural
-      );
+      const claimPromises = claimDefinitions.map(async (claimDef) => {
+        try {
+          const allClaims = [];
+          let continueToken = null;
+          
+          do {
+            const result = await this.kubernetesRepository.getResources(
+              claimDef.apiVersion,
+              claimDef.kind,
+              null,
+              context,
+              null,
+              continueToken,
+              claimDef.plural
+            );
+            
+            const claimResources = result.items || result || [];
+            const claimsArray = Array.isArray(claimResources) ? claimResources : [];
+            allClaims.push(...claimsArray);
+            
+            continueToken = result.continueToken || null;
+          } while (continueToken);
+          
+          return allClaims.map(claim => ({
+            name: claim.metadata?.name || 'unknown',
+            namespace: claim.metadata?.namespace || null,
+            uid: claim.metadata?.uid || '',
+            kind: claimDef.kind,
+            apiVersion: claimDef.apiVersion,
+            plural: claimDef.plural,
+            creationTimestamp: claim.metadata?.creationTimestamp || '',
+            labels: claim.metadata?.labels || {},
+            resourceRef: claim.spec?.resourceRef || null,
+            compositionRef: claim.spec?.compositionRef || null,
+            writeConnectionSecretToRef: claim.spec?.writeConnectionSecretToRef || null,
+            status: claim.status || {},
+            conditions: claim.status?.conditions || [],
+            spec: claim.spec || {},
+          }));
+        } catch (error) {
+          return [];
+        }
+      });
       
-      const claimResources = result.items || [];
-      const claimsArray = Array.isArray(claimResources) ? claimResources : [];
+      const claimArrays = await Promise.all(claimPromises);
+      const allClaims = claimArrays.flat();
+      
+      allClaims.sort((a, b) => {
+        const timeA = a.creationTimestamp || '';
+        const timeB = b.creationTimestamp || '';
+        if (!timeA && !timeB) return 0;
+        if (!timeA) return 1;
+        if (!timeB) return -1;
+        return timeB.localeCompare(timeA);
+      });
       
       return {
-        items: claimsArray.map(claim => ({
-          name: claim.metadata?.name || 'unknown',
-          namespace: claim.metadata?.namespace || null,
-          uid: claim.metadata?.uid || '',
-          kind: firstClaimDef.kind,
-          apiVersion: firstClaimDef.apiVersion,
-          plural: firstClaimDef.plural,
-          creationTimestamp: claim.metadata?.creationTimestamp || '',
-          labels: claim.metadata?.labels || {},
-          resourceRef: claim.spec?.resourceRef || null,
-          compositionRef: claim.spec?.compositionRef || null,
-          writeConnectionSecretToRef: claim.spec?.writeConnectionSecretToRef || null,
-          status: claim.status || {},
-          conditions: claim.status?.conditions || [],
-          spec: claim.spec || {},
-        })),
-        continueToken: result.continueToken || null
+        items: allClaims,
+        continueToken: null
       };
     } catch (error) {
       throw new Error(`Failed to get claims: ${error.message}`);

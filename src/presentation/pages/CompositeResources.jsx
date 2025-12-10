@@ -39,22 +39,34 @@ export const CompositeResources = () => {
       return;
     }
     
+    let isCancelled = false;
+    
     const loadFilterOptions = async () => {
       try {
         const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
-        const result = await kubernetesRepository.getCompositeResources(contextName, 30, null);
+        const { GetCompositeResourcesUseCase } = await import('../../domain/usecases/GetCompositeResourcesUseCase.js');
+        const useCase = new GetCompositeResourcesUseCase(kubernetesRepository);
+        const result = await useCase.execute(contextName, 30, null, null);
+        
+        if (isCancelled) return;
+        
         const resources = result.items || [];
         setFilterOptions({
           kinds: [...new Set(resources.map(r => r.kind).filter(Boolean))].sort(),
           compositions: [...new Set(resources.map(r => r.compositionRef?.name).filter(Boolean))].sort()
         });
       } catch (err) {
+        if (isCancelled) return;
         console.warn('Failed to load filter options:', err);
       }
     };
     
     loadFilterOptions();
     continueTokensRef.current = [null];
+    
+    return () => {
+      isCancelled = true;
+    };
   }, [selectedContext, kubernetesRepository]);
 
   const fetchData = useCallback(async (page, pageSize) => {
@@ -68,7 +80,9 @@ export const CompositeResources = () => {
       const continueToken = continueTokensRef.current[page - 1] || null;
       const hasFilters = kindFilter !== 'all' || statusFilter !== 'all' || compositionFilter !== 'all';
       const fetchLimit = hasFilters ? pageSize * 2 : pageSize;
-      const result = await kubernetesRepository.getCompositeResources(contextName, fetchLimit, continueToken);
+      const { GetCompositeResourcesUseCase } = await import('../../domain/usecases/GetCompositeResourcesUseCase.js');
+      const useCase = new GetCompositeResourcesUseCase(kubernetesRepository);
+      const result = await useCase.execute(contextName, fetchLimit, continueToken, null);
       
       if (result.continueToken) {
         while (continueTokensRef.current.length < page) {
@@ -111,7 +125,6 @@ export const CompositeResources = () => {
     continueTokensRef.current = [null];
   }, [selectedContext, kindFilter, statusFilter, compositionFilter]);
 
-  // Check if table height is less than 50% of viewport
   useEffect(() => {
     if (!selectedResource || !tableContainerRef.current) {
       setUseAutoHeight(false);
@@ -126,7 +139,7 @@ export const CompositeResources = () => {
       const halfViewport = (viewportHeight - 100) * 0.5; // Account for header
       const tableHeight = container.scrollHeight;
       
-      setUseAutoHeight(tableHeight < halfViewport);
+      setUseAutoHeight(tableHeight > halfViewport);
     };
 
     // Check immediately
@@ -324,10 +337,12 @@ export const CompositeResources = () => {
       >
         <Box
           ref={tableContainerRef}
-          flex={selectedResource ? (useAutoHeight ? '0 0 auto' : `0 0 50%`) : '1'}
+          flex={selectedResource ? (useAutoHeight ? '0 0 50%' : '0 0 auto') : '1'}
           display="flex"
           flexDirection="column"
           minH={0}
+          maxH={selectedResource && useAutoHeight ? '50vh' : 'none'}
+          overflowY={selectedResource && useAutoHeight ? 'auto' : 'visible'}
         >
           <DataTable
               data={[]}
