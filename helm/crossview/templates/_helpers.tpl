@@ -51,3 +51,14 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 app: {{ include "crossview.name" . }}
 {{- end }}
 
+{{/*
+Get namespace - defaults to "default" if global.namespace is empty
+*/}}
+{{- define "crossview.namespace" -}}
+{{- if .Values.global.namespace }}
+{{- .Values.global.namespace }}
+{{- else }}
+{{- "default" }}
+{{- end }}
+{{- end }}
+
