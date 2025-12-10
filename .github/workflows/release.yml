@@ -314,15 +314,22 @@ jobs:
         run: |
           # Copy Docker credentials to Helm registry config
           mkdir -p ~/.config/helm/registry
-          DOCKER_AUTH=$(cat ~/.docker/config.json | jq -r '.auths."https://index.docker.io/v1/".auth // empty')
-          if [ -n "$DOCKER_AUTH" ]; then
-            DECODED=$(echo "$DOCKER_AUTH" | base64 -d)
-            USERNAME=$(echo "$DECODED" | cut -d: -f1)
-            PASSWORD=$(echo "$DECODED" | cut -d: -f2-)
-            echo "{\"auths\":{\"docker.io\":{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}}}" > ~/.config/helm/registry/config.json
-            echo "Helm registry config created from Docker credentials"
+          if [ -f ~/.docker/config.json ]; then
+            DOCKER_AUTH=$(jq -r '.auths."https://index.docker.io/v1/".auth // empty' ~/.docker/config.json)
+            if [ -n "$DOCKER_AUTH" ] && [ "$DOCKER_AUTH" != "null" ] && [ "$DOCKER_AUTH" != "empty" ]; then
+              DECODED=$(echo "$DOCKER_AUTH" | base64 -d)
+              USERNAME=$(echo "$DECODED" | cut -d: -f1)
+              PASSWORD=$(echo "$DECODED" | cut -d: -f2-)
+              echo "{\"auths\":{\"docker.io\":{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}}}" > ~/.config/helm/registry/config.json
+              echo "Helm registry config created from Docker credentials"
+            else
+              echo "Docker auth not found in config, using direct login"
+              echo "${{ secrets.DOCKERHUB_TOKEN }}" | helm registry login docker.io \
+                -u "${{ secrets.DOCKERHUB_USERNAME }}" \
+                --password-stdin
+            fi
           else
-            # Fallback to direct login
+            echo "Docker config not found, using direct login"
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | helm registry login docker.io \
               -u "${{ secrets.DOCKERHUB_USERNAME }}" \
               --password-stdin
