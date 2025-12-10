@@ -834,6 +834,24 @@ export class KubernetesRepository extends IKubernetesRepository {
       const providers = providersResult.items || providersResult;
       const providersArray = Array.isArray(providers) ? providers : [];
 
+      // Get all ProviderRevisions and map them to their Providers
+      const providerRevisionsResult = await this.getResources('pkg.crossplane.io/v1', 'ProviderRevision', null, context);
+      const providerRevisions = providerRevisionsResult.items || providerRevisionsResult;
+      const providerRevisionsArray = Array.isArray(providerRevisions) ? providerRevisions : [];
+      
+      const providerRevisionToProvider = new Map();
+      for (const revision of providerRevisionsArray) {
+        const ownerRefs = revision.metadata?.ownerReferences || [];
+        for (const ownerRef of ownerRefs) {
+          if (ownerRef.kind === 'Provider' && ownerRef.apiVersion === 'pkg.crossplane.io/v1') {
+            const providerName = ownerRef.name;
+            if (providersArray.some(p => p.metadata?.name === providerName)) {
+              providerRevisionToProvider.set(revision.metadata?.name, providerName);
+            }
+          }
+        }
+      }
+
       const allCRDsResult = await this.customObjectsApi.listClusterCustomObject(
         'apiextensions.k8s.io',
         'v1',
@@ -845,9 +863,21 @@ export class KubernetesRepository extends IKubernetesRepository {
       for (const crd of allCRDs) {
         const ownerRefs = crd.metadata?.ownerReferences || [];
         for (const ownerRef of ownerRefs) {
+          // Check for direct Provider ownership (backward compatibility)
           if (ownerRef.kind === 'Provider' && ownerRef.apiVersion === 'pkg.crossplane.io/v1') {
             const providerName = ownerRef.name;
             if (providersArray.some(p => p.metadata?.name === providerName)) {
+              if (!providerCRDs.has(providerName)) {
+                providerCRDs.set(providerName, []);
+              }
+              providerCRDs.get(providerName).push(crd);
+            }
+          }
+          // Check for ProviderRevision ownership (newer Crossplane versions)
+          else if (ownerRef.kind === 'ProviderRevision' && ownerRef.apiVersion === 'pkg.crossplane.io/v1') {
+            const revisionName = ownerRef.name;
+            const providerName = providerRevisionToProvider.get(revisionName);
+            if (providerName) {
               if (!providerCRDs.has(providerName)) {
                 providerCRDs.set(providerName, []);
               }
