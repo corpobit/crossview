@@ -15,7 +15,7 @@ export class GetResourcesUseCase {
         try {
           const result = await this.kubernetesRepository.getResources(apiextensionsApiVersion, kind, namespace, context, limit, continueToken);
           const items = result.items || result;
-          const itemsArray = Array.isArray(items) ? items : [];
+      const itemsArray = Array.isArray(items) ? items : [];
           resources.push(...itemsArray.map(item => ({
             name: item.metadata?.name || 'unknown',
             namespace: item.metadata?.namespace || null,
@@ -122,7 +122,7 @@ export class GetResourcesUseCase {
           break;
         }
       }
-
+      
       return {
         items: resources,
         continueToken: lastContinueToken

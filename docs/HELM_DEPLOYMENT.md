@@ -10,6 +10,20 @@ Deploy Crossview using Helm for the easiest and most flexible installation.
 
 ## Quick Install
 
+### Option 1: Install from OCI Registry (Recommended)
+
+```bash
+# Install directly from Docker Hub OCI registry (no repo add needed)
+helm install crossview oci://corpobit/crossview-chart \
+  --version v1.6.0 \
+  --namespace crossview \
+  --create-namespace \
+  --set secrets.dbPassword=your-secure-password \
+  --set secrets.sessionSecret=$(openssl rand -base64 32)
+```
+
+### Option 2: Install from Helm Repository
+
 ```bash
 # Add the Helm repository
 helm repo add crossview https://corpobit.github.io/crossview
@@ -175,10 +189,22 @@ kubectl port-forward -n crossview svc/crossview-service 3001:80
 # Update repository
 helm repo update
 
-# Upgrade
+# Upgrade from Helm repository
 helm upgrade crossview crossview/crossview \
   --namespace crossview \
-  --set image.tag=v1.5.0 \
+  --set image.tag=v1.6.0 \
+  --set secrets.dbPassword=your-password \
+  --set secrets.sessionSecret=your-session-secret
+```
+
+Or upgrade from OCI registry:
+
+```bash
+# Upgrade from OCI registry (no repo update needed)
+helm upgrade crossview oci://corpobit/crossview-chart \
+  --version v1.6.0 \
+  --namespace crossview \
+  --set image.tag=v1.6.0 \
   --set secrets.dbPassword=your-password \
   --set secrets.sessionSecret=your-session-secret
 ```
