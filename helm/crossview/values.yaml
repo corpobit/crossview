@@ -87,7 +87,6 @@ database:
   enabled: true
   image:
     repository: postgres
-    # Using latest 16-alpine patch version for security updates
     tag: "16.3-alpine"
   resources:
     requests:
@@ -101,6 +100,8 @@ database:
     size: 10Gi
     accessMode: ReadWriteOnce
     storageClass: ""
+  podAnnotations: {}
+  podLabels: {}
 
 # Environment variables
 env:
@@ -156,9 +157,9 @@ nodeSelector: {}
 # Tolerations
 tolerations: []
 
-# Pod annotations
+# Pod annotations (applied to app pods)
 podAnnotations: {}
 
-# Pod labels
+# Pod labels (applied to app pods)
 podLabels: {}
 

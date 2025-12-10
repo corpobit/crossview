@@ -15,8 +15,15 @@ spec:
       app: {{ include "crossview.fullname" . }}-postgres
   template:
     metadata:
+      annotations:
+        {{- with .Values.database.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       labels:
         app: {{ include "crossview.fullname" . }}-postgres
+        {{- with .Values.database.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       containers:
         - name: postgres
