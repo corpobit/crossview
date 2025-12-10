@@ -10,7 +10,10 @@ export class GetDashboardDataUseCase {
         this.kubernetesRepository.isConnected(context),
       ]);
 
-      const crossplaneResources = await this.kubernetesRepository.getCrossplaneResources(null, context);
+      const { GetResourcesUseCase } = await import('./GetResourcesUseCase.js');
+      const useCase = new GetResourcesUseCase(this.kubernetesRepository);
+      const result = await useCase.execute(context, null, 100, null);
+      const crossplaneResources = result.items || [];
 
       return {
         isConnected,

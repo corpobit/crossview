@@ -39,22 +39,34 @@ export const Claims = () => {
       return;
     }
     
+    let isCancelled = false;
+    
     const loadFilterOptions = async () => {
       try {
         const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
-        const result = await kubernetesRepository.getClaims(contextName, 30, null);
+        const { GetClaimsUseCase } = await import('../../domain/usecases/GetClaimsUseCase.js');
+        const useCase = new GetClaimsUseCase(kubernetesRepository);
+        const result = await useCase.execute(contextName, 30, null, null);
+        
+        if (isCancelled) return;
+        
         const claims = result.items || [];
         setFilterOptions({
           namespaces: [...new Set(claims.map(c => c.namespace).filter(Boolean))].sort(),
           kinds: [...new Set(claims.map(c => c.kind).filter(Boolean))].sort()
         });
       } catch (err) {
+        if (isCancelled) return;
         console.warn('Failed to load filter options:', err);
       }
     };
     
     loadFilterOptions();
     continueTokensRef.current = [null];
+    
+    return () => {
+      isCancelled = true;
+    };
   }, [selectedContext, kubernetesRepository]);
 
   const fetchData = useCallback(async (page, pageSize) => {
@@ -68,7 +80,9 @@ export const Claims = () => {
       const continueToken = continueTokensRef.current[page - 1] || null;
       const hasFilters = namespaceFilter !== 'all' || kindFilter !== 'all' || statusFilter !== 'all';
       const fetchLimit = hasFilters ? pageSize * 2 : pageSize;
-      const result = await kubernetesRepository.getClaims(contextName, fetchLimit, continueToken);
+      const { GetClaimsUseCase } = await import('../../domain/usecases/GetClaimsUseCase.js');
+      const useCase = new GetClaimsUseCase(kubernetesRepository);
+      const result = await useCase.execute(contextName, fetchLimit, continueToken, null);
       
       if (result.continueToken) {
         while (continueTokensRef.current.length < page) {
@@ -111,7 +125,6 @@ export const Claims = () => {
     continueTokensRef.current = [null];
   }, [selectedContext, namespaceFilter, kindFilter, statusFilter]);
 
-  // Check if table height is less than 50% of viewport
   useEffect(() => {
     if (!selectedResource || !tableContainerRef.current) {
       setUseAutoHeight(false);
@@ -126,7 +139,7 @@ export const Claims = () => {
       const halfViewport = (viewportHeight - 100) * 0.5; // Account for header
       const tableHeight = container.scrollHeight;
       
-      setUseAutoHeight(tableHeight < halfViewport);
+      setUseAutoHeight(tableHeight > halfViewport);
     };
 
     // Check immediately
@@ -323,10 +336,12 @@ export const Claims = () => {
       >
         <Box
           ref={tableContainerRef}
-          flex={selectedResource ? (useAutoHeight ? '0 0 auto' : `0 0 50%`) : '1'}
+          flex={selectedResource ? (useAutoHeight ? '0 0 50%' : '0 0 auto') : '1'}
           display="flex"
           flexDirection="column"
           minH={0}
+          maxH={selectedResource && useAutoHeight ? '50vh' : 'none'}
+          overflowY={selectedResource && useAutoHeight ? 'auto' : 'visible'}
         >
           <DataTable
               data={[]}

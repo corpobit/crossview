@@ -91,7 +91,6 @@ export const Compositions = () => {
     setLoading(false); // DataTable will handle loading via fetchData
   }, [selectedContext]);
 
-  // Check if table height is less than 50% of viewport
   useEffect(() => {
     if (!selectedResource || !tableContainerRef.current) {
       setUseAutoHeight(false);
@@ -106,7 +105,7 @@ export const Compositions = () => {
       const halfViewport = (viewportHeight - 100) * 0.5; // Account for header
       const tableHeight = container.scrollHeight;
       
-      setUseAutoHeight(tableHeight < halfViewport);
+      setUseAutoHeight(tableHeight > halfViewport);
     };
 
     // Check immediately
@@ -225,10 +224,12 @@ export const Compositions = () => {
       >
         <Box
           ref={tableContainerRef}
-          flex={selectedResource ? (useAutoHeight ? '0 0 auto' : `0 0 50%`) : '1'}
+          flex={selectedResource ? (useAutoHeight ? '0 0 50%' : '0 0 auto') : '1'}
           display="flex"
           flexDirection="column"
           minH={0}
+          maxH={selectedResource && useAutoHeight ? '50vh' : 'none'}
+          overflowY={selectedResource && useAutoHeight ? 'auto' : 'visible'}
         >
           <DataTable
               data={[]}

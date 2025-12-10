@@ -2,6 +2,7 @@ import { KubeConfig } from '@kubernetes/client-node';
 import { CoreV1Api, CustomObjectsApi, AppsV1Api } from '@kubernetes/client-node';
 import { CrossplaneResource } from '../../domain/entities/CrossplaneResource.js';
 import { IKubernetesRepository } from '../../domain/repositories/IKubernetesRepository.js';
+import { GetCompositeResourcesUseCase } from '../../domain/usecases/GetCompositeResourcesUseCase.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { homedir } from 'os';
@@ -19,6 +20,8 @@ export class KubernetesRepository extends IKubernetesRepository {
     this.appsApi = null;
     this.initialized = false;
     this.pluralCache = new Map();
+    this.mrdCache = new Map();
+    this.mrCache = new Map();
   }
 
   getKubeConfigPath() {
@@ -692,6 +695,15 @@ export class KubernetesRepository extends IKubernetesRepository {
     }
   }
 
+  async getCompositeResources(context = null, limit = null, continueToken = null) {
+    try {
+      const useCase = new GetCompositeResourcesUseCase(this);
+      return await useCase.execute(context, limit, continueToken, null);
+    } catch (error) {
+      throw new Error(`Failed to get composite resources: ${error.message}`);
+    }
+  }
+
   async getEvents(kind, name, namespace = null, context = null) {
     await this.ensureContext(context);
     try {
@@ -805,6 +817,129 @@ export class KubernetesRepository extends IKubernetesRepository {
     } catch (error) {
       logger.warn('Failed to get events', { error: error.message, stack: error.stack, kind, name, namespace });
       return [];
+    }
+  }
+
+  async getAllManagedResourceDefinitions(context = null) {
+    await this.ensureContext(context);
+    const cacheKey = `mrds_${context || 'default'}`;
+    const cached = this.mrdCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
+      logger.debug('MRD cache hit', { context });
+      return cached.data;
+    }
+
+    try {
+      const providersResult = await this.getResources('pkg.crossplane.io/v1', 'Provider', null, context);
+      const providers = providersResult.items || providersResult;
+      const providersArray = Array.isArray(providers) ? providers : [];
+
+      const allCRDsResult = await this.customObjectsApi.listClusterCustomObject(
+        'apiextensions.k8s.io',
+        'v1',
+        'customresourcedefinitions'
+      );
+      const allCRDs = allCRDsResult.body.items || [];
+
+      const providerCRDs = new Map();
+      for (const crd of allCRDs) {
+        const ownerRefs = crd.metadata?.ownerReferences || [];
+        for (const ownerRef of ownerRefs) {
+          if (ownerRef.kind === 'Provider' && ownerRef.apiVersion === 'pkg.crossplane.io/v1') {
+            const providerName = ownerRef.name;
+            if (providersArray.some(p => p.metadata?.name === providerName)) {
+              if (!providerCRDs.has(providerName)) {
+                providerCRDs.set(providerName, []);
+              }
+              providerCRDs.get(providerName).push(crd);
+            }
+          }
+        }
+      }
+
+      const mrdList = [];
+      for (const crds of providerCRDs.values()) {
+        for (const crd of crds) {
+          const kind = crd.spec?.names?.kind;
+          if (kind === 'ProviderConfig' || kind === 'ProviderConfigUsage') {
+            continue;
+          }
+          mrdList.push(crd);
+        }
+      }
+
+      this.mrdCache.set(cacheKey, { data: mrdList, timestamp: Date.now() });
+      logger.debug('MRDs loaded and cached', { context, count: mrdList.length });
+      return mrdList;
+    } catch (error) {
+      logger.error('Failed to get managed resource definitions', { error: error.message, context });
+      throw new Error(`Failed to get managed resource definitions: ${error.message}`);
+    }
+  }
+
+  async getAllManagedResources(context = null, forceRefresh = false) {
+    await this.ensureContext(context);
+    const cacheKey = `mrs_${context || 'default'}`;
+    
+    if (!forceRefresh) {
+      const cached = this.mrCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < 10 * 60 * 1000) {
+        logger.debug('MR cache hit', { context, age: Math.round((Date.now() - cached.timestamp) / 1000) + 's' });
+        return { items: cached.data, fromCache: true };
+      }
+      if (cached) {
+        logger.debug('MR cache expired', { context, age: Math.round((Date.now() - cached.timestamp) / 1000) + 's' });
+      }
+    }
+
+    try {
+      const mrdList = await this.getAllManagedResourceDefinitions(context);
+      const allResources = [];
+
+      const resourcePromises = mrdList.map(async (mrd) => {
+        try {
+          const group = mrd.spec?.group;
+          const version = mrd.spec?.versions?.[0]?.name || mrd.spec?.version || 'v1';
+          const plural = mrd.spec?.names?.plural;
+          const kind = mrd.spec?.names?.kind;
+          const apiVersion = `${group}/${version}`;
+
+          if (!plural || !kind) {
+            return [];
+          }
+
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Query timeout')), 5000)
+          );
+
+          const queryPromise = this.getResources(apiVersion, kind, null, context, null, null, plural);
+          const result = await Promise.race([queryPromise, timeoutPromise]);
+          const items = result.items || result;
+          return Array.isArray(items) ? items : [];
+        } catch (error) {
+          if (error.message !== 'Query timeout') {
+            logger.debug('Failed to list MRD resources', { 
+              mrd: mrd.metadata?.name, 
+              error: error.message 
+            });
+          }
+          return [];
+        }
+      });
+
+      const results = await Promise.allSettled(resourcePromises);
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          allResources.push(...result.value);
+        }
+      }
+
+      this.mrCache.set(cacheKey, { data: allResources, timestamp: Date.now() });
+      logger.debug('Managed resources loaded and cached', { context, count: allResources.length });
+      return { items: allResources, fromCache: false };
+    } catch (error) {
+      logger.error('Failed to get managed resources', { error: error.message, context });
+      throw new Error(`Failed to get managed resources: ${error.message}`);
     }
   }
 }

@@ -41,12 +41,10 @@ export const Search = () => {
 
   const query = searchParams.get('q') || '';
 
-  // Initialize search query from URL
   useEffect(() => {
     setSearchQuery(query);
   }, [query]);
 
-  // Focus input when page loads
   useEffect(() => {
     if (!query) {
       inputRef.current?.focus();
@@ -122,13 +120,14 @@ export const Search = () => {
   const [useAutoHeight, setUseAutoHeight] = useState(false);
   const tableContainerRef = useRef(null);
 
-  // Close resource detail when route changes
   useEffect(() => {
     setSelectedResource(null);
     setNavigationHistory([]);
   }, [location.pathname]);
 
   useEffect(() => {
+    let isCancelled = false;
+    
     const performSearch = async () => {
       if (!selectedContext || !query) {
         setResults([]);
@@ -146,6 +145,8 @@ export const Search = () => {
         const useCase = new SearchResourcesUseCase(kubernetesRepository);
         let searchResults = await useCase.execute(contextName, query, filters);
 
+        if (isCancelled) return;
+
         // Apply quick filter if active
         if (quickFilter === 'failed') {
           searchResults = useCase.getFailedResources(searchResults);
@@ -155,18 +156,27 @@ export const Search = () => {
           searchResults = useCase.getReadyResources(searchResults);
         }
 
+        if (isCancelled) return;
+
         setResults(searchResults);
         setFilteredResults(searchResults);
       } catch (err) {
+        if (isCancelled) return;
         setError(err.message);
         setResults([]);
         setFilteredResults([]);
       } finally {
-        setLoading(false);
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
     };
 
     performSearch();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [query, filters, quickFilter, selectedContext, kubernetesRepository]);
 
   const handleSaveSearch = () => {
@@ -207,11 +217,9 @@ export const Search = () => {
     setSelectedResource(resource);
   };
 
-  // Get unique kinds and namespaces for filters
   const availableKinds = [...new Set(results.map(r => r.kind).filter(Boolean))].sort();
   const availableNamespaces = [...new Set(results.map(r => r.namespace || '').filter(ns => ns !== null))].sort();
 
-  // Generate suggestions based on search query
   useEffect(() => {
     const generateSuggestions = async () => {
       if (!selectedContext) {
@@ -224,7 +232,6 @@ export const Search = () => {
       const isEmpty = !query;
       const suggestionList = [];
 
-      // Add suggestions from saved searches
       if (savedSearches && savedSearches.length > 0) {
         savedSearches.forEach(saved => {
           if (isEmpty || (saved.query && saved.query.toLowerCase().includes(query))) {
@@ -240,7 +247,6 @@ export const Search = () => {
         });
       }
 
-      // Add suggestions from available kinds
       availableKinds.forEach(kind => {
         if (isEmpty || kind.toLowerCase().includes(query)) {
           suggestionList.push({
@@ -252,7 +258,6 @@ export const Search = () => {
         }
       });
 
-      // Add suggestions from available namespaces
       availableNamespaces.forEach(ns => {
         if (ns && (isEmpty || ns.toLowerCase().includes(query))) {
           suggestionList.push({
@@ -264,7 +269,6 @@ export const Search = () => {
         }
       });
 
-      // Add suggestions from recent results (resource names)
       if (results.length > 0) {
         const uniqueNames = [...new Set(results.map(r => r.name).filter(Boolean))];
         uniqueNames.slice(0, 5).forEach(name => {
@@ -279,19 +283,16 @@ export const Search = () => {
         });
       }
 
-      // Limit to 10 suggestions when empty, 8 when filtering
       const limit = isEmpty ? 10 : 8;
       setSuggestions(suggestionList.slice(0, limit));
       setSelectedSuggestionIndex(-1);
     };
 
-    // Calculate isEmpty outside the function for the timeout
     const isEmpty = !searchQuery.trim();
     const timeoutId = setTimeout(generateSuggestions, isEmpty ? 0 : 200);
     return () => clearTimeout(timeoutId);
   }, [searchQuery, savedSearches, availableKinds, availableNamespaces, results, selectedContext]);
 
-  // Check if table height is less than 50% of viewport
   useEffect(() => {
     if (!selectedResource || !tableContainerRef.current) {
       setUseAutoHeight(false);
@@ -306,13 +307,11 @@ export const Search = () => {
       const halfViewport = (viewportHeight - 100) * 0.5; // Account for header
       const tableHeight = container.scrollHeight;
       
-      setUseAutoHeight(tableHeight < halfViewport);
+      setUseAutoHeight(tableHeight > halfViewport);
     };
 
-    // Check immediately
     checkTableHeight();
 
-    // Check on resize
     const resizeObserver = new ResizeObserver(checkTableHeight);
     resizeObserver.observe(tableContainerRef.current);
 
@@ -321,11 +320,9 @@ export const Search = () => {
     };
   }, [selectedResource, results]);
 
-  // Handle clicking outside to close suggestions
   useEffect(() => {
     const handleClickOutside = (event) => {
       const target = event.target;
-      // Check if click is outside the search bar container (which includes input and suggestions)
       if (searchBarRef.current && !searchBarRef.current.contains(target)) {
         setShowSuggestions(false);
         setSelectedSuggestionIndex(-1);
@@ -419,7 +416,6 @@ export const Search = () => {
     },
   ];
 
-  // If no query, show centered search bar
   if (!query) {
     return (
       <Box
@@ -430,7 +426,6 @@ export const Search = () => {
         alignItems="center"
         w="100%"
       >
-        {/* Hero Section */}
         <VStack spacing={8} align="center" mb={12} w="100%" maxW="900px" mx="auto">
           <VStack spacing={6} align="center">
             <Text
@@ -456,7 +451,6 @@ export const Search = () => {
             </Text>
           </VStack>
           
-          {/* Search Bar */}
           <Box ref={searchBarRef} position="relative" w="100%" maxW="900px" mx="auto" mt={4}>
             <Box
               position="absolute"
@@ -479,7 +473,6 @@ export const Search = () => {
               }}
               onKeyDown={handleKeyDown}
               onFocus={() => {
-                // Always show suggestions when focused, even if empty
                 setShowSuggestions(true);
               }}
               pl="60px"
@@ -506,7 +499,6 @@ export const Search = () => {
               </Box>
             )}
             
-            {/* Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
               <Box
                 ref={suggestionsRef}
@@ -618,7 +610,6 @@ export const Search = () => {
           </Box>
         </VStack>
 
-        {/* Search Tips */}
         <Box
           w="100%"
           maxW="900px"
@@ -715,7 +706,6 @@ export const Search = () => {
       flexDirection="column"
       position="relative"
     >
-      {/* Results Header */}
       <Box
         mb={6}
         p={4}
@@ -781,10 +771,12 @@ export const Search = () => {
             ) : (
               <Box
                 ref={tableContainerRef}
-                flex={selectedResource ? (useAutoHeight ? '0 0 auto' : `0 0 50%`) : '1'}
+                flex={selectedResource ? (useAutoHeight ? '0 0 50%' : '0 0 auto') : '1'}
                 display="flex"
                 flexDirection="column"
                 minH={0}
+                maxH={selectedResource && useAutoHeight ? '50vh' : 'none'}
+                overflowY={selectedResource && useAutoHeight ? 'auto' : 'visible'}
               >
                 <DataTable
                   data={filteredResults}
@@ -815,7 +807,6 @@ export const Search = () => {
         </>
       )}
 
-      {/* Save Search Modal */}
       {isOpen && (
         <Box
           position="fixed"

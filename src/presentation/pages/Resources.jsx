@@ -2,6 +2,8 @@ import {
   Box,
   Text,
   HStack,
+  Button,
+  Badge,
 } from '@chakra-ui/react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -9,7 +11,6 @@ import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 import { Dropdown } from '../components/common/Dropdown.jsx';
-import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
 import { getStatusColor, getStatusText, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
 
 export const Resources = () => {
@@ -23,43 +24,64 @@ export const Resources = () => {
   const [uniqueKinds, setUniqueKinds] = useState([]);
   const [useAutoHeight, setUseAutoHeight] = useState(false);
   const [allManagedResources, setAllManagedResources] = useState([]);
+  const [fromCache, setFromCache] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const tableContainerRef = useRef(null);
+  const isMountedRef = useRef(true);
 
-  // Close resource detail when route changes
   useEffect(() => {
     setSelectedResource(null);
     setNavigationHistory([]);
   }, [location.pathname]);
 
-  useEffect(() => {
+  const loadManagedResources = useCallback(async (forceRefresh = false) => {
     if (!selectedContext) {
       setUniqueKinds([]);
       setAllManagedResources([]);
+      setFromCache(false);
       return;
     }
     
-    const loadManagedResources = async () => {
-      try {
+    try {
+      if (forceRefresh) {
+        setIsRefreshing(true);
+      } else {
         setLoading(true);
-        setError(null);
-        const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
-        const { GetManagedResourcesUseCase } = await import('../../domain/usecases/GetManagedResourcesUseCase.js');
-        const useCase = new GetManagedResourcesUseCase(kubernetesRepository);
-        const resources = await useCase.execute(contextName, null);
-        setAllManagedResources(Array.isArray(resources) ? resources : []);
-        setUniqueKinds([...new Set(resources.map(r => r.kind).filter(Boolean))].sort());
-        setLoading(false);
-      } catch (err) {
-        console.warn('Failed to load managed resources:', err);
-        setError(err.message);
-        setAllManagedResources([]);
-        setUniqueKinds([]);
-        setLoading(false);
       }
-    };
-    
-    loadManagedResources();
+      setError(null);
+      const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
+      const { GetManagedResourcesUseCase } = await import('../../domain/usecases/GetManagedResourcesUseCase.js');
+      const useCase = new GetManagedResourcesUseCase(kubernetesRepository);
+      const result = await useCase.execute(contextName, null, forceRefresh);
+      
+      if (!isMountedRef.current) return;
+      
+      const resources = result.items || [];
+      setAllManagedResources(Array.isArray(resources) ? resources : []);
+      setUniqueKinds([...new Set(resources.map(r => r.kind).filter(Boolean))].sort((a, b) => a.localeCompare(b)));
+      setFromCache(result.fromCache || false);
+      setLoading(false);
+      setIsRefreshing(false);
+    } catch (err) {
+      if (!isMountedRef.current) return;
+      console.warn('Failed to load managed resources:', err);
+      setError(err.message);
+      setAllManagedResources([]);
+      setUniqueKinds([]);
+      setFromCache(false);
+      setLoading(false);
+      setIsRefreshing(false);
+    }
   }, [selectedContext, kubernetesRepository]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    loadManagedResources(false);
+    
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [selectedContext, kubernetesRepository, loadManagedResources]);
 
   const fetchData = useCallback(async (page, pageSize) => {
     if (!selectedContext || allManagedResources.length === 0) {
@@ -88,7 +110,6 @@ export const Resources = () => {
   }, [selectedContext, allManagedResources, kindFilter]);
 
 
-  // Check if table height is less than 50% of viewport
   useEffect(() => {
     if (!selectedResource || !tableContainerRef.current) {
       setUseAutoHeight(false);
@@ -103,13 +124,11 @@ export const Resources = () => {
       const halfViewport = (viewportHeight - 100) * 0.5; // Account for header
       const tableHeight = container.scrollHeight;
       
-      setUseAutoHeight(tableHeight < halfViewport);
+      setUseAutoHeight(tableHeight > halfViewport);
     };
 
-    // Check immediately
     checkTableHeight();
 
-    // Check on resize
     const resizeObserver = new ResizeObserver(checkTableHeight);
     resizeObserver.observe(tableContainerRef.current);
 
@@ -117,10 +136,6 @@ export const Resources = () => {
       resizeObserver.disconnect();
     };
   }, [selectedResource, loading]);
-
-  if (loading) {
-    return <LoadingSpinner message="Loading resources..." />;
-  }
 
   if (error) {
     return (
@@ -151,7 +166,6 @@ export const Resources = () => {
       namespace: item.namespace || null,
     };
 
-    // If clicking the same row that's already open, close the slideout
     if (selectedResource && 
         selectedResource.name === clickedResource.name &&
         selectedResource.kind === clickedResource.kind &&
@@ -162,8 +176,6 @@ export const Resources = () => {
       return;
     }
 
-    // Otherwise, open/update the slideout with the new resource
-    // Clear navigation history when opening from table (not from another resource)
     setNavigationHistory([]);
     setSelectedResource(clickedResource);
   };
@@ -268,24 +280,65 @@ export const Resources = () => {
       flexDirection="column"
       position="relative"
     >
-      <Text fontSize="2xl" fontWeight="bold" mb={2}>Managed Resources</Text>
+      <HStack spacing={4} mb={2} align="center">
+        <Text fontSize="2xl" fontWeight="bold">Managed Resources</Text>
+        {fromCache && !loading && !isRefreshing && (
+          <HStack spacing={2}>
+            <Badge colorScheme="blue" variant="subtle">Cached</Badge>
+            <Button
+              size="sm"
+              colorScheme="blue"
+              variant="outline"
+              onClick={() => loadManagedResources(true)}
+              isLoading={isRefreshing}
+            >
+              Refresh
+            </Button>
+          </HStack>
+        )}
+      </HStack>
       <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }} mb={6}>
         Kubernetes resources created and managed by Crossplane (Deployments, Services, etc.)
       </Text>
+      
+      {(loading || isRefreshing) && (
+        <Box mb={4}>
+          <HStack spacing={3} align="center">
+            <Box
+              w="16px"
+              h="16px"
+              border="2px solid"
+              borderColor="blue.200"
+              borderTopColor="blue.500"
+              _dark={{ borderColor: 'blue.700', borderTopColor: 'blue.400' }}
+              borderRadius="50%"
+              style={{
+                animation: 'spin 1s linear infinite',
+              }}
+            />
+            <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.400' }}>
+              {isRefreshing ? 'Refreshing managed resources...' : 'Loading managed resources...'}
+            </Text>
+          </HStack>
+        </Box>
+      )}
 
       <Box
         display="flex"
         flexDirection="column"
         gap={4}
       >
-        <Box
-          ref={tableContainerRef}
-          flex={selectedResource ? (useAutoHeight ? '0 0 auto' : `0 0 50%`) : '1'}
-          display="flex"
-          flexDirection="column"
-          minH={0}
-        >
-          <DataTable
+        {!loading && !isRefreshing && (
+          <Box
+            ref={tableContainerRef}
+            flex={selectedResource ? (useAutoHeight ? '0 0 50%' : '0 0 auto') : '1'}
+            display="flex"
+            flexDirection="column"
+            minH={0}
+            maxH={selectedResource && useAutoHeight ? '50vh' : 'none'}
+            overflowY={selectedResource && useAutoHeight ? 'auto' : 'visible'}
+          >
+            <DataTable
               data={[]}
               columns={columns}
               searchableFields={['name', 'kind']}
@@ -293,7 +346,7 @@ export const Resources = () => {
               onRowClick={handleRowClick}
               serverSidePagination={true}
               fetchData={fetchData}
-              loading={loading}
+              loading={false}
               filters={
                 <Dropdown
                   minW="200px"
@@ -305,9 +358,10 @@ export const Resources = () => {
                     ...uniqueKinds.map(kind => ({ value: kind, label: kind }))
                   ]}
                 />
-            }
-          />
-        </Box>
+              }
+            />
+          </Box>
+        )}
 
         {selectedResource && (
           <Box

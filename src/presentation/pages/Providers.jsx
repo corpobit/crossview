@@ -28,7 +28,7 @@ export const Providers = () => {
   const [navigationHistory, setNavigationHistory] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [useAutoHeight, setUseAutoHeight] = useState(false);
+  const [useSplitView, setUseSplitView] = useState(false);
   const gridContainerRef = useRef(null);
 
   // Close resource detail when route changes
@@ -88,10 +88,9 @@ export const Providers = () => {
     setFilteredProviders(filtered);
   }, [providers, statusFilter, searchQuery]);
 
-  // Check if grid height is less than 50% of viewport
   useEffect(() => {
     if (!selectedResource || !gridContainerRef.current) {
-      setUseAutoHeight(false);
+      setUseSplitView(false);
       return;
     }
 
@@ -103,7 +102,7 @@ export const Providers = () => {
       const halfViewport = (viewportHeight - 100) * 0.5; // Account for header
       const gridHeight = container.scrollHeight;
       
-      setUseAutoHeight(gridHeight < halfViewport);
+      setUseSplitView(gridHeight > halfViewport);
     };
 
     // Check immediately
@@ -265,10 +264,12 @@ export const Providers = () => {
       >
         <Box
           ref={gridContainerRef}
-          flex={selectedResource ? (useAutoHeight ? '0 0 auto' : `0 0 50%`) : '1'}
+          flex={selectedResource ? (useSplitView ? '0 0 50%' : '0 0 auto') : '1'}
           display="flex"
           flexDirection="column"
           minH={0}
+          maxH={selectedResource && useSplitView ? '50vh' : 'none'}
+          overflowY={selectedResource && useSplitView ? 'auto' : 'visible'}
         >
           {filteredProviders.length === 0 ? (
               <Container p={8} textAlign="center">

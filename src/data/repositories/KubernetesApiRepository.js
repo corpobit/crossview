@@ -1,5 +1,4 @@
 import { IKubernetesRepository } from '../../domain/repositories/IKubernetesRepository.js';
-import { CrossplaneResource } from '../../domain/entities/CrossplaneResource.js';
 
 export class KubernetesApiRepository extends IKubernetesRepository {
   constructor(apiBaseUrl = '/api') {
@@ -131,69 +130,24 @@ export class KubernetesApiRepository extends IKubernetesRepository {
     }
   }
 
-  async getCrossplaneResources(namespace = null, context = null, limit = null, continueToken = null) {
+  async getManagedResources(context = null, forceRefresh = false) {
     try {
       const params = new URLSearchParams();
-      if (namespace) {
-        params.append('namespace', namespace);
-      }
       if (context) {
         params.append('context', context);
       }
-      if (limit) {
-        params.append('limit', limit.toString());
-      }
-      if (continueToken) {
-        params.append('continue', continueToken);
+      if (forceRefresh) {
+        params.append('refresh', 'true');
       }
       const queryString = params.toString();
-      const result = await this.request(`/crossplane/resources${queryString ? `?${queryString}` : ''}`);
-      const items = result.items || result;
-      const itemsArray = Array.isArray(items) ? items : [];
+      const endpoint = `/managed${queryString ? `?${queryString}` : ''}`;
+      const result = await this.request(endpoint);
       return {
-        items: itemsArray.map(item => new CrossplaneResource(item)),
-        continueToken: result.continueToken || null
+        items: result.items || [],
+        fromCache: result.fromCache || false
       };
     } catch (error) {
-      throw new Error(`Failed to get Crossplane resources: ${error.message}`);
-    }
-  }
-
-  async getClaims(context = null, limit = null, continueToken = null) {
-    try {
-      const params = new URLSearchParams();
-      if (context) {
-        params.append('context', context);
-      }
-      if (limit) {
-        params.append('limit', limit.toString());
-      }
-      if (continueToken) {
-        params.append('continue', continueToken);
-      }
-      const queryString = params.toString();
-      return await this.request(`/claims${queryString ? `?${queryString}` : ''}`);
-    } catch (error) {
-      throw new Error(`Failed to get claims: ${error.message}`);
-    }
-  }
-
-  async getCompositeResources(context = null, limit = null, continueToken = null) {
-    try {
-      const params = new URLSearchParams();
-      if (context) {
-        params.append('context', context);
-      }
-      if (limit) {
-        params.append('limit', limit.toString());
-      }
-      if (continueToken) {
-        params.append('continue', continueToken);
-      }
-      const queryString = params.toString();
-      return await this.request(`/composite-resources${queryString ? `?${queryString}` : ''}`);
-    } catch (error) {
-      throw new Error(`Failed to get composite resources: ${error.message}`);
+      throw new Error(`Failed to get managed resources: ${error.message}`);
     }
   }
 
