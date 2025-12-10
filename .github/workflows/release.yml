@@ -12,7 +12,14 @@ on:
       - 'helm/**'
       - '.github/workflows/helm-release.yml'
       - '.github/workflows/security-scan.yml'
+      - '.github/workflows/release.yml'
   workflow_dispatch:
+    inputs:
+      update_github_pages:
+        description: 'Update GitHub Pages Helm repository'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   check-version-bump:
@@ -332,6 +339,7 @@ jobs:
           echo "Users can install with: helm install crossview oci://$OCI_REGISTRY/$OCI_REPO --version ${{ steps.version.outputs.tag }}"
 
       - name: Checkout gh-pages branch
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.update_github_pages == 'true'
         uses: actions/checkout@v4
         with:
           ref: gh-pages
@@ -340,6 +348,7 @@ jobs:
           fetch-depth: 0
 
       - name: Initialize gh-pages if empty
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.update_github_pages == 'true'
         run: |
           if [ ! -f gh-pages/index.yaml ]; then
             echo "Initializing gh-pages branch"
@@ -355,23 +364,27 @@ jobs:
           fi
 
       - name: Create charts directory if it doesn't exist
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.update_github_pages == 'true'
         run: |
           mkdir -p gh-pages/charts
           mkdir -p gh-pages/images
 
       - name: Copy new chart package and logo
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.update_github_pages == 'true'
         run: |
           cp charts/*.tgz gh-pages/charts/
           cp public/images/crossview-logo.svg gh-pages/images/crossview-logo.svg
           cp public/images/helm-logo.svg gh-pages/images/helm-logo.svg
 
       - name: Update Helm repository index
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.update_github_pages == 'true'
         run: |
           cd gh-pages
           helm repo index . --url https://corpobit.github.io/crossview
           cat index.yaml
 
       - name: Create index.html for GitHub Pages
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.update_github_pages == 'true'
         run: |
           cd gh-pages
           cat > index.html << 'EOF'
@@ -539,6 +552,7 @@ jobs:
           EOF
 
       - name: Create Artifact Hub repository metadata
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.update_github_pages == 'true'
         run: |
           cd gh-pages
           cat > artifacthub-repo.yml << 'EOF'
@@ -548,6 +562,7 @@ jobs:
           cat artifacthub-repo.yml
 
       - name: Clean up gh-pages branch
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.update_github_pages == 'true'
         run: |
           cd gh-pages
           find . -type f ! -name 'index.yaml' ! -name 'index.html' ! -name 'artifacthub-repo.yml' ! -name '*.tgz' ! -name 'README.md' ! -name '*.svg' ! -path './charts/*' ! -path './images/*' ! -path './.git/*' -delete 2>/dev/null || true
@@ -556,6 +571,7 @@ jobs:
           mkdir -p charts images
 
       - name: Commit and push to gh-pages
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.update_github_pages == 'true'
         run: |
           cd gh-pages
           git config user.name "github-actions[bot]"
