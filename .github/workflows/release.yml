@@ -304,11 +304,17 @@ jobs:
           helm package helm/crossview --destination ./charts
           ls -la ./charts/
 
-      - name: Login to Docker Hub for OCI
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Configure Helm for Docker Hub OCI
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | helm registry login docker.io \
+            -u "${{ secrets.DOCKERHUB_USERNAME }}" \
+            --password-stdin
 
       - name: Push Helm chart to Docker Hub OCI registry
         run: |
