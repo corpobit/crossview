@@ -23,10 +23,6 @@ export class IKubernetesRepository {
     throw new Error('getResource must be implemented');
   }
 
-  async getCrossplaneResources(namespace = null, context = null) {
-    throw new Error('getCrossplaneResources must be implemented');
-  }
-
   async isConnected(context = null) {
     throw new Error('isConnected must be implemented');
   }

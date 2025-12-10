@@ -15,8 +15,8 @@ export class GetCompositeResourcesUseCase {
           xrdKind, 
           null, 
           context,
-          null, // No limit on XRDs
-          null  // No continue token for XRDs
+          null,
+          null
         );
       } catch (error) {
         if (error.message && (error.message.includes('500') || error.message.includes('Failed to get'))) {
@@ -45,7 +45,6 @@ export class GetCompositeResourcesUseCase {
         return { items: [], continueToken: null };
       }
       
-      // If specific resource type requested, only query that type with proper pagination
       if (resourceType) {
         const resType = resourceTypes.find(rt => 
           rt.xrKind === resourceType || 
@@ -57,14 +56,13 @@ export class GetCompositeResourcesUseCase {
           return { items: [], continueToken: null };
         }
         
-        // Direct pagination to Kubernetes API - no client-side aggregation
         const xrsResult = await this.kubernetesRepository.getResources(
           resType.xrApiVersion,
           resType.xrKind,
           null,
           context,
-          limit, // Pass limit directly to Kubernetes API
-          continueToken, // Pass continue token directly to Kubernetes API
+          limit,
+          continueToken,
           resType.xrPlural
         );
         
@@ -93,41 +91,63 @@ export class GetCompositeResourcesUseCase {
         };
       }
       
-      // Multiple resource types: query first type with pagination, return its results
-      // This ensures proper Kubernetes pagination instead of client-side aggregation
-      const firstResType = resourceTypes[0];
-      const xrsResult = await this.kubernetesRepository.getResources(
-        firstResType.xrApiVersion,
-        firstResType.xrKind,
-        null,
-        context,
-        limit, // Pass limit directly to Kubernetes API
-        continueToken, // Pass continue token directly to Kubernetes API
-        firstResType.xrPlural
-      );
+      const numTypes = resourceTypes.length;
+      const perTypeLimit = limit ? Math.min(limit * 2, 50) : 50;
       
-      const xrs = xrsResult.items || xrsResult;
-      const xrsArray = Array.isArray(xrs) ? xrs : [];
+      const resourcePromises = resourceTypes.map(async (resType) => {
+        try {
+          const xrsResult = await this.kubernetesRepository.getResources(
+            resType.xrApiVersion,
+            resType.xrKind,
+            null,
+            context,
+            perTypeLimit,
+            null,
+            resType.xrPlural
+          );
+          
+          const xrs = xrsResult.items || xrsResult;
+          const xrsArray = Array.isArray(xrs) ? xrs : [];
+          
+          return xrsArray.map(xr => ({
+            name: xr.metadata?.name || 'unknown',
+            namespace: xr.metadata?.namespace || null,
+            uid: xr.metadata?.uid || '',
+            kind: resType.xrKind,
+            apiVersion: resType.xrApiVersion,
+            plural: resType.xrPlural,
+            creationTimestamp: xr.metadata?.creationTimestamp || '',
+            labels: xr.metadata?.labels || {},
+            compositionRef: xr.spec?.compositionRef || null,
+            claimRef: xr.spec?.claimRef || null,
+            writeConnectionSecretsTo: xr.spec?.writeConnectionSecretsTo || null,
+            resourceRefs: xr.spec?.resourceRefs || [],
+            status: xr.status || {},
+            conditions: xr.status?.conditions || [],
+            spec: xr.spec || {},
+          }));
+        } catch (error) {
+          return [];
+        }
+      });
+      
+      const resourceArrays = await Promise.all(resourcePromises);
+      const allResources = resourceArrays.flat();
+      
+      allResources.sort((a, b) => {
+        const timeA = a.creationTimestamp || '';
+        const timeB = b.creationTimestamp || '';
+        if (!timeA && !timeB) return 0;
+        if (!timeA) return 1;
+        if (!timeB) return -1;
+        return timeB.localeCompare(timeA);
+      });
+      
+      const limitedResources = limit ? allResources.slice(0, limit) : allResources;
       
       return {
-        items: xrsArray.map(xr => ({
-          name: xr.metadata?.name || 'unknown',
-          namespace: xr.metadata?.namespace || null,
-          uid: xr.metadata?.uid || '',
-          kind: firstResType.xrKind,
-          apiVersion: firstResType.xrApiVersion,
-          plural: firstResType.xrPlural,
-          creationTimestamp: xr.metadata?.creationTimestamp || '',
-          labels: xr.metadata?.labels || {},
-          compositionRef: xr.spec?.compositionRef || null,
-          claimRef: xr.spec?.claimRef || null,
-          writeConnectionSecretsTo: xr.spec?.writeConnectionSecretsTo || null,
-          resourceRefs: xr.spec?.resourceRefs || [],
-          status: xr.status || {},
-          conditions: xr.status?.conditions || [],
-          spec: xr.spec || {},
-        })),
-        continueToken: xrsResult.continueToken || null
+        items: limitedResources,
+        continueToken: null
       };
     } catch (error) {
       if (error.message?.includes('500')) {
