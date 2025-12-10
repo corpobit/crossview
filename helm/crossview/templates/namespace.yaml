@@ -1,4 +1,4 @@
-{{- if .Values.global.namespace }}
+{{- if and .Values.global.createNamespace .Values.global.namespace }}
 apiVersion: v1
 kind: Namespace
 metadata:
