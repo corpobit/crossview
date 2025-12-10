@@ -18,6 +18,7 @@ jobs:
       contents: write
       packages: write
       security-events: write
+      pull-requests: write
     
     steps:
       - name: Checkout code
@@ -176,16 +177,39 @@ jobs:
           echo "Updated helm/crossview/README.md"
 
       - name: Commit version updates
+        id: version_commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add package.json helm/crossview/Chart.yaml docs/HELM_DEPLOYMENT.md helm/crossview/README.md
           if git diff --staged --quiet; then
             echo "No version changes to commit"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
           else
+            BRANCH_NAME="bump-version-${{ steps.version.outputs.version }}"
+            git checkout -b $BRANCH_NAME
             git commit -m "Bump version to ${{ steps.version.outputs.version }}"
-            git push
+            git push origin $BRANCH_NAME
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
           fi
+
+      - name: Create Pull Request for version bump
+        if: steps.version_commit.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ steps.version_commit.outputs.branch }}
+          base: main
+          title: "Bump version to ${{ steps.version.outputs.version }}"
+          body: |
+            Automated version bump to ${{ steps.version.outputs.version }}
+            
+            This PR was created automatically by the release workflow.
+          labels: |
+            automated
+            version-bump
+          delete-branch: true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
