@@ -11,6 +11,7 @@ on:
       - 'LICENSE'
       - 'helm/**'
       - '.github/workflows/helm-release.yml'
+      - '.github/workflows/security-scan.yml'
   workflow_dispatch:
 
 jobs:
@@ -417,8 +418,8 @@ jobs:
                 margin-bottom: 90px;
               }
               .logo {
-                width: 80px;
-                height: 80px;
+                width: 150px;
+                height: 150px;
                 margin-bottom: 28px;
                 opacity: 0.9;
               }
