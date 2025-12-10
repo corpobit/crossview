@@ -35,7 +35,13 @@ spec:
                 configMapKeyRef:
                   name: {{ include "crossview.fullname" . }}-config
                   key: DB_USER
-            {{- if .Values.secrets.dbPassword }}
+            {{- if .Values.secrets.existingSecret }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.existingSecret }}
+                  key: {{ .Values.secrets.existingSecretKeys.dbPassword }}
+            {{- else if .Values.secrets.dbPassword }}
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:

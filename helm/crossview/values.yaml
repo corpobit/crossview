@@ -117,6 +117,10 @@ env:
 secrets:
   dbPassword: ""  # Set via --set secrets.dbPassword=your-password
   sessionSecret: ""  # Set via --set secrets.sessionSecret=your-secret
+  existingSecret: ""  # Reference existing secret name (if set, secret creation is skipped)
+  existingSecretKeys:
+    dbPassword: "db-password"  # Key in existing secret for DB password
+    sessionSecret: "session-secret"  # Key in existing secret for session secret
 
 # Service Account
 serviceAccount:
