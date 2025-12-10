@@ -4,6 +4,7 @@
 # Global settings
 global:
   namespace: crossview
+  createNamespace: true
 
 # Image configuration
 image:
@@ -12,12 +13,21 @@ image:
   # Overrides the image tag whose default is the chart appVersion with "v" prefix.
   # Default will be "v{appVersion}" (e.g., "v1.5.0")
   tag: ""
+  # Platform override for multi-arch support (e.g., "linux/amd64" for ARM64 hosts)
+  platform: ""
 
 # Application configuration
 app:
   name: crossview
   port: 3001
   replicas: 3
+  extraEnv: []
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
 
 # Deployment strategy
 deployment:
@@ -62,6 +72,7 @@ service:
   targetPort: 3001
   sessionAffinity: ClientIP
   sessionAffinityTimeout: 10800
+  annotations: {}
 
 # Ingress configuration
 ingress:
@@ -86,7 +97,6 @@ database:
   enabled: true
   image:
     repository: postgres
-    # Using latest 16-alpine patch version for security updates
     tag: "16.3-alpine"
   resources:
     requests:
@@ -100,6 +110,23 @@ database:
     size: 10Gi
     accessMode: ReadWriteOnce
     storageClass: ""
+  podAnnotations: {}
+  podLabels: {}
+  service:
+    annotations: {}
+  extraEnv: []
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    fsGroup: 999
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
 
 # Environment variables
 env:
@@ -116,6 +143,10 @@ env:
 secrets:
   dbPassword: ""  # Set via --set secrets.dbPassword=your-password
   sessionSecret: ""  # Set via --set secrets.sessionSecret=your-secret
+  existingSecret: ""  # Reference existing secret name (if set, secret creation is skipped)
+  existingSecretKeys:
+    dbPassword: "db-password"  # Key in existing secret for DB password
+    sessionSecret: "session-secret"  # Key in existing secret for session secret
 
 # Service Account
 serviceAccount:
@@ -151,9 +182,9 @@ nodeSelector: {}
 # Tolerations
 tolerations: []
 
-# Pod annotations
+# Pod annotations (applied to app pods)
 podAnnotations: {}
 
-# Pod labels
+# Pod labels (applied to app pods)
 podLabels: {}
 

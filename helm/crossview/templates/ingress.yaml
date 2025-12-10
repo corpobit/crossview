@@ -3,7 +3,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ include "crossview.fullname" . }}-ingress
-  namespace: {{ .Values.global.namespace }}
+  namespace: {{ include "crossview.namespace" . }}
   labels:
     {{- include "crossview.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}

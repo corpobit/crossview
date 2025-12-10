@@ -4,7 +4,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "crossview.fullname" . }}-postgres
-  namespace: {{ .Values.global.namespace }}
+  namespace: {{ include "crossview.namespace" . }}
   labels:
     {{- include "crossview.labels" . | nindent 4 }}
     app: {{ include "crossview.fullname" . }}-postgres
@@ -15,12 +15,27 @@ spec:
       app: {{ include "crossview.fullname" . }}-postgres
   template:
     metadata:
+      annotations:
+        {{- with .Values.database.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       labels:
         app: {{ include "crossview.fullname" . }}-postgres
+        {{- with .Values.database.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
+      {{- with .Values.database.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: postgres
           image: "{{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}"
+          {{- with .Values.database.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: postgres
               containerPort: 5432
@@ -35,12 +50,25 @@ spec:
                 configMapKeyRef:
                   name: {{ include "crossview.fullname" . }}-config
                   key: DB_USER
-            {{- if .Values.secrets.dbPassword }}
+            {{- if .Values.secrets.existingSecret }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.existingSecret }}
+                  key: {{ .Values.secrets.existingSecretKeys.dbPassword }}
+            {{- else if .Values.secrets.dbPassword }}
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "crossview.fullname" . }}-secrets
                   key: db-password
+            {{- end }}
+            {{- if .Values.database.persistence.enabled }}
+            - name: PGDATA
+              value: /var/lib/postgresql/data/crossview
+            {{- end }}
+            {{- with .Values.database.extraEnv }}
+            {{- toYaml . | nindent 12 }}
             {{- end }}
           {{- if .Values.database.persistence.enabled }}
           volumeMounts:
@@ -60,10 +88,14 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "crossview.fullname" . }}-postgres
-  namespace: {{ .Values.global.namespace }}
+  namespace: {{ include "crossview.namespace" . }}
   labels:
     {{- include "crossview.labels" . | nindent 4 }}
     app: {{ include "crossview.fullname" . }}-postgres
+  {{- with .Values.database.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: ClusterIP
   ports:
@@ -79,7 +111,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: {{ include "crossview.fullname" . }}-postgres-pvc
-  namespace: {{ .Values.global.namespace }}
+  namespace: {{ include "crossview.namespace" . }}
 spec:
   accessModes:
     - {{ .Values.database.persistence.accessMode }}
