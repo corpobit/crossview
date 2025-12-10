@@ -275,7 +275,7 @@ jobs:
             
             ### OCI Registry (Recommended)
             ```bash
-            helm install crossview oci://${{ secrets.DOCKERHUB_USERNAME }}/crossview-chart \
+            helm install crossview oci://docker.io/${{ secrets.DOCKERHUB_USERNAME }}/crossview-chart \
               --version ${{ steps.version.outputs.tag }} \
               --namespace crossview \
               --create-namespace
@@ -313,14 +313,20 @@ jobs:
       - name: Push Helm chart to Docker Hub OCI registry
         run: |
           CHART_VERSION="${{ steps.version.outputs.version }}"
-          OCI_REF="${{ secrets.DOCKERHUB_USERNAME }}/crossview-chart:${{ steps.version.outputs.tag }}"
-          OCI_REF_LATEST="${{ secrets.DOCKERHUB_USERNAME }}/crossview-chart:latest"
+          OCI_REGISTRY="docker.io"
+          OCI_REPO="${{ secrets.DOCKERHUB_USERNAME }}/crossview-chart"
           
-          echo "Pushing Helm chart to OCI registry: oci://$OCI_REF"
-          helm push ./charts/crossview-$CHART_VERSION.tgz oci://${{ secrets.DOCKERHUB_USERNAME }}/crossview-chart
+          echo "Pushing Helm chart to OCI registry: oci://$OCI_REGISTRY/$OCI_REPO"
+          echo "Chart version: $CHART_VERSION"
+          
+          helm push ./charts/crossview-$CHART_VERSION.tgz oci://$OCI_REGISTRY/$OCI_REPO || {
+            echo "First push attempt failed, retrying..."
+            sleep 5
+            helm push ./charts/crossview-$CHART_VERSION.tgz oci://$OCI_REGISTRY/$OCI_REPO
+          }
           
           echo "Chart pushed successfully to Docker Hub OCI registry"
-          echo "Users can install with: helm install crossview oci://${{ secrets.DOCKERHUB_USERNAME }}/crossview-chart --version ${{ steps.version.outputs.tag }}"
+          echo "Users can install with: helm install crossview oci://$OCI_REGISTRY/$OCI_REPO --version ${{ steps.version.outputs.tag }}"
 
       - name: Checkout gh-pages branch
         uses: actions/checkout@v4
