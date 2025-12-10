@@ -15,18 +15,18 @@ export class GetManagedResourcesUseCase {
       }
       
       const mapped = filtered.map(resource => ({
-        name: resource.metadata?.name || 'unknown',
+                name: resource.metadata?.name || 'unknown',
         namespace: resource.metadata?.namespace || null,
-        uid: resource.metadata?.uid || '',
+                uid: resource.metadata?.uid || '',
         kind: resource.kind || '',
         apiVersion: resource.apiVersion || '',
-        creationTimestamp: resource.metadata?.creationTimestamp || '',
-        labels: resource.metadata?.labels || {},
-        annotations: resource.metadata?.annotations || {},
-        externalName: resource.metadata?.annotations?.['crossplane.io/external-name'] || null,
-        provider: resource.metadata?.labels?.['crossplane.io/provider'] || null,
-        status: resource.status || {},
-        conditions: resource.status?.conditions || [],
+                creationTimestamp: resource.metadata?.creationTimestamp || '',
+                labels: resource.metadata?.labels || {},
+                annotations: resource.metadata?.annotations || {},
+                externalName: resource.metadata?.annotations?.['crossplane.io/external-name'] || null,
+                provider: resource.metadata?.labels?.['crossplane.io/provider'] || null,
+                status: resource.status || {},
+                conditions: resource.status?.conditions || [],
         spec: resource.spec || {},
       }));
       
