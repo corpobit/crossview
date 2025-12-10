@@ -63,6 +63,9 @@ spec:
                   name: {{ include "crossview.fullname" . }}-secrets
                   key: db-password
             {{- end }}
+            {{- with .Values.database.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- if .Values.database.persistence.enabled }}
           volumeMounts:
             - name: postgres-storage

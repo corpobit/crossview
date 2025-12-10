@@ -19,6 +19,7 @@ app:
   name: crossview
   port: 3001
   replicas: 3
+  extraEnv: []
   securityContext:
     runAsNonRoot: true
     runAsUser: 1000
@@ -111,6 +112,7 @@ database:
   podLabels: {}
   service:
     annotations: {}
+  extraEnv: []
   securityContext:
     runAsNonRoot: true
     runAsUser: 999
