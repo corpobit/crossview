@@ -98,6 +98,9 @@ spec:
                   name: {{ include "crossview.fullname" . }}-secrets
                   key: session-secret
             {{- end }}
+            {{- with .Values.app.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- if .Values.healthCheck.livenessProbe }}
           livenessProbe:
             {{- toYaml .Values.healthCheck.livenessProbe | nindent 12 }}
