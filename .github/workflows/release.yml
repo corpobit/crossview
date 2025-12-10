@@ -9,6 +9,8 @@ on:
       - 'docs/**'
       - 'public/images/**'
       - 'LICENSE'
+      - 'helm/**'
+      - '.github/workflows/helm-release.yml'
   workflow_dispatch:
 
 jobs:
@@ -52,7 +54,6 @@ jobs:
       - name: Install dependencies
         run: |
           npm ci
-          # Fix for rollup optional dependencies issue: ensure platform-specific packages are installed
           npm install --no-save @rollup/rollup-linux-x64-gnu || true
 
       - name: Run npm audit
@@ -72,25 +73,20 @@ jobs:
       - name: Calculate next version
         id: version
         run: |
-          # Get all existing tags
           git fetch --tags --force
           
-          # Get the latest release tag
           LATEST_TAG=$(git describe --tags --match "v*" --abbrev=0 2>/dev/null || echo "")
           echo "Latest tag found: $LATEST_TAG"
           
           if [ -z "$LATEST_TAG" ]; then
-            # No previous release, start at 0.1.0
             NEW_VERSION="0.1.0"
             echo "No previous tags found, starting at 0.1.0"
           else
-            # Extract version number (remove 'v' prefix)
             VERSION=${LATEST_TAG#v}
             MAJOR=$(echo $VERSION | cut -d. -f1)
             MINOR=$(echo $VERSION | cut -d. -f2)
             PATCH=$(echo $VERSION | cut -d. -f3)
             
-            # If patch is empty, default to 0
             if [ -z "$PATCH" ]; then
               PATCH=0
             fi
@@ -98,33 +94,25 @@ jobs:
             echo "Parsed version: MAJOR=$MAJOR, MINOR=$MINOR, PATCH=$PATCH"
             
             if [ "$MAJOR" = "0" ]; then
-              # We're in 0.x series
               if [ "$MINOR" -lt 9 ]; then
-                # Increment minor: 0.1.0 -> 0.2.0, 0.2.0 -> 0.3.0, etc.
                 NEW_MINOR=$((MINOR + 1))
                 NEW_VERSION="0.$NEW_MINOR.0"
                 echo "Incrementing minor version: 0.$NEW_MINOR.0"
               else
-                # 0.9.0 -> 1.0.0
                 NEW_VERSION="1.0.0"
                 echo "Jumping from 0.9.0 to 1.0.0"
               fi
             else
-              # We're in 1.x or higher series
               if [ "$MINOR" -lt 9 ]; then
-              # Increment minor: 1.0.0 -> 1.1.0, 1.1.0 -> 1.2.0, etc.
               NEW_MINOR=$((MINOR + 1))
               NEW_VERSION="$MAJOR.$NEW_MINOR.0"
                 echo "Incrementing minor version in $MAJOR.x series: $NEW_VERSION"
               else
-                # 1.9.0 -> 2.0.0, 2.9.0 -> 3.0.0, etc.
                 NEW_MAJOR=$((MAJOR + 1))
                 NEW_VERSION="$NEW_MAJOR.0.0"
                 echo "Jumping from $MAJOR.9.0 to $NEW_VERSION"
               fi
             fi
-            
-            # Check if the calculated version tag already exists, if so, keep incrementing
             while git rev-parse "v$NEW_VERSION" >/dev/null 2>&1 || git ls-remote --tags origin "v$NEW_VERSION" | grep -q "v$NEW_VERSION"; do
               echo "⚠️ Version v$NEW_VERSION already exists, incrementing..."
               VERSION=$NEW_VERSION
@@ -175,20 +163,16 @@ jobs:
 
       - name: Update README.md version references
         run: |
-          # Update version in README.md (if any specific version references exist)
-          # This is a placeholder - adjust based on actual README content
           echo "README.md version references updated (if any)"
 
       - name: Update docs/HELM_DEPLOYMENT.md version references
         run: |
-          # Update example version tags in documentation
           sed -i "s/v0\.[0-9]\+\.[0-9]\+/v${{ steps.version.outputs.version }}/g" docs/HELM_DEPLOYMENT.md || true
           sed -i "s/v1\.[0-9]\+\.[0-9]\+/v${{ steps.version.outputs.version }}/g" docs/HELM_DEPLOYMENT.md || true
           echo "Updated HELM_DEPLOYMENT.md"
 
       - name: Update helm/crossview/README.md version references
         run: |
-          # Update example version tags in Helm README
           sed -i "s/v0\.[0-9]\+\.[0-9]\+/v${{ steps.version.outputs.version }}/g" helm/crossview/README.md || true
           sed -i "s/v1\.[0-9]\+\.[0-9]\+/v${{ steps.version.outputs.version }}/g" helm/crossview/README.md || true
           echo "Updated helm/crossview/README.md"
@@ -399,7 +383,6 @@ jobs:
             <meta name="description" content="Official Helm chart repository for Crossview">
             <style>
               :root {
-                /* Tailwind natural color palette (exact 2025 values) */
                 --natural-50:  #fafaf9;
                 --natural-100: #f5f5f4;
                 --natural-200: #e7e5e4;
@@ -411,7 +394,6 @@ jobs:
                 --natural-800: #292524;
                 --natural-900: #1c1917;
                 --natural-950: #0c0a09;
-                /* Light mode colors */
                 --bg:        var(--natural-50);
                 --text:      var(--natural-900);
                 --muted:     var(--natural-600);
@@ -460,7 +442,7 @@ jobs:
               }
               h2::before {
                 content: "$";
-                color: #16a34a; /* green-600 for light mode */
+                color: #16a34a;
                 font-weight: bold;
               }
               pre {
@@ -567,13 +549,9 @@ jobs:
       - name: Clean up gh-pages branch
         run: |
           cd gh-pages
-          # Remove any files that shouldn't be in the Helm repo (keep only index.yaml, index.html, artifacthub-repo.yml, *.tgz, README.md, and charts/)
           find . -type f ! -name 'index.yaml' ! -name 'index.html' ! -name 'artifacthub-repo.yml' ! -name '*.tgz' ! -name 'README.md' ! -name '*.svg' ! -path './charts/*' ! -path './images/*' ! -path './.git/*' -delete 2>/dev/null || true
-          # Remove directories that shouldn't be there (but keep .git, charts, and images)
           find . -type d ! -name '.git' ! -name 'charts' ! -name 'images' ! -name '.' -empty -delete 2>/dev/null || true
-          # Remove common build directories
           rm -rf dist build config logs node_modules src public .github 2>/dev/null || true
-          # Ensure charts and images directories exist
           mkdir -p charts images
 
       - name: Commit and push to gh-pages
