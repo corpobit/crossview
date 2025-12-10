@@ -63,6 +63,10 @@ spec:
                   name: {{ include "crossview.fullname" . }}-secrets
                   key: db-password
             {{- end }}
+            {{- if .Values.database.persistence.enabled }}
+            - name: PGDATA
+              value: /var/lib/postgresql/data/crossview
+            {{- end }}
             {{- with .Values.database.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
