@@ -11,17 +11,28 @@ This Helm chart deploys Crossview, a Crossplane resource visualization and manag
 
 ## Installation
 
-### Add the Helm repository
+### Option 1: Install from OCI Registry (Recommended)
+
+Install directly from Docker Hub OCI registry. No repository setup needed!
 
 ```bash
-helm repo add crossview https://corpobit.github.io/crossview
-helm repo update
+# Install from OCI registry
+helm install crossview oci://corpobit/crossview-chart \
+  --version v1.6.0 \
+  --namespace crossview \
+  --create-namespace \
+  --set secrets.dbPassword=your-db-password \
+  --set secrets.sessionSecret=$(openssl rand -base64 32)
 ```
 
-### Install the chart
+### Option 2: Install from Helm Repository
 
 ```bash
-# Basic installation with default values
+# Add the Helm repository
+helm repo add crossview https://corpobit.github.io/crossview
+helm repo update
+
+# Install the chart
 helm install crossview crossview/crossview \
   --namespace crossview \
   --create-namespace \

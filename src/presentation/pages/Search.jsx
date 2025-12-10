@@ -167,7 +167,7 @@ export const Search = () => {
         setFilteredResults([]);
       } finally {
         if (!isCancelled) {
-          setLoading(false);
+        setLoading(false);
         }
       }
     };

@@ -42,36 +42,36 @@ export const Resources = () => {
       return;
     }
     
-    try {
+      try {
       if (forceRefresh) {
         setIsRefreshing(true);
       } else {
         setLoading(true);
       }
-      setError(null);
-      const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
-      const { GetManagedResourcesUseCase } = await import('../../domain/usecases/GetManagedResourcesUseCase.js');
-      const useCase = new GetManagedResourcesUseCase(kubernetesRepository);
+        setError(null);
+        const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
+        const { GetManagedResourcesUseCase } = await import('../../domain/usecases/GetManagedResourcesUseCase.js');
+        const useCase = new GetManagedResourcesUseCase(kubernetesRepository);
       const result = await useCase.execute(contextName, null, forceRefresh);
       
       if (!isMountedRef.current) return;
       
       const resources = result.items || [];
-      setAllManagedResources(Array.isArray(resources) ? resources : []);
+        setAllManagedResources(Array.isArray(resources) ? resources : []);
       setUniqueKinds([...new Set(resources.map(r => r.kind).filter(Boolean))].sort((a, b) => a.localeCompare(b)));
       setFromCache(result.fromCache || false);
-      setLoading(false);
+        setLoading(false);
       setIsRefreshing(false);
-    } catch (err) {
+      } catch (err) {
       if (!isMountedRef.current) return;
-      console.warn('Failed to load managed resources:', err);
-      setError(err.message);
-      setAllManagedResources([]);
-      setUniqueKinds([]);
+        console.warn('Failed to load managed resources:', err);
+        setError(err.message);
+        setAllManagedResources([]);
+        setUniqueKinds([]);
       setFromCache(false);
-      setLoading(false);
+        setLoading(false);
       setIsRefreshing(false);
-    }
+      }
   }, [selectedContext, kubernetesRepository]);
 
   useEffect(() => {
@@ -329,16 +329,16 @@ export const Resources = () => {
         gap={4}
       >
         {!loading && !isRefreshing && (
-          <Box
-            ref={tableContainerRef}
-            flex={selectedResource ? (useAutoHeight ? '0 0 50%' : '0 0 auto') : '1'}
-            display="flex"
-            flexDirection="column"
-            minH={0}
-            maxH={selectedResource && useAutoHeight ? '50vh' : 'none'}
-            overflowY={selectedResource && useAutoHeight ? 'auto' : 'visible'}
-          >
-            <DataTable
+        <Box
+          ref={tableContainerRef}
+          flex={selectedResource ? (useAutoHeight ? '0 0 50%' : '0 0 auto') : '1'}
+          display="flex"
+          flexDirection="column"
+          minH={0}
+          maxH={selectedResource && useAutoHeight ? '50vh' : 'none'}
+          overflowY={selectedResource && useAutoHeight ? 'auto' : 'visible'}
+        >
+          <DataTable
               data={[]}
               columns={columns}
               searchableFields={['name', 'kind']}
@@ -358,9 +358,9 @@ export const Resources = () => {
                     ...uniqueKinds.map(kind => ({ value: kind, label: kind }))
                   ]}
                 />
-              }
-            />
-          </Box>
+            }
+          />
+        </Box>
         )}
 
         {selectedResource && (
