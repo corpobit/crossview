@@ -20,7 +20,8 @@ jobs:
       - name: Check if this is a version bump commit
         id: check
         run: |
-          if [[ "${{ github.event.head_commit.message }}" =~ ^[Bb]ump\ version ]]; then
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          if [[ -n "$COMMIT_MSG" ]] && [[ "$COMMIT_MSG" =~ ^[Bb]ump\ version ]]; then
             echo "is_version_bump=true" >> $GITHUB_OUTPUT
             echo "Skipping release - this is a version bump commit"
           else
@@ -323,9 +324,9 @@ jobs:
             echo "Helm registry config created from Docker credentials"
           else
             # Fallback to direct login
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | helm registry login docker.io \
-              -u "${{ secrets.DOCKERHUB_USERNAME }}" \
-              --password-stdin
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | helm registry login docker.io \
+            -u "${{ secrets.DOCKERHUB_USERNAME }}" \
+            --password-stdin
           fi
 
       - name: Push Helm chart to Docker Hub OCI registry
