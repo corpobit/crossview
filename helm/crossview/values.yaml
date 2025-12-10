@@ -13,6 +13,8 @@ image:
   # Overrides the image tag whose default is the chart appVersion with "v" prefix.
   # Default will be "v{appVersion}" (e.g., "v1.5.0")
   tag: ""
+  # Platform override for multi-arch support (e.g., "linux/amd64" for ARM64 hosts)
+  platform: ""
 
 # Application configuration
 app:

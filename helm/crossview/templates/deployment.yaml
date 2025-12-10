@@ -40,6 +40,10 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ if .Values.image.tag }}{{ .Values.image.tag }}{{ else }}v{{ .Chart.AppVersion }}{{ end }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.image.platform }}
+          # Note: Platform selection via runtimeClassName or nodeSelector may be needed
+          # For ARM64 hosts running amd64 images, ensure your cluster supports emulation
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.app.port }}
@@ -111,6 +115,12 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
+      volumes:
+        - name: logs
+          emptyDir: {}
       {{- with .Values.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
