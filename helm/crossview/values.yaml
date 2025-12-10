@@ -4,6 +4,7 @@
 # Global settings
 global:
   namespace: crossview
+  createNamespace: true
 
 # Image configuration
 image:

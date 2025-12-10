@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "crossview.fullname" . }}-service
-  namespace: {{ .Values.global.namespace }}
+  namespace: {{ include "crossview.namespace" . }}
   labels:
     {{- include "crossview.labels" . | nindent 4 }}
 spec:

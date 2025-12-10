@@ -12,6 +12,6 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: {{ .Values.serviceAccount.name | default (include "crossview.fullname" .) }}
-    namespace: {{ .Values.global.namespace }}
+    namespace: {{ include "crossview.namespace" . }}
 {{- end }}
 

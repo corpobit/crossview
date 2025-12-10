@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "crossview.fullname" . }}
-  namespace: {{ .Values.global.namespace }}
+  namespace: {{ include "crossview.namespace" . }}
   labels:
     {{- include "crossview.labels" . | nindent 4 }}
 spec:
