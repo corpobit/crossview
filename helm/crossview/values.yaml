@@ -69,6 +69,7 @@ service:
   targetPort: 3001
   sessionAffinity: ClientIP
   sessionAffinityTimeout: 10800
+  annotations: {}
 
 # Ingress configuration
 ingress:
@@ -108,6 +109,8 @@ database:
     storageClass: ""
   podAnnotations: {}
   podLabels: {}
+  service:
+    annotations: {}
   securityContext:
     runAsNonRoot: true
     runAsUser: 999
