@@ -513,12 +513,18 @@ jobs:
                 <h1>Crossview Helm Charts</h1>
                 <p class="tagline">Official Helm repository for Crossview – Crossplane visualization platform</p>
               </header>
-              <h2>Add Repository</h2>
+              <h2>Install from OCI Registry (Recommended)</h2>
+              <pre><code id="oci-install">helm install crossview oci://docker.io/corpobit/crossview-chart \
+          --namespace crossview \
+          --create-namespace</code>
+                <button class="copy" onclick="copy(this)">Copy</button>
+              </pre>
+              <h2>Add Helm Repository</h2>
               <pre><code id="add">helm repo add crossview https://corpobit.github.io/crossview
           helm repo update</code>
                 <button class="copy" onclick="copy(this)">Copy</button>
               </pre>
-              <h2>Install</h2>
+              <h2>Install from Repository</h2>
               <pre><code id="install">helm install crossview crossview/crossview \
           --namespace crossview \
             --create-namespace</code>
