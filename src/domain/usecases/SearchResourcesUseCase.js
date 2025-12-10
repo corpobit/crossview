@@ -12,7 +12,6 @@ export class SearchResourcesUseCase {
 
   async execute(context, searchQuery, filters = {}) {
     try {
-      // Fetch all resource types in parallel
       const [
         compositeResourcesResult,
         claimsResult,
@@ -37,15 +36,15 @@ export class SearchResourcesUseCase {
           .execute(context)
           .catch(() => []),
         new GetManagedResourcesUseCase(this.kubernetesRepository)
-          .execute(context)
+          .execute(context, null, false)
+          .then(result => result?.items || [])
           .catch(() => []),
       ]);
 
       const compositeResources = Array.isArray(compositeResourcesResult) ? compositeResourcesResult : (compositeResourcesResult?.items || []);
       const claims = Array.isArray(claimsResult) ? claimsResult : (claimsResult?.items || []);
-      const managedResourcesArray = Array.isArray(managedResources) ? managedResources : [];
+      const managedResourcesArray = Array.isArray(managedResources) ? managedResources : (managedResources?.items || []);
 
-      // Combine all resources
       const allResources = [
         ...compositeResources.map(r => ({ ...r, resourceType: 'CompositeResource' })),
         ...claims.map(r => ({ ...r, resourceType: 'Claim' })),
@@ -55,7 +54,6 @@ export class SearchResourcesUseCase {
         ...managedResourcesArray.map(r => ({ ...r, resourceType: 'ManagedResource' })),
       ];
 
-      // Apply search and filters
       return this.filterResources(allResources, searchQuery, filters);
     } catch (error) {
       throw new Error(`Failed to search resources: ${error.message}`);
@@ -65,7 +63,6 @@ export class SearchResourcesUseCase {
   filterResources(resources, searchQuery, filters) {
     let filtered = [...resources];
 
-    // Apply text search
     if (searchQuery && searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(resource => {
@@ -84,7 +81,6 @@ export class SearchResourcesUseCase {
       });
     }
 
-    // Apply status filter
     if (filters.status && filters.status !== 'all') {
       filtered = filtered.filter(resource => {
         const conditions = resource.conditions || [];
@@ -101,28 +97,24 @@ export class SearchResourcesUseCase {
       });
     }
 
-    // Apply kind filter
     if (filters.kind && filters.kind.length > 0) {
       filtered = filtered.filter(resource => 
         filters.kind.includes(resource.kind)
       );
     }
 
-    // Apply namespace filter
     if (filters.namespace && filters.namespace.length > 0) {
       filtered = filtered.filter(resource => 
         filters.namespace.includes(resource.namespace || '')
       );
     }
 
-    // Apply resource type filter
     if (filters.resourceType && filters.resourceType.length > 0) {
       filtered = filtered.filter(resource => 
         filters.resourceType.includes(resource.resourceType)
       );
     }
 
-    // Apply label filters
     if (filters.labels && Object.keys(filters.labels).length > 0) {
       filtered = filtered.filter(resource => {
         const resourceLabels = resource.labels || {};
@@ -132,7 +124,6 @@ export class SearchResourcesUseCase {
       });
     }
 
-    // Apply annotation filters
     if (filters.annotations && Object.keys(filters.annotations).length > 0) {
       filtered = filtered.filter(resource => {
         const resourceAnnotations = resource.annotations || {};
@@ -142,7 +133,6 @@ export class SearchResourcesUseCase {
       });
     }
 
-    // Apply date range filter
     if (filters.dateRange) {
       const { start, end } = filters.dateRange;
       filtered = filtered.filter(resource => {
@@ -157,7 +147,6 @@ export class SearchResourcesUseCase {
     return filtered;
   }
 
-  // Quick filter: Failed resources
   getFailedResources(resources) {
     return resources.filter(resource => {
       const conditions = resource.conditions || [];
@@ -167,7 +156,6 @@ export class SearchResourcesUseCase {
     });
   }
 
-  // Quick filter: Recent changes (last 24 hours)
   getRecentResources(resources, hours = 24) {
     const cutoff = new Date();
     cutoff.setHours(cutoff.getHours() - hours);
@@ -177,7 +165,6 @@ export class SearchResourcesUseCase {
     });
   }
 
-  // Quick filter: Ready resources
   getReadyResources(resources) {
     return resources.filter(resource => {
       const conditions = resource.conditions || [];

@@ -66,6 +66,33 @@ export const CompositeResourceDefinitions = () => {
     setFilteredXrds(filtered);
   }, [xrds, groupFilter]);
 
+  useEffect(() => {
+    if (!selectedResource || !tableContainerRef.current) {
+      setUseAutoHeight(false);
+      return;
+    }
+
+    const checkTableHeight = () => {
+      const container = tableContainerRef.current;
+      if (!container) return;
+      
+      const viewportHeight = window.innerHeight;
+      const halfViewport = (viewportHeight - 100) * 0.5;
+      const tableHeight = container.scrollHeight;
+      
+      setUseAutoHeight(tableHeight > halfViewport);
+    };
+
+    checkTableHeight();
+
+    const resizeObserver = new ResizeObserver(checkTableHeight);
+    resizeObserver.observe(tableContainerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [selectedResource, loading]);
+
   if (loading) {
     return <LoadingSpinner message="Loading composite resource definitions..." />;
   }
@@ -252,10 +279,12 @@ export const CompositeResourceDefinitions = () => {
       >
         <Box
           ref={tableContainerRef}
-          flex={selectedResource ? (useAutoHeight ? '0 0 auto' : `0 0 50%`) : '1'}
+          flex={selectedResource ? (useAutoHeight ? '0 0 50%' : '0 0 auto') : '1'}
           display="flex"
           flexDirection="column"
           minH={0}
+          maxH={selectedResource && useAutoHeight ? '50vh' : 'none'}
+          overflowY={selectedResource && useAutoHeight ? 'auto' : 'visible'}
         >
           <DataTable
               data={filteredXrds}
