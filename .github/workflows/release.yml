@@ -186,7 +186,7 @@ jobs:
             echo "No version changes to commit"
             echo "has_changes=false" >> $GITHUB_OUTPUT
           else
-            BRANCH_NAME="bump-version-${{ steps.version.outputs.version }}"
+            BRANCH_NAME="bump-version-${{ steps.version.outputs.version }}-${{ github.run_id }}"
             git checkout -b $BRANCH_NAME
             git commit -m "Bump version to ${{ steps.version.outputs.version }}"
             git push origin $BRANCH_NAME
