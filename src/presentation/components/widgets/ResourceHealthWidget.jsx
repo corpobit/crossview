@@ -7,7 +7,7 @@ import { GetClaimsUseCase } from '../../../domain/usecases/GetClaimsUseCase.js';
 import { Container } from '../common/Container.jsx';
 
 export const ResourceHealthWidget = () => {
-  const { kubernetesRepository, selectedContext } = useAppContext();
+  const { kubernetesRepository, selectedContext, colorMode } = useAppContext();
   const [compositeResources, setCompositeResources] = useState([]);
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -124,64 +124,68 @@ export const ResourceHealthWidget = () => {
     );
   }
 
+  const percentage = health?.healthPercentage || 0;
+
   return (
     <Container p={6}>
       <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }} mb={4} fontWeight="medium">Resource Health</Text>
       
-      {/* Health Score */}
-      <Box mb={6}>
-        <HStack justify="space-between" mb={2}>
-          <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>Overall Health</Text>
-          <Text fontSize="xl" fontWeight="bold" color={`${healthColor}.600`} _dark={{ color: `${healthColor}.400` }}>
-            {health?.healthPercentage || 0}%
-          </Text>
-        </HStack>
-        <Box
-          w="100%"
-          h="8px"
-          bg="gray.200"
-          _dark={{ bg: 'gray.700' }}
-          borderRadius="md"
-          overflow="hidden"
-        >
+      <VStack spacing={4} align="stretch">
+        <Box>
+          <HStack justify="space-between" mb={2}>
+            <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>Overall Health</Text>
+            <Text fontSize="lg" fontWeight="bold" color={`${healthColor}.600`} _dark={{ color: `${healthColor}.400` }}>
+              {percentage}%
+            </Text>
+          </HStack>
           <Box
-            h="100%"
-            bg={`${healthColor}.500`}
-            _dark={{ bg: `${healthColor}.400` }}
-            width={`${health?.healthPercentage || 0}%`}
-            transition="width 0.3s ease"
-            borderRadius="md"
-          />
+            w="100%"
+            h="12px"
+            bg="gray.200"
+            _dark={{ bg: 'gray.700' }}
+            borderRadius="full"
+            overflow="hidden"
+          >
+            <Box
+              h="100%"
+              bg={`${healthColor}.500`}
+              _dark={{ bg: `${healthColor}.400` }}
+              width={`${percentage}%`}
+              transition="width 0.3s ease"
+              borderRadius="full"
+            />
+          </Box>
         </Box>
-      </Box>
 
-      {/* Status Breakdown */}
-      <VStack align="stretch" spacing={2}>
-        <HStack justify="space-between">
-          <HStack spacing={2}>
-            <Box w={3} h={3} borderRadius="full" bg="green.500" />
-            <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>Ready</Text>
+        <VStack align="stretch" spacing={2}>
+          <HStack justify="space-between">
+            <HStack spacing={2}>
+              <Box w={2} h={2} borderRadius="full" bg="green.500" />
+              <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>Ready</Text>
+            </HStack>
+            <Text fontSize="sm" fontWeight="medium" color="gray.900" _dark={{ color: 'gray.100' }}>{health?.ready || 0}</Text>
           </HStack>
-          <Text fontSize="md" fontWeight="semibold" color="green.600" _dark={{ color: 'green.400' }}>{health?.ready || 0}</Text>
-        </HStack>
-        <HStack justify="space-between">
-          <HStack spacing={2}>
-            <Box w={3} h={3} borderRadius="full" bg="red.500" />
-            <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>Not Ready</Text>
+          <HStack justify="space-between">
+            <HStack spacing={2}>
+              <Box w={2} h={2} borderRadius="full" bg="red.500" />
+              <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>Not Ready</Text>
+            </HStack>
+            <Text fontSize="sm" fontWeight="medium" color="gray.900" _dark={{ color: 'gray.100' }}>{health?.notReady || 0}</Text>
           </HStack>
-          <Text fontSize="md" fontWeight="semibold" color="red.600" _dark={{ color: 'red.400' }}>{health?.notReady || 0}</Text>
-        </HStack>
-        <HStack justify="space-between">
-          <HStack spacing={2}>
-            <Box w={3} h={3} borderRadius="full" bg="gray.400" />
-            <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>Unknown</Text>
+          <HStack justify="space-between">
+            <HStack spacing={2}>
+              <Box w={2} h={2} borderRadius="full" bg="gray.400" />
+              <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>Unknown</Text>
+            </HStack>
+            <Text fontSize="sm" fontWeight="medium" color="gray.900" _dark={{ color: 'gray.100' }}>{health?.unknown || 0}</Text>
           </HStack>
-          <Text fontSize="md" fontWeight="semibold" color="gray.600" _dark={{ color: 'gray.400' }}>{health?.unknown || 0}</Text>
-        </HStack>
-        <HStack justify="space-between" pt={2} borderTop="1px solid" borderColor="gray.200" _dark={{ borderColor: 'gray.700' }}>
-          <Text fontSize="sm" fontWeight="semibold" color="gray.600" _dark={{ color: 'gray.400' }}>Total</Text>
-          <Text fontSize="md" fontWeight="bold" color="gray.900" _dark={{ color: 'gray.100' }}>{health?.total || 0}</Text>
-        </HStack>
+          <Box pt={2} borderTop="1px solid" borderColor="gray.200" _dark={{ borderColor: 'gray.700' }}>
+            <HStack justify="space-between">
+              <Text fontSize="sm" fontWeight="medium" color="gray.600" _dark={{ color: 'gray.400' }}>Total</Text>
+              <Text fontSize="sm" fontWeight="bold" color="gray.900" _dark={{ color: 'gray.100' }}>{health?.total || 0}</Text>
+            </HStack>
+          </Box>
+        </VStack>
       </VStack>
     </Container>
   );

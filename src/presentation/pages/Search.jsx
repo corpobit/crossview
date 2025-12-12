@@ -10,7 +10,7 @@ import {
   SimpleGrid,
 } from '@chakra-ui/react';
 import { useEffect, useState, useRef } from 'react';
-import { useSearchParams, useLocation } from 'react-router-dom';
+import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
@@ -23,6 +23,7 @@ import { getStatusColor, getStatusText, getSyncedStatus, getReadyStatus, getResp
 export const Search = () => {
   const { kubernetesRepository, selectedContext, saveSearch, savedSearches, deleteSearch } = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [searchName, setSearchName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');

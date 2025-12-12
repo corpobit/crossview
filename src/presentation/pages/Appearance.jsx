@@ -100,9 +100,9 @@ export const Appearance = () => {
                   justifyContent="center"
                 >
                   {colorMode === 'dark' ? (
-                    <FiMoon size={12} color={colors.accent.blue.secondary} />
+                    <FiMoon size={12} color={colors.accent.blue.primary} />
                   ) : (
-                    <FiSun size={12} color={colors.accent.amber.primary} />
+                    <FiSun size={12} color={colors.accent.yellow.primary} />
                   )}
                 </Box>
               </Box>

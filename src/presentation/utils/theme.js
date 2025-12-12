@@ -4,21 +4,23 @@
  */
 
 export const colors = {
-  // Background colors
+  // Background colors - Perplexity-inspired
   background: {
     light: {
-      html: '#f9fafb',
+      html: '#F7FAFC',
       primary: '#ffffff',
-      secondary: 'gray.50',
-      tertiary: 'gray.100',
+      secondary: '#f8f9fa',
+      tertiary: '#f1f3f4',
+      dropdown: '#F7FAFC',
     },
     dark: {
-      html: '#050509',      // near-black neutral
-      primary: '#0a0a0f',   // main app bg
-      secondary: '#111118', // raised surfaces
-      tertiary: '#181822',  // higher elevation
-      quaternary: '#181822',
+      html: '#18181B',
+      primary: '#1a1a1a',
+      secondary: '#242424',
+      tertiary: '#2d2d2d',
+      quaternary: '#353535',
       quinary: '#000000',
+      dropdown: '#27272A',
     },
   },
 
@@ -26,88 +28,101 @@ export const colors = {
   border: {
     light: {
       default: 'rgba(0, 0, 0, 0.08)',
-      strong: 'rgba(0, 0, 0, 0.1)',
-      gray: '#e5e7eb',
-      blue: '#3b82f6',
-      blueHover: 'rgba(59, 130, 246, 0.5)',
+      strong: 'rgba(0, 0, 0, 0.12)',
+      gray: '#e0e0e0',
+      blue: '#3a86ff',
+      blueHover: 'rgba(58, 134, 255, 0.2)',
     },
     dark: {
-      default: 'rgba(54, 54, 60, 0.35)', // neutral gray border
-      strong: 'rgba(95, 95, 106, 0.6)',
-      gray: '#4b4b55',
-      blue: '#8b8b95',        // neutral gray “accent” border
-      blueHover: 'rgba(200, 200, 210, 0.9)',
+      default: 'rgba(255, 255, 255, 0.1)',
+      strong: 'rgba(255, 255, 255, 0.2)',
+      gray: '#404040',
+      blue: '#60a5fa',
+      blueHover: 'rgba(96, 165, 250, 0.3)',
     },
   },
 
   // Text colors
   text: {
     light: {
-      primary: '#1a202c',
-      secondary: 'gray.600',
-      tertiary: 'gray.500',
-      muted: 'gray.400',
-      inverse: 'gray.700',
+      primary: '#111111',
+      secondary: '#666666',
+      tertiary: '#888888',
+      muted: '#999999',
+      inverse: '#000000',
     },
     dark: {
-      primary: '#e5e7eb',   // primary text on dark bg
-      secondary: '#c4c6cf', // secondary text
-      tertiary: '#9ca0aa',
-      muted: '#6d707a',
-      inverse: '#f9fafb',
+      primary: '#e5e5e5',
+      secondary: '#b3b3b3',
+      tertiary: '#808080',
+      muted: '#666666',
+      inverse: '#ffffff',
     },
   },
 
-  // Accent colors (neutralized for dark theme)
+  // Accent colors - Perplexity signature colors
   accent: {
+    cyan: {
+      primary: '#00c2ff',
+      light: '#33d4ff',
+      medium: '#00c2ff',
+      dark: '#0099cc',
+      darker: '#007399',
+    },
+    coral: {
+      primary: '#ff6f59',
+      light: '#ff8f7a',
+      medium: '#ff6f59',
+      dark: '#ff4a3a',
+    },
+    yellow: {
+      primary: '#f9c74f',
+      light: '#fadb80',
+      medium: '#f9c74f',
+    },
     blue: {
-      primary: '#a3a3b3',  // neutral gray accent
-      secondary: '#8a8a98',
-      light: '#d4d4dd',
-      medium: '#a3a3b3',
-      dark: '#73737f',
-      darker: '#52525b',
+      primary: '#3a86ff',
+      light: '#60a5fa',
+      medium: '#3a86ff',
     },
     red: {
       primary: '#ef4444',
-      light: 'red.400',
-      medium: 'red.600',
-      dark: 'red.700',
-    },
-    amber: {
-      primary: '#f59e0b',
-      light: 'orange.400',
+      light: '#f87171',
+      medium: '#ef4444',
+      dark: '#dc2626',
     },
     purple: {
-      light: 'purple.400',
-      medium: 'purple.500',
+      light: '#c084fc',
+      medium: '#a855f7',
     },
   },
 
-  // Status colors (used in resourceStatus.js)
+  // Status colors
   status: {
-    green: 'green',
-    red: 'red',
-    yellow: 'yellow',
-    gray: 'gray',
+    green: '#10b981',
+    red: '#ef4444',
+    yellow: '#f9c74f',
+    gray: '#9ca3af',
+    cyan: '#00c2ff',
+    coral: '#ff6f59',
   },
 
   // Interactive element colors
   interactive: {
     light: {
-      active: '#2563eb',
-      inactive: '#6b7280',
+      active: '#00c2ff',
+      inactive: '#9ca3af',
       hover: {
-        background: 'gray.100',
-        border: 'rgba(59, 130, 246, 0.5)',
+        background: 'rgba(0, 194, 255, 0.08)',
+        border: 'rgba(0, 194, 255, 0.2)',
       },
     },
     dark: {
-      active: '#e5e7eb',          // high‑contrast neutral
-      inactive: '#9ca0aa',        // muted gray
+      active: '#00c2ff',
+      inactive: '#9ca3af',
       hover: {
-        background: '#1e1e28',    // slightly lighter panel on hover
-        border: 'rgba(200, 200, 210, 0.8)',
+        background: 'rgba(0, 194, 255, 0.15)',
+        border: 'rgba(0, 194, 255, 0.3)',
       },
     },
   },
@@ -115,16 +130,16 @@ export const colors = {
   // Sidebar specific colors
   sidebar: {
     light: {
-      activeBg: 'blue.50',
-      activeText: '#2563eb',
+      activeBg: 'rgba(0, 194, 255, 0.1)',
+      activeText: '#00c2ff',
       inactiveText: '#6b7280',
-      hoverBg: 'blue.100',
+      hoverBg: 'rgba(0, 194, 255, 0.05)',
     },
     dark: {
-      activeBg: '#111118',
-      activeText: '#f3f4f6',
-      inactiveText: '#9ca0aa',
-      hoverBg: '#1b1b24',
+      activeBg: 'rgba(0, 194, 255, 0.2)',
+      activeText: '#00c2ff',
+      inactiveText: '#9ca3af',
+      hoverBg: 'rgba(255, 255, 255, 0.05)',
     },
   },
 
@@ -132,36 +147,37 @@ export const colors = {
   code: {
     light: {
       background: '#ffffff',
-      text: '#1a202c',
-      buttonBg: 'rgba(0, 0, 0, 0.05)',
-      buttonBgHover: 'rgba(0, 0, 0, 0.1)',
+      text: '#111111',
+      buttonBg: 'rgba(0, 0, 0, 0.04)',
+      buttonBgHover: 'rgba(0, 0, 0, 0.08)',
     },
     dark: {
-      background: 'rgba(0, 0, 0, 0)',
-      text: 'rgba(199, 199, 203, 0.81)',
-      buttonBg: 'rgba(148, 148, 164, 0.24)',
-      buttonBgHover: 'rgba(148, 148, 164, 0.35)',
+      background: '#27272A',
+      text: '#e5e5e5',
+      buttonBg: 'rgba(255, 255, 255, 0.1)',
+      buttonBgHover: 'rgba(255, 255, 255, 0.2)',
     },
   },
 
   // Shadow colors
   shadow: {
     light: 'rgba(0, 0, 0, 0.1)',
-    dark: 'rgba(0, 0, 0, 0.7)',
+    dark: 'rgba(0, 0, 0, 0.4)',
   },
 
-  // Pattern/Grid colors (for backgrounds)
+  // Pattern/Grid colors
   pattern: {
     light: {
-      primary: 'rgba(0, 0, 0, 0.05)',
-      secondary: 'rgba(0, 0, 0, 0.03)',
+      primary: 'rgba(0, 194, 255, 0.03)',
+      secondary: 'rgba(249, 199, 79, 0.03)',
     },
     dark: {
-      primary: 'rgba(160, 160, 172, 0.2)',
-      secondary: 'rgba(160, 160, 172, 0.1)',
+      primary: 'rgba(0, 194, 255, 0.1)',
+      secondary: 'rgba(255, 111, 89, 0.1)',
     },
   },
 };
+
 
 /**
  * Helper function to get color based on color mode
