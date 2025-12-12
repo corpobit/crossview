@@ -35,23 +35,23 @@ const createDarkTheme = () => ({
   ...oneDark,
   'code[class*="language-"]': {
     ...oneDark['code[class*="language-"]'],
-    background: colors.code.dark.background,
-    backgroundColor: colors.code.dark.background,
+    background: colors.background.dark.dropdown,
+    backgroundColor: colors.background.dark.dropdown,
     color: colors.code.dark.text,
   },
   'pre[class*="language-"]': {
     ...oneDark['pre[class*="language-"]'],
-    background: colors.code.dark.background,
-    backgroundColor: colors.code.dark.background,
+    background: colors.background.dark.dropdown,
+    backgroundColor: colors.background.dark.dropdown,
     color: colors.code.dark.text,
   },
   'pre': {
-    background: colors.code.dark.background,
-    backgroundColor: colors.code.dark.background,
+    background: colors.background.dark.dropdown,
+    backgroundColor: colors.background.dark.dropdown,
   },
   'code': {
-    background: colors.code.dark.background,
-    backgroundColor: colors.code.dark.background,
+    background: colors.background.dark.dropdown,
+    backgroundColor: colors.background.dark.dropdown,
   },
 });
 
@@ -135,8 +135,8 @@ export const ResourceYAML = ({ fullResource, colorMode }) => {
             padding: '1rem',
             fontSize: '0.75rem',
             lineHeight: '1.5',
-            background: getBackgroundColor(colorMode),
-            backgroundColor: getBackgroundColor(colorMode),
+            background: getBackgroundColor(colorMode, 'dropdown'),
+            backgroundColor: getBackgroundColor(colorMode, 'dropdown'),
           }}
           showLineNumbers
           wrapLines

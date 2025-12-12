@@ -200,7 +200,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
       w={`${currentWidth}px`}
       h="100vh"
       bg="white"
-      _dark={{ bg: 'gray.900' }}
+      _dark={{ bg: 'gray.800' }}
       borderRight="1px solid"
       css={{
         borderColor: `${getBorderColor('light')} !important`,
@@ -321,8 +321,8 @@ export const Sidebar = ({ onToggle, onResize }) => {
                       borderRadius="md"
                       textAlign="left"
                       bg={isActive ? colors.sidebar.light.activeBg : 'transparent'}
-                      _dark={{ bg: isActive ? colors.sidebar.dark.activeBg : 'transparent' }}
-                      _hover={{ bg: isActive ? colors.sidebar.light.hoverBg : 'gray.100', _dark: { bg: isActive ? colors.sidebar.dark.hoverBg : 'gray.800' } }}
+                      _dark={{ bg: isActive ? 'gray.800' : 'transparent' }}
+                      _hover={{ bg: isActive ? colors.sidebar.light.hoverBg : 'gray.100', _dark: { bg: isActive ? 'gray.800' : 'gray.800' } }}
                       onClick={() => {
                         if (hasSubMenu) {
                           toggleMenu(item.id);
@@ -395,8 +395,8 @@ export const Sidebar = ({ onToggle, onResize }) => {
                                 borderRadius="md"
                                 textAlign="left"
                                 bg={isSubActive ? colors.sidebar.light.activeBg : 'transparent'}
-                                _dark={{ bg: isSubActive ? colors.sidebar.dark.activeBg : 'transparent' }}
-                                _hover={{ bg: isSubActive ? colors.sidebar.light.hoverBg : 'gray.100', _dark: { bg: isSubActive ? colors.sidebar.dark.hoverBg : 'gray.800' } }}
+                                _dark={{ bg: isSubActive ? 'gray.800' : 'transparent' }}
+                                _hover={{ bg: isSubActive ? colors.sidebar.light.hoverBg : 'gray.100', _dark: { bg: isSubActive ? 'gray.800' : 'gray.800' } }}
                                 onClick={() => navigate(subItem.path)}
                                 transition="all 0.2s"
                               >
@@ -436,8 +436,8 @@ export const Sidebar = ({ onToggle, onResize }) => {
                     alignItems="center"
                     justifyContent="center"
                     bg={isActive ? colors.sidebar.light.hoverBg : 'transparent'}
-                    _dark={{ bg: isActive ? colors.sidebar.dark.activeBg : 'transparent' }}
-                    _hover={{ bg: isActive ? 'blue.200' : 'gray.100', _dark: { bg: isActive ? colors.sidebar.dark.hoverBg : 'gray.700' } }}
+                    _dark={{ bg: isActive ? 'gray.800' : 'transparent' }}
+                    _hover={{ bg: isActive ? 'blue.200' : 'gray.100', _dark: { bg: isActive ? 'gray.800' : 'gray.700' } }}
                     aria-label={item.label}
                     transition="all 0.2s"
                   >

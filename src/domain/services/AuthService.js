@@ -4,28 +4,39 @@ export class AuthService {
   }
 
   async request(endpoint, options = {}) {
-    const response = await fetch(`${this.apiBaseUrl}${endpoint}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      credentials: 'include',
-      ...options,
-    });
+    try {
+      const response = await fetch(`${this.apiBaseUrl}${endpoint}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        credentials: 'include',
+        ...options,
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(error.error || error.message || `HTTP error! status: ${response.status}`);
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: response.statusText }));
+        throw new Error(error.error || error.message || `HTTP error! status: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        error.isNetworkError = true;
+      }
+      throw error;
     }
-
-    return response.json();
   }
 
   async checkAuth() {
     try {
       return await this.request('/auth/check');
     } catch (error) {
-      throw new Error(`Failed to check authentication: ${error.message}`);
+      const wrappedError = new Error(`Failed to check authentication: ${error.message}`);
+      wrappedError.isNetworkError = error.isNetworkError;
+      wrappedError.name = error.name;
+      wrappedError.originalError = error;
+      throw wrappedError;
     }
   }
 
@@ -58,7 +69,6 @@ export class AuthService {
       return result;
     } catch (error) {
       console.error('AuthService.getDatabaseConfig error:', error);
-      // Don't throw - return empty config so form can still be shown
       return {
         host: '',
         port: 5432,
@@ -83,7 +93,6 @@ export class AuthService {
     try {
       return await this.request('/auth/sso/status');
     } catch (error) {
-      // If SSO is not configured, return disabled status
       return {
         enabled: false,
         oidc: { enabled: false },

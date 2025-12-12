@@ -6,6 +6,7 @@ import { GetKubernetesContextsUseCase } from '../../domain/usecases/GetKubernete
 import { AuthService } from '../../domain/services/AuthService.js';
 import { UserService } from '../../domain/services/UserService.js';
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { colors } from '../utils/theme.js';
 
 const AppContext = createContext(null);
 
@@ -27,6 +28,7 @@ export const AppProvider = ({ children }) => {
   const [contexts, setContexts] = useState([]);
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [serverError, setServerError] = useState(null);
   const [colorMode, setColorMode] = useState(() => {
     const saved = localStorage.getItem('colorMode');
     return saved || 'light';
@@ -43,18 +45,33 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        setServerError(null);
         const authState = await authService.checkAuth();
         if (authState.authenticated) {
           setUser(authState.user);
         }
       } catch (error) {
-        console.warn('Failed to check auth:', error.message);
+        console.warn('Failed to check auth:', error);
+        const errorMessage = (error.message || '').toLowerCase();
+        const errorName = error.name || '';
+        const originalError = error.originalError || error;
+        
+        const isAuthError = errorMessage.includes('401') || 
+                           errorMessage.includes('403') || 
+                           errorMessage.includes('unauthorized') || 
+                           errorMessage.includes('forbidden');
+        
+        if (!isAuthError) {
+          setServerError('Unable to connect to the server. Please ensure the server is running and accessible.');
+        } else {
+          setServerError(null);
+        }
       } finally {
         setAuthChecked(true);
       }
     };
     checkAuth();
-  }, []);
+  }, [authService]);
 
   useEffect(() => {
     const loadContexts = async () => {
@@ -114,11 +131,16 @@ export const AppProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    const bgColor = colors.background[colorMode].html;
+    
     if (colorMode === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
+    
+    document.documentElement.style.backgroundColor = bgColor;
+    document.body.style.backgroundColor = bgColor;
   }, [colorMode]);
 
   const handleSaveSearch = (searchQuery) => {
@@ -128,7 +150,6 @@ export const AppProvider = ({ children }) => {
   };
 
   const handleLoadSearch = (searchQuery) => {
-    // This is handled by the Search component
   };
 
   const handleDeleteSearch = (searchId) => {
@@ -148,6 +169,7 @@ export const AppProvider = ({ children }) => {
     setSelectedContext: handleContextChange,
     user,
     authChecked,
+    serverError,
     login: handleLogin,
     register: handleRegister,
     logout: handleLogout,
@@ -157,7 +179,7 @@ export const AppProvider = ({ children }) => {
     saveSearch: handleSaveSearch,
     loadSearch: handleLoadSearch,
     deleteSearch: handleDeleteSearch,
-  }), [kubernetesRepository, getDashboardDataUseCase, getKubernetesContextsUseCase, authService, userService, selectedContext, contexts, user, authChecked, colorMode, savedSearches]);
+  }), [kubernetesRepository, getDashboardDataUseCase, getKubernetesContextsUseCase, authService, userService, selectedContext, contexts, user, authChecked, serverError, colorMode, savedSearches]);
 
   return (
     <ChakraProvider value={defaultSystem}>

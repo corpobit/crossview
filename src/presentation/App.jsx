@@ -13,15 +13,40 @@ import { ResourceKind } from './pages/ResourceKind.jsx';
 import { CompositeResourceKind } from './pages/CompositeResourceKind.jsx';
 import { Search } from './pages/Search.jsx';
 import { useAppContext } from './providers/AppProvider.jsx';
-import { Box, Text } from '@chakra-ui/react';
+import { Box, Text, VStack, Icon, Button } from '@chakra-ui/react';
+import { FiAlertCircle, FiRefreshCw } from 'react-icons/fi';
 
 const ProtectedRoute = ({ children }) => {
-  const { user, authChecked } = useAppContext();
+  const { user, authChecked, serverError } = useAppContext();
 
   if (!authChecked) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minH="100vh">
         <Text>Loading...</Text>
+      </Box>
+    );
+  }
+
+  if (serverError) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minH="100vh" bg="gray.50" _dark={{ bg: 'gray.900' }}>
+        <VStack spacing={4} maxW="500px" p={8} bg="white" _dark={{ bg: 'gray.800', borderColor: 'gray.700' }} borderRadius="lg" boxShadow="lg" border="1px solid" borderColor="gray.200">
+          <Icon as={FiAlertCircle} boxSize={12} color="red.500" />
+          <Text fontSize="xl" fontWeight="bold" textAlign="center">
+            Server Connection Error
+          </Text>
+          <Text fontSize="md" color="gray.600" _dark={{ color: 'gray.400' }} textAlign="center">
+            {serverError}
+          </Text>
+          <Button
+            leftIcon={<FiRefreshCw />}
+            colorScheme="blue"
+            onClick={() => window.location.reload()}
+            mt={2}
+          >
+            Retry Connection
+          </Button>
+        </VStack>
       </Box>
     );
   }
@@ -34,12 +59,36 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const PublicRoute = ({ children }) => {
-  const { user, authChecked } = useAppContext();
+  const { user, authChecked, serverError } = useAppContext();
 
   if (!authChecked) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minH="100vh">
         <Text>Loading...</Text>
+      </Box>
+    );
+  }
+
+  if (serverError) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minH="100vh" bg="gray.50" _dark={{ bg: 'gray.900' }}>
+        <VStack spacing={4} maxW="500px" p={8} bg="white" _dark={{ bg: 'gray.800', borderColor: 'gray.700' }} borderRadius="lg" boxShadow="lg" border="1px solid" borderColor="gray.200">
+          <Icon as={FiAlertCircle} boxSize={12} color="red.500" />
+          <Text fontSize="xl" fontWeight="bold" textAlign="center">
+            Server Connection Error
+          </Text>
+          <Text fontSize="md" color="gray.600" _dark={{ color: 'gray.400' }} textAlign="center">
+            {serverError}
+          </Text>
+          <Button
+            leftIcon={<FiRefreshCw />}
+            colorScheme="blue"
+            onClick={() => window.location.reload()}
+            mt={2}
+          >
+            Retry Connection
+          </Button>
+        </VStack>
       </Box>
     );
   }

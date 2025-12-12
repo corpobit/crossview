@@ -146,7 +146,7 @@ export const CompositeResourcesWidget = ({ onResourceClick }) => {
 
   if (loading) {
     return (
-      <Container p={6} display="flex" justifyContent="center" alignItems="center" minH="200px">
+      <Container p={6} h="100%" display="flex" justifyContent="center" alignItems="center" minH="200px">
         <Spinner size="md" />
       </Container>
     );
@@ -154,7 +154,7 @@ export const CompositeResourcesWidget = ({ onResourceClick }) => {
 
   if (error) {
     return (
-      <Container p={6}>
+      <Container p={6} h="100%" display="flex" flexDirection="column">
         <Text fontSize="lg" fontWeight="bold" mb={4}>Recent Composite Resources</Text>
         <Text fontSize="sm" color="red.500">Error loading</Text>
       </Container>
