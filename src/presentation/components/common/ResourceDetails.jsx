@@ -121,8 +121,19 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
                 hasStatus={!!fullResource.status}
                 hasRelations={relatedResources.length > 0}
                 isNamespaced={(() => {
-                  const namespace = fullResource.metadata?.namespace || resource.namespace;
-                  return namespace && namespace !== 'undefined' && namespace !== 'null';
+                  const namespace = fullResource.metadata?.namespace || resource.namespace || fullResource.namespace;
+                  if (namespace && namespace !== 'undefined' && namespace !== 'null') {
+                    return true;
+                  }
+                  const resourceKind = fullResource.kind || resource.kind;
+                  const clusterScopedKinds = [
+                    'CompositeResourceDefinition', 'Composition', 'Provider', 'ProviderConfig', 
+                    'ClusterRole', 'ClusterRoleBinding', 'Namespace', 'Node', 'PersistentVolume'
+                  ];
+                  const isCompositeResource = resourceKind && resourceKind.startsWith('X') && !namespace;
+                  const isClusterScoped = clusterScopedKinds.includes(resourceKind) || isCompositeResource;
+                  
+                  return !isClusterScoped;
                 })()}
               />
             </Box>

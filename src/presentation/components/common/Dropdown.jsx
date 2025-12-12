@@ -2,8 +2,10 @@ import {
   Box,
   Text,
 } from '@chakra-ui/react';
-import { useState } from 'react';
-import { getBorderColor } from '../../utils/theme.js';
+import { useState, useRef, useEffect } from 'react';
+import { FiChevronDown } from 'react-icons/fi';
+import { getBorderColor, getBackgroundColor, getTextColor } from '../../utils/theme.js';
+import { useAppContext } from '../../providers/AppProvider.jsx';
 
 export const Dropdown = ({ 
   options = [], 
@@ -13,37 +15,58 @@ export const Dropdown = ({
   minW = '200px',
   ...props 
 }) => {
+  const { colorMode } = useAppContext();
   const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   const selectedLabel = options.find(opt => opt.value === value)?.label || value || placeholder;
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  const bgColor = getBackgroundColor(colorMode, 'dropdown');
+  const borderColor = getBorderColor(colorMode);
+  const strongBorderColor = getBorderColor(colorMode, 'strong');
+  const hoverBgColor = getBackgroundColor(colorMode, 'primary');
+  const textColor = getTextColor(colorMode, value ? 'primary' : 'tertiary');
+  const secondaryTextColor = getTextColor(colorMode, 'secondary');
+  const selectedTextColor = getTextColor(colorMode, 'primary');
+
   return (
-    <Box minW={minW} position="relative" {...props}>
+    <Box minW={minW} position="relative" ref={dropdownRef} {...props}>
       <Box
         as="button"
         w="100%"
         px={3}
-        py={2}
+        py={2.5}
         borderRadius="md"
-        bg="gray.50"
-        _dark={{ bg: 'gray.800', color: 'gray.300' }}
-        border="1px solid"
         fontSize="sm"
-        fontWeight="medium"
-        color="gray.700"
+        fontWeight="normal"
         onClick={() => setIsOpen(!isOpen)}
-        _hover={{ bg: 'gray.100', _dark: { bg: 'gray.700' } }}
         cursor="pointer"
         textAlign="left"
         display="flex"
         alignItems="center"
         justifyContent="space-between"
         overflow="hidden"
+        transition="all 0.2s"
         css={{
-          borderColor: `${getBorderColor('light')} !important`,
-          '.dark &': {
-            borderColor: `${getBorderColor('dark')} !important`,
-          }
+          backgroundColor: `${bgColor} !important`,
+          border: `1px solid ${borderColor} !important`,
+          color: `${textColor} !important`,
+          '&:hover': {
+            borderColor: `${strongBorderColor} !important`,
+          },
         }}
       >
         <Text 
@@ -56,94 +79,77 @@ export const Dropdown = ({
         >
           {selectedLabel}
         </Text>
-        <Text fontSize="xs" ml={2} flexShrink={0}>▼</Text>
+        <Box
+          ml={2}
+          flexShrink={0}
+          transform={isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}
+          transition="transform 0.2s"
+          css={{
+            color: `${secondaryTextColor} !important`,
+          }}
+        >
+          <FiChevronDown size={16} />
+        </Box>
       </Box>
 
       {isOpen && (
-        <>
-          <Box
-            position="fixed"
-            top={0}
-            left={0}
-            right={0}
-            bottom={0}
-            onClick={() => setIsOpen(false)}
-            zIndex={998}
-          />
-          <Box
-            position="absolute"
-            top="100%"
-            left={0}
-            mt={2}
-            bg="white"
-            _dark={{ bg: 'gray.800' }}
-            border="1px solid"
-            borderRadius="md"
-            boxShadow="lg"
-            w="100%"
-            maxH="300px"
-            overflowY="auto"
-            zIndex={999}
-            css={{
-              borderColor: `${getBorderColor('light')} !important`,
-              '.dark &': {
-                borderColor: `${getBorderColor('dark')} !important`,
-              }
-            }}
-          >
-            {options.map((option, index) => {
-              const isSelected = value === option.value;
-              return (
-                <Box
-                  key={option.value || index}
-                  as="button"
+        <Box
+          position="absolute"
+          top="100%"
+          left={0}
+          mt={1}
+          borderRadius="md"
+          w="100%"
+          maxH="300px"
+          overflowY="auto"
+          zIndex={999}
+          css={{
+            backgroundColor: `${bgColor} !important`,
+            border: `1px solid ${borderColor} !important`,
+          }}
+        >
+          {options.map((option, index) => {
+            const isSelected = value === option.value;
+            return (
+              <Box
+                key={option.value || index}
+                as="button"
+                w="100%"
+                px={3}
+                py={2.5}
+                textAlign="left"
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                transition="background-color 0.15s"
+                css={{
+                  backgroundColor: isSelected ? `${hoverBgColor} !important` : 'transparent !important',
+                  borderBottom: index < options.length - 1 ? `1px solid ${borderColor} !important` : 'none',
+                  '&:hover': {
+                    backgroundColor: `${hoverBgColor} !important`,
+                  },
+                }}
+              >
+                <Text
+                  fontSize="sm"
+                  fontWeight={isSelected ? 'medium' : 'normal'}
+                  isTruncated
+                  whiteSpace="nowrap"
+                  overflow="hidden"
+                  textOverflow="ellipsis"
                   w="100%"
-                  px={4}
-                  py={2}
-                  textAlign="left"
-                  bg={isSelected ? 'blue.50' : 'transparent'}
-                  _dark={{ bg: isSelected ? 'blue.900' : 'transparent' }}
-                  _hover={{ 
-                    bg: isSelected ? 'blue.100' : 'gray.100', 
-                    _dark: { bg: isSelected ? 'blue.800' : 'gray.700' } 
-                  }}
-                  onClick={() => {
-                    onChange(option.value);
-                    setIsOpen(false);
-                  }}
-                  borderBottom={index < options.length - 1 ? '1px solid' : 'none'}
+                  minW={0}
                   css={{
-                    borderColor: `${getBorderColor('light')} !important`,
-                    '.dark &': {
-                      borderColor: `${getBorderColor('dark')} !important`,
-                    },
-                    '.dark &': {
-                      backgroundColor: isSelected ? 'var(--chakra-colors-blue-900)' : 'transparent',
-                    },
-                    '.dark &:hover': {
-                      backgroundColor: isSelected ? 'var(--chakra-colors-blue-800)' : 'var(--chakra-colors-gray-700)',
-                    }
+                    color: isSelected ? `${selectedTextColor} !important` : `${secondaryTextColor} !important`,
                   }}
                 >
-                  <Text
-                    fontSize="sm"
-                    fontWeight={isSelected ? 'semibold' : 'normal'}
-                    color={isSelected ? 'blue.700' : 'gray.700'}
-                    _dark={{ color: isSelected ? 'blue.200' : 'gray.300' }}
-                    isTruncated
-                    whiteSpace="nowrap"
-                    overflow="hidden"
-                    textOverflow="ellipsis"
-                    w="100%"
-                    minW={0}
-                  >
-                    {option.label}
-                  </Text>
-                </Box>
-              );
-            })}
-          </Box>
-        </>
+                  {option.label}
+                </Text>
+              </Box>
+            );
+          })}
+        </Box>
       )}
     </Box>
   );
