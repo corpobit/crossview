@@ -9,6 +9,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s;
 }
 
 @keyframes spin {
@@ -32,11 +33,7 @@ body {
 }
 
 html {
-  background-color: var(--color-bg-html-light, #f9fafb);
-}
-
-.dark html {
-  background-color: var(--color-bg-html-dark, #111827);
+  transition: background-color 0.2s;
 }
 
 :root {
