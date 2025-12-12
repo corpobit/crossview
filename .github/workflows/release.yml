@@ -305,10 +305,21 @@ jobs:
 
       - name: Install ORAS
         run: |
-          curl -LO https://github.com/oras-project/oras/releases/download/v1.1.0/oras_1.1.0_linux_amd64.tar.gz
-          tar -xzf oras_1.1.0_linux_amd64.tar.gz
+          curl -LO https://github.com/oras-project/oras/releases/download/v1.3.0/oras_1.3.0_linux_amd64.tar.gz
+          tar -xzf oras_1.3.0_linux_amd64.tar.gz
           sudo mv oras /usr/local/bin/
           oras version
+
+      - name: Create Helm config file for OCI push
+        run: |
+          CHART_VERSION="${{ steps.version.outputs.version }}"
+          CHART_NAME=$(grep '^name:' helm/crossview/Chart.yaml | awk '{print $2}')
+          CHART_DESC=$(grep '^description:' helm/crossview/Chart.yaml | sed 's/^description: //' | sed 's/"/\\"/g')
+          
+          printf '{\n  "name": "%s",\n  "version": "%s",\n  "description": "%s"\n}\n' \
+            "$CHART_NAME" "$CHART_VERSION" "$CHART_DESC" > ./charts/helm-config.json
+          
+          cat ./charts/helm-config.json
 
       - name: Login to Docker Hub with ORAS
         run: |
@@ -327,11 +338,13 @@ jobs:
           
           oras push $OCI_REGISTRY/$OCI_REPO:$CHART_VERSION \
             --artifact-type application/vnd.cncf.helm.chart.v1.tar+gzip \
+            --config ./charts/helm-config.json:application/vnd.cncf.helm.config.v1+json \
             ./charts/crossview-$CHART_VERSION.tgz:application/tar+gzip || {
             echo "First push attempt failed, retrying..."
             sleep 5
             oras push $OCI_REGISTRY/$OCI_REPO:$CHART_VERSION \
               --artifact-type application/vnd.cncf.helm.chart.v1.tar+gzip \
+              --config ./charts/helm-config.json:application/vnd.cncf.helm.config.v1+json \
               ./charts/crossview-$CHART_VERSION.tgz:application/tar+gzip
           }
           
