@@ -164,10 +164,6 @@ jobs:
           ignore-unfixed: false
         continue-on-error: true
 
-      - name: Run go mod download
-        working-directory: crossview-go-server
-        run: go mod download
-
       - name: Run Trivy on go.sum
         uses: aquasecurity/trivy-action@master
         with:
