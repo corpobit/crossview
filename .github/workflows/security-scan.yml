@@ -8,6 +8,8 @@ on:
       - 'Dockerfile'
       - 'package.json'
       - 'package-lock.json'
+      - 'crossview-go-server/go.mod'
+      - 'crossview-go-server/go.sum'
       - 'helm/**'
   pull_request:
     branches:
@@ -16,6 +18,8 @@ on:
       - 'Dockerfile'
       - 'package.json'
       - 'package-lock.json'
+      - 'crossview-go-server/go.mod'
+      - 'crossview-go-server/go.sum'
       - 'helm/**'
   schedule:
     - cron: '0 2 * * 1'
@@ -135,4 +139,46 @@ jobs:
           echo "✅ Security scan completed. Check the logs above for detailed vulnerability information." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "📊 Results are also available in the GitHub Security tab." >> $GITHUB_STEP_SUMMARY
+
+  scan-go-dependencies:
+    name: Scan Go Dependencies
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Run Trivy on Go dependencies
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: 'crossview-go-server'
+          format: 'table'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          exit-code: '0'
+          ignore-unfixed: false
+        continue-on-error: true
+
+      - name: Run Trivy on go.sum
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: 'crossview-go-server/go.sum'
+          format: 'table'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          exit-code: '0'
+          ignore-unfixed: false
+        continue-on-error: true
+
+      - name: Generate Go vulnerability summary
+        if: always()
+        run: |
+          echo "## Go Dependencies Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Go dependencies security scan completed." >> $GITHUB_STEP_SUMMARY
 
