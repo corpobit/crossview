@@ -14,7 +14,7 @@ FROM golang:1.23-alpine AS go-builder
 
 WORKDIR /app
 
-COPY crossview-go-server/go.mod crossview-go-server/go.sum ./
+COPY crossview-go-server/go.mod crossview-go-server/go.sum* ./
 RUN go mod download
 
 COPY crossview-go-server/ ./
