@@ -21,11 +21,15 @@ WORKDIR /app
 
 RUN apk add --no-cache ca-certificates tzdata
 
-COPY crossview-go-server/go.mod ./
+COPY crossview-go-server/go.mod crossview-go-server/go.sum ./
 ENV GOTOOLCHAIN=auto
+
+# Download dependencies (this layer will be cached)
+RUN go mod download
 
 COPY crossview-go-server/ ./
 
+# Build the binary
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /app/crossview-server ./main.go
 
 FROM alpine:latest
