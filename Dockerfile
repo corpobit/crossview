@@ -23,7 +23,7 @@ RUN apk add --no-cache ca-certificates tzdata
 
 COPY crossview-go-server/go.mod crossview-go-server/go.sum ./
 ENV GOTOOLCHAIN=auto
-RUN go mod download
+RUN go mod tidy && go mod download
 
 COPY crossview-go-server/ ./
 
