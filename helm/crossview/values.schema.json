@@ -32,7 +32,7 @@
         },
         "tag": {
           "type": "string",
-          "description": "Image tag (defaults to v{appVersion} if empty)",
+          "description": "Image tag (defaults to 'latest' if empty to always use the latest released image)",
           "default": ""
         }
       },
