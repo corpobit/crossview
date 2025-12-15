@@ -10,7 +10,7 @@ COPY . .
 
 RUN npm run build
 
-FROM golang:1.23-alpine AS go-builder
+FROM golang:1.25-alpine AS go-builder
 
 ARG TARGETPLATFORM=linux/amd64
 ARG BUILDPLATFORM
@@ -23,12 +23,10 @@ RUN apk add --no-cache ca-certificates tzdata
 
 COPY crossview-go-server/go.mod ./
 ENV GOTOOLCHAIN=auto
-RUN go mod download
 
 COPY crossview-go-server/ ./
 
-RUN go mod tidy && go mod download && \
-    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /app/crossview-server ./main.go
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /app/crossview-server ./main.go
 
 FROM alpine:latest
 
