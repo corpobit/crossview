@@ -1,6 +1,6 @@
 module crossview-go-server
 
-go 1.24.0
+go 1.23
 
 require (
 	github.com/gin-contrib/sessions v0.0.5
