@@ -19,6 +19,8 @@ ARG TARGETOS=linux
 
 WORKDIR /app
 
+RUN apk add --no-cache ca-certificates tzdata
+
 COPY crossview-go-server/go.mod crossview-go-server/go.sum ./
 RUN go mod download
 
@@ -33,7 +35,8 @@ ARG BUILDPLATFORM
 
 WORKDIR /app
 
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache --no-scripts ca-certificates tzdata || \
+    (apk update && apk add --no-cache --no-scripts ca-certificates tzdata)
 
 COPY --from=frontend-builder /app/dist ./dist
 COPY --from=go-builder /app/crossview-server ./crossview-server
