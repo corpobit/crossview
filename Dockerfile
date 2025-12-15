@@ -23,11 +23,11 @@ RUN apk add --no-cache ca-certificates tzdata
 
 COPY crossview-go-server/go.mod ./
 ENV GOTOOLCHAIN=auto
-RUN go mod tidy && go mod download -x
+RUN go mod download
 
 COPY crossview-go-server/ ./
 
-RUN go mod download && \
+RUN go mod tidy && go mod download && \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /app/crossview-server ./main.go
 
 FROM alpine:latest
