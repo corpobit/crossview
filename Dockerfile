@@ -1,59 +1,44 @@
-
-# ---------- Builder Stage ----------
-FROM node:20-alpine AS builder
+FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app
 
-# Install build dependencies
-# Using --no-scripts to avoid busybox trigger issues in multi-arch builds
-RUN apk add --no-cache --no-scripts \
-    python3 \
-    build-base \
-    && rm -rf /var/cache/apk/*
-
 COPY package*.json ./
 
-# Run npm audit before installing to check for vulnerabilities
-RUN npm audit --audit-level=moderate || true
-
 RUN npm install
-
-# Run npm audit fix for fixable vulnerabilities
-RUN npm audit fix --force || true
 
 COPY . .
 
 RUN npm run build
 
-RUN npm prune --production
-
-# Note: Build dependencies (python3, build-base) are not removed here
-# because they're in the builder stage and won't be in the final image anyway.
-# Removing them can cause busybox trigger issues in multi-arch builds.
-
-# ---------- Runtime Stage ----------
-FROM node:20-alpine AS runtime
+FROM golang:1.23-alpine AS go-builder
 
 WORKDIR /app
 
-COPY package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
+COPY crossview-go-server/go.mod crossview-go-server/go.sum ./
+RUN go mod download
 
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/server ./server
-COPY --from=builder /app/config ./config
-COPY --from=builder /app/src ./src
+COPY crossview-go-server/ ./
 
-ENV NODE_ENV=production
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/crossview-server ./main.go
+
+FROM alpine:latest
+
+WORKDIR /app
+
+RUN apk add --no-cache ca-certificates tzdata
+
+COPY --from=frontend-builder /app/dist ./dist
+COPY --from=go-builder /app/crossview-server ./crossview-server
+COPY --from=frontend-builder /app/config ./config
+
 ENV PORT=3001
 
-RUN mkdir -p /app/.kube && \
-    addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001 && \
-    chown -R nodejs:nodejs /app
+RUN addgroup -g 1001 -S appuser && \
+    adduser -S appuser -u 1001 && \
+    chown -R appuser:appuser /app
 
-USER nodejs
+USER appuser
 
 EXPOSE 3001
 
-CMD ["node", "server/index.js"]
+CMD ["./crossview-server", "app:serve"]
