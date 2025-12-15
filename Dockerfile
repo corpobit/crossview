@@ -12,16 +12,24 @@ RUN npm run build
 
 FROM golang:1.23-alpine AS go-builder
 
+ARG TARGETPLATFORM=linux/amd64
+ARG BUILDPLATFORM
+ARG TARGETARCH=amd64
+ARG TARGETOS=linux
+
 WORKDIR /app
 
-COPY crossview-go-server/go.mod crossview-go-server/go.sum* ./
+COPY crossview-go-server/go.mod crossview-go-server/go.sum ./
 RUN go mod download
 
 COPY crossview-go-server/ ./
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/crossview-server ./main.go
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /app/crossview-server ./main.go
 
 FROM alpine:latest
+
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
 
 WORKDIR /app
 
