@@ -22,6 +22,7 @@ WORKDIR /app
 RUN apk add --no-cache ca-certificates tzdata
 
 COPY crossview-go-server/go.mod crossview-go-server/go.sum ./
+ENV GOTOOLCHAIN=auto
 RUN go mod download
 
 COPY crossview-go-server/ ./
