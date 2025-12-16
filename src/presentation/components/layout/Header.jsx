@@ -28,7 +28,6 @@ export const Header = ({ sidebarWidth }) => {
       px={6}
       display="flex"
       alignItems="center"
-      boxShadow="sm"
       transition="left 0.2s"
     >
       <HStack h="100%" justify="space-between" w="100%">

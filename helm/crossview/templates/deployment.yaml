@@ -36,6 +36,19 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.database.enabled }}
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command: ['sh', '-c']
+          args:
+            - |
+              until nc -z {{ include "crossview.fullname" . }}-postgres 5432; do
+                echo "Waiting for database to be ready..."
+                sleep 2
+              done
+              echo "Database is ready!"
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ if .Values.image.tag }}{{ .Values.image.tag }}{{ else }}latest{{ end }}"
