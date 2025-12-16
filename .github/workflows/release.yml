@@ -225,6 +225,8 @@ jobs:
         run: |
           echo "version=${{ needs.build-and-release.outputs.version }}" >> $GITHUB_OUTPUT
           echo "tag=${{ needs.build-and-release.outputs.tag }}" >> $GITHUB_OUTPUT
+          PLATFORM_TAG=$(echo "${{ matrix.platform }}" | tr '/' '-')
+          echo "platform_tag=$PLATFORM_TAG" >> $GITHUB_OUTPUT
           if [ "${{ matrix.platform }}" = "linux/amd64" ]; then
             echo "arch=amd64" >> $GITHUB_OUTPUT
           else
@@ -238,13 +240,13 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.vars.outputs.tag }}-${{ matrix.platform }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.vars.outputs.tag }}-${{ steps.vars.outputs.platform_tag }}
           build-args: |
             TARGETPLATFORM=${{ matrix.platform }}
             TARGETARCH=${{ steps.vars.outputs.arch }}
             TARGETOS=linux
-          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crossview:buildcache-${{ matrix.platform }}
-          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crossview:buildcache-${{ matrix.platform }},mode=max
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crossview:buildcache-${{ steps.vars.outputs.platform_tag }}
+          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crossview:buildcache-${{ steps.vars.outputs.platform_tag }},mode=max
           outputs: type=image,push=true
 
   create-multi-arch-manifest:
@@ -272,12 +274,12 @@ jobs:
       - name: Create and push multi-arch manifest
         run: |
           docker buildx imagetools create --tag ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }} \
-            ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}-linux/amd64 \
-            ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}-linux/arm64
+            ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}-linux-amd64 \
+            ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}-linux-arm64
           
           docker buildx imagetools create --tag ${{ secrets.DOCKERHUB_USERNAME }}/crossview:latest \
-            ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}-linux/amd64 \
-            ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}-linux/arm64
+            ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}-linux-amd64 \
+            ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}-linux-arm64
           
           echo "Multi-arch manifest created for ${{ steps.version.outputs.tag }} and latest"
 
