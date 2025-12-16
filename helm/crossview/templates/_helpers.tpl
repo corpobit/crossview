@@ -48,7 +48,6 @@ Selector labels
 {{- define "crossview.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "crossview.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-app: {{ include "crossview.name" . }}
 {{- end }}
 
 {{/*
