@@ -383,8 +383,13 @@ jobs:
 
       - name: Package Helm chart
         run: |
+          mkdir -p ./charts
           helm package helm/crossview --destination ./charts
+          echo "Chart package created:"
           ls -la ./charts/
+          CHART_FILE=$(ls ./charts/*.tgz | head -1)
+          echo "CHART_FILE=$CHART_FILE" >> $GITHUB_ENV
+          echo "Using chart file: $CHART_FILE"
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -422,19 +427,31 @@ jobs:
           OCI_REGISTRY="docker.io"
           OCI_REPO="${{ secrets.DOCKERHUB_USERNAME }}/crossview-chart"
           
+          if [ -z "$CHART_FILE" ]; then
+            CHART_FILE=$(ls ./charts/*.tgz | head -1)
+          fi
+          
+          if [ ! -f "$CHART_FILE" ]; then
+            echo "Error: Chart file not found: $CHART_FILE"
+            echo "Available files in ./charts/:"
+            ls -la ./charts/ || echo "charts/ directory does not exist"
+            exit 1
+          fi
+          
           echo "Pushing Helm chart to OCI registry: oci://$OCI_REGISTRY/$OCI_REPO"
           echo "Chart version: $CHART_VERSION"
+          echo "Chart file: $CHART_FILE"
           
           oras push $OCI_REGISTRY/$OCI_REPO:$CHART_VERSION \
             --artifact-type application/vnd.cncf.helm.chart.v1.tar+gzip \
             --config ./charts/helm-config.json:application/vnd.cncf.helm.config.v1+json \
-            ./charts/crossview-$CHART_VERSION.tgz:application/tar+gzip || {
+            $CHART_FILE:application/tar+gzip || {
             echo "First push attempt failed, retrying..."
             sleep 5
             oras push $OCI_REGISTRY/$OCI_REPO:$CHART_VERSION \
               --artifact-type application/vnd.cncf.helm.chart.v1.tar+gzip \
               --config ./charts/helm-config.json:application/vnd.cncf.helm.config.v1+json \
-              ./charts/crossview-$CHART_VERSION.tgz:application/tar+gzip
+              $CHART_FILE:application/tar+gzip
           }
           
           echo "Chart pushed successfully to Docker Hub OCI registry"
