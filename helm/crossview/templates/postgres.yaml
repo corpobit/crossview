@@ -7,12 +7,13 @@ metadata:
   namespace: {{ include "crossview.namespace" . }}
   labels:
     {{- include "crossview.labels" . | nindent 4 }}
-    app: {{ include "crossview.fullname" . }}-postgres
+    app.kubernetes.io/component: postgres
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ include "crossview.fullname" . }}-postgres
+      {{- include "crossview.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: postgres
   template:
     metadata:
       annotations:
@@ -20,7 +21,8 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
       labels:
-        app: {{ include "crossview.fullname" . }}-postgres
+        {{- include "crossview.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: postgres
         {{- with .Values.database.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -91,7 +93,7 @@ metadata:
   namespace: {{ include "crossview.namespace" . }}
   labels:
     {{- include "crossview.labels" . | nindent 4 }}
-    app: {{ include "crossview.fullname" . }}-postgres
+    app.kubernetes.io/component: postgres
   {{- with .Values.database.service.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -104,7 +106,8 @@ spec:
       protocol: TCP
       name: postgres
   selector:
-    app: {{ include "crossview.fullname" . }}-postgres
+    {{- include "crossview.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
 {{- if .Values.database.persistence.enabled }}
 ---
 apiVersion: v1

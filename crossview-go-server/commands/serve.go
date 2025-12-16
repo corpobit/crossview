@@ -5,6 +5,7 @@ import (
 	"crossview-go-server/api/middlewares"
 	"crossview-go-server/api/routes"
 	"crossview-go-server/lib"
+	"crossview-go-server/models"
 )
 
 // ServeCommand test command
@@ -25,8 +26,12 @@ func (s *ServeCommand) Run() lib.CommandRunner {
 		logger lib.Logger,
 		database lib.Database,
 	) {
-		
-		
+		// Run database migrations
+		userRepo := models.NewUserRepository(database.DB)
+		if err := userRepo.AutoMigrate(); err != nil {
+			logger.Panicf("Failed to run database migrations: %v", err)
+		}
+		logger.Info("Database migrations completed")
 		
 		middleware.Setup()
 		route.Setup()

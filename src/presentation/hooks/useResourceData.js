@@ -329,6 +329,36 @@ export const useResourceData = (resource) => {
       }
     }
     
+    if (full.spec?.resourceRefs && Array.isArray(full.spec.resourceRefs)) {
+      const parentNamespace = full.spec?.claimRef?.namespace || full.metadata?.namespace || originalResource.namespace || null;
+      for (const ref of full.spec.resourceRefs) {
+        if (ref.kind && ref.name) {
+          let refNamespace = ref.namespace;
+          if (!refNamespace && parentNamespace) {
+            const coreKinds = ['Deployment', 'Service', 'Pod', 'ConfigMap', 'Secret', 'ReplicaSet', 'StatefulSet', 'DaemonSet'];
+            if (coreKinds.includes(ref.kind)) {
+              refNamespace = parentNamespace;
+            }
+          }
+          if (refNamespace) {
+            try {
+              const managedEvents = await kubernetesRepository.getEvents(
+                ref.kind,
+                ref.name,
+                refNamespace,
+                contextName
+              );
+              if (managedEvents.length > 0) {
+                allEvents.push(...managedEvents);
+              }
+            } catch (error) {
+              console.warn('[useResourceData] Failed to load events for managed resource:', error);
+            }
+          }
+        }
+      }
+    }
+    
     const uniqueEvents = [];
     const seen = new Set();
     allEvents.forEach(event => {
