@@ -39,15 +39,44 @@ spec:
       {{- if .Values.database.enabled }}
       initContainers:
         - name: wait-for-db
-          image: busybox:1.36
+          image: "{{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}"
           command: ['sh', '-c']
           args:
             - |
-              until nc -z {{ include "crossview.fullname" . }}-postgres 5432; do
+              until PGPASSWORD=$${DB_PASSWORD} psql -h {{ include "crossview.fullname" . }}-postgres -p $${DB_PORT} -U $${DB_USER} -d $${DB_NAME} -c "SELECT 1" > /dev/null 2>&1; do
                 echo "Waiting for database to be ready..."
                 sleep 2
               done
-              echo "Database is ready!"
+              echo "Database is ready and accepting connections!"
+          env:
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.fullname" . }}-config
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.fullname" . }}-config
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.fullname" . }}-config
+                  key: DB_USER
+            {{- if .Values.secrets.existingSecret }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.existingSecret }}
+                  key: {{ .Values.secrets.existingSecretKeys.dbPassword }}
+            {{- else if .Values.secrets.dbPassword }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "crossview.fullname" . }}-secrets
+                  key: db-password
+            {{- end }}
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
