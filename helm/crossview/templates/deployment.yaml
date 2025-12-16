@@ -70,8 +70,18 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secrets.existingSecret }}
                   key: {{ .Values.secrets.existingSecretKeys.dbPassword }}
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.existingSecret }}
+                  key: {{ .Values.secrets.existingSecretKeys.dbPassword }}
             {{- else if .Values.secrets.dbPassword }}
             - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "crossview.fullname" . }}-secrets
+                  key: db-password
+            - name: DB_PASS
               valueFrom:
                 secretKeyRef:
                   name: {{ include "crossview.fullname" . }}-secrets
@@ -127,6 +137,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secrets.existingSecret }}
                   key: {{ .Values.secrets.existingSecretKeys.dbPassword }}
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.existingSecret }}
+                  key: {{ .Values.secrets.existingSecretKeys.dbPassword }}
             - name: SESSION_SECRET
               valueFrom:
                 secretKeyRef:
@@ -134,6 +149,11 @@ spec:
                   key: {{ .Values.secrets.existingSecretKeys.sessionSecret }}
             {{- else if and .Values.secrets.dbPassword .Values.secrets.sessionSecret }}
             - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "crossview.fullname" . }}-secrets
+                  key: db-password
+            - name: DB_PASS
               valueFrom:
                 secretKeyRef:
                   name: {{ include "crossview.fullname" . }}-secrets
