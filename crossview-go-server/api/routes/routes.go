@@ -7,6 +7,8 @@ var Module = fx.Options(
 	fx.Provide(NewAuthRoutes),
 	fx.Provide(NewSSORoutes),
 	fx.Provide(NewKubernetesRoutes),
+	fx.Provide(NewConfigRoutes),
+	fx.Provide(NewUserRoutes),
 	fx.Provide(NewFrontendRoutes),
 	fx.Provide(NewRoutes),
 )
@@ -22,6 +24,8 @@ func NewRoutes(
 	authRoutes AuthRoutes,
 	ssoRoutes SSORoutes,
 	kubernetesRoutes KubernetesRoutes,
+	configRoutes ConfigRoutes,
+	userRoutes UserRoutes,
 	frontendRoutes FrontendRoutes,
 ) Routes {
 	return Routes{
@@ -29,6 +33,8 @@ func NewRoutes(
 		authRoutes,
 		ssoRoutes,
 		kubernetesRoutes,
+		configRoutes,
+		userRoutes,
 		frontendRoutes,
 	}
 }

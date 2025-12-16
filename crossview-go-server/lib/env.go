@@ -30,13 +30,25 @@ func NewEnv() Env {
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
 		wd, _ := os.Getwd()
-		configPath = filepath.Join(wd, "..", "config", "config.yaml")
+		possiblePaths := []string{
+			filepath.Join(wd, "config", "config.yaml"),
+			filepath.Join(wd, "..", "config", "config.yaml"),
+			filepath.Join(wd, "..", "..", "config", "config.yaml"),
+		}
+		for _, path := range possiblePaths {
+			if _, err := os.Stat(path); err == nil {
+				configPath = path
+				break
+			}
+		}
 	}
 	
-	if _, err := os.Stat(configPath); err == nil {
-		viper.SetConfigType("yaml")
-		viper.SetConfigFile(configPath)
-		viper.ReadInConfig()
+	if configPath != "" {
+		if _, err := os.Stat(configPath); err == nil {
+			viper.SetConfigType("yaml")
+			viper.SetConfigFile(configPath)
+			viper.ReadInConfig()
+		}
 	}
 	
 	env.ServerPort = getEnvOrDefault("PORT", getEnvOrDefault("SERVER_PORT", 
