@@ -66,7 +66,7 @@ export class KubernetesApiRepository extends IKubernetesRepository {
   async isConnected(context = null) {
     try {
       const params = context ? new URLSearchParams({ context }) : '';
-      const result = await this.request(`/health${params ? `?${params}` : ''}`);
+      const result = await this.request(`/kubernetes/connection${params ? `?${params}` : ''}`);
       return result.connected || false;
     } catch (error) {
       return false;
@@ -162,9 +162,30 @@ export class KubernetesApiRepository extends IKubernetesRepository {
       }
       return await this.request(`/events?${params.toString()}`);
     } catch (error) {
-      // Return empty array if events can't be fetched
       console.warn('Failed to get events:', error.message);
       return [];
+    }
+  }
+
+  async addKubeConfig(kubeConfig) {
+    try {
+      return await this.request('/contexts/add', {
+        method: 'POST',
+        body: JSON.stringify({ kubeConfig }),
+      });
+    } catch (error) {
+      throw new Error(`Failed to add kubeconfig: ${error.message}`);
+    }
+  }
+
+  async removeContext(contextName) {
+    try {
+      return await this.request('/contexts', {
+        method: 'DELETE',
+        body: JSON.stringify({ context: contextName }),
+      });
+    } catch (error) {
+      throw new Error(`Failed to remove context: ${error.message}`);
     }
   }
 }

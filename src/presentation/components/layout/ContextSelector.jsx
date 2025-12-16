@@ -1,12 +1,15 @@
 import {
   Box,
   Text,
+  HStack,
+  Icon,
 } from '@chakra-ui/react';
+import { FiAlertCircle } from 'react-icons/fi';
 import { useAppContext } from '../../providers/AppProvider.jsx';
 import { Dropdown } from '../common/Dropdown.jsx';
 
 export const ContextSelector = () => {
-  const { contexts, selectedContext, setSelectedContext } = useAppContext();
+  const { contexts, selectedContext, setSelectedContext, contextErrors } = useAppContext();
 
   const handleSelect = async (contextName) => {
     await setSelectedContext(contextName);
@@ -31,7 +34,12 @@ export const ContextSelector = () => {
   const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext?.name || selectedContext;
   const options = contexts.map(context => {
     const name = typeof context === 'string' ? context : context.name || context;
-    return { value: name, label: name };
+    const hasError = contextErrors[name];
+    return { 
+      value: name, 
+      label: name,
+      hasError: !!hasError
+    };
   });
 
   return (

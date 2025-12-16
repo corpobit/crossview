@@ -16,7 +16,8 @@
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 20+ (for frontend development)
+- Go 1.24+ (for backend server)
 - PostgreSQL database (port 8920 by default, or set via `DB_PORT` env var)
 - Kubernetes config file at `~/.kube/config` (or set `KUBECONFIG` env var)
 
@@ -49,26 +50,18 @@ export DB_PASSWORD=password
 
 ### Development
 
-**Option 1: Run both frontend and backend together (recommended)**
-
-```bash
-npm run dev:all
-```
-
-This starts:
-- Frontend dev server at `http://localhost:5173` (with hot reload)
-- Backend API server at `http://localhost:3001`
-
-**Option 2: Run separately**
+**Run Frontend and Backend separately:**
 
 Terminal 1 - Frontend:
 ```bash
+npm install
 npm run dev
 ```
 
-Terminal 2 - Backend:
+Terminal 2 - Backend (Go server):
 ```bash
-npm run dev:server
+cd crossview-go-server
+go run main.go app:serve
 ```
 
 The app will be available at `http://localhost:5173` (frontend proxies `/api` requests to backend at `http://localhost:3001`)
@@ -85,39 +78,47 @@ This creates a `dist/` folder with the compiled frontend.
 
 ### Production Mode
 
-To run in production mode (serves both frontend and backend from one server):
+To run in production mode:
 
+1. Build the frontend:
 ```bash
-NODE_ENV=production npm run build
-NODE_ENV=production npm start
+npm run build
+```
+
+2. Run the Go server (it will serve the frontend from the `dist/` folder):
+```bash
+cd crossview-go-server
+go run main.go app:serve
 ```
 
 The app will be available at `http://localhost:3001` (both frontend and API)
 
 ## Backend API
 
-The backend API runs on port 3001 and provides the following endpoints:
+The backend API is built with Go and runs on port 3001. It provides the following endpoints:
 
 - `GET /api/health` - Health check and connection status
-- `GET /api/namespaces` - List all namespaces
-- `GET /api/resources?apiVersion=&kind=&namespace=` - List resources
-- `GET /api/resource?apiVersion=&kind=&name=&namespace=` - Get single resource
-- `GET /api/crossplane/resources?namespace=` - List Crossplane resources
+- `GET /api/contexts` - List available Kubernetes contexts
+- `GET /api/contexts/current` - Get current Kubernetes context
+- `POST /api/contexts/current` - Set Kubernetes context
+- `GET /api/resources?apiVersion=&kind=&namespace=&context=` - List resources
+- `GET /api/resource?apiVersion=&kind=&name=&namespace=&context=` - Get single resource
+- `GET /api/events?kind=&name=&namespace=&context=` - Get resource events
+- `GET /api/managed?context=` - List managed resources
 - `POST /api/auth/login` - User login
 - `POST /api/auth/logout` - User logout
 - `GET /api/auth/check` - Check authentication status
 
-The backend uses `KubernetesRepository` from `src/data/repositories/KubernetesRepository.js` to access Kubernetes clusters:
+The backend uses the Go Kubernetes client to access Kubernetes clusters:
 
 **When running in a Kubernetes pod:**
 - Automatically uses service account token (no config file needed)
 - Accesses the same cluster the pod is running in
 - Uses `/var/run/secrets/kubernetes.io/serviceaccount/`
 
-**When running locally or with mounted config:**
+**When running locally:**
 - `~/.kube/config` (default)
 - `KUBECONFIG` environment variable
-- `KUBE_CONFIG_PATH` environment variable
 
 See [Kubernetes Deployment Guide](docs/KUBERNETES_DEPLOYMENT.md) for deployment examples.
 

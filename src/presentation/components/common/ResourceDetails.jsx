@@ -133,6 +133,11 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
                   const isCompositeResource = resourceKind && resourceKind.startsWith('X') && !namespace;
                   const isClusterScoped = clusterScopedKinds.includes(resourceKind) || isCompositeResource;
                   
+                  if (isCompositeResource) {
+                    const hasResourceRefs = fullResource.spec?.resourceRefs && fullResource.spec.resourceRefs.length > 0;
+                    return hasResourceRefs;
+                  }
+                  
                   return !isClusterScoped;
                 })()}
               />

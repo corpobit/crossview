@@ -6,9 +6,8 @@ import {
   Button,
   Image,
 } from '@chakra-ui/react';
-import { FiChevronLeft, FiChevronRight, FiChevronDown, FiChevronUp, FiLayout, FiSettings, FiLogOut, FiPackage, FiFileText, FiLayers, FiBox, FiBook, FiServer, FiUsers, FiSliders } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiChevronDown, FiChevronUp, FiLayout, FiSettings, FiLogOut, FiPackage, FiFileText, FiLayers, FiBox, FiBook, FiServer, FiUsers, FiSliders, FiGrid, FiDatabase } from 'react-icons/fi';
 import { useState, useEffect, useRef } from 'react';
-import { ContextSelector } from './ContextSelector.jsx';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../../providers/AppProvider.jsx';
 import { colors, getBorderColor, getTextColor } from '../../utils/theme.js';
@@ -21,11 +20,25 @@ export const Sidebar = ({ onToggle, onResize }) => {
   const [compositeResourceKinds, setCompositeResourceKinds] = useState([]);
   const [loadingCompositeKinds, setLoadingCompositeKinds] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  const [contextSidebarWidth, setContextSidebarWidth] = useState(80);
   const sidebarRef = useRef(null);
   const cancelRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, kubernetesRepository, selectedContext, colorMode } = useAppContext();
+  const { user, logout, kubernetesRepository, selectedContext, colorMode, selectedContextError } = useAppContext();
+
+  useEffect(() => {
+    const updateContextSidebarWidth = () => {
+      const saved = localStorage.getItem('contextSidebarCollapsed');
+      setContextSidebarWidth(saved === 'true' ? 0 : 60);
+    };
+    updateContextSidebarWidth();
+    const handleWidthChange = () => {
+      updateContextSidebarWidth();
+    };
+    window.addEventListener('contextSidebarWidthChanged', handleWidthChange);
+    return () => window.removeEventListener('contextSidebarWidthChanged', handleWidthChange);
+  }, []);
 
   useEffect(() => {
     const currentWidth = isCollapsed ? 60 : width;
@@ -164,6 +177,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
       subMenuItems: [
         { id: 'settings-appearance', label: 'Appearance', icon: FiSliders, path: '/settings/appearance' },
         { id: 'settings-users', label: 'User Management', icon: FiUsers, path: '/settings/user-management' },
+        { id: 'settings-contexts', label: 'Contexts', icon: FiDatabase, path: '/settings/context-management' },
       ]
     },
   ];
@@ -208,9 +222,9 @@ export const Sidebar = ({ onToggle, onResize }) => {
           borderColor: `${getBorderColor('dark')} !important`,
         }
       }}
-      transition={isResizing ? 'none' : 'width 0.2s'}
+      transition={isResizing ? 'none' : 'width 0.2s, left 0.2s'}
       position="fixed"
-      left={0}
+      left={`${contextSidebarWidth}px`}
       top={0}
       zIndex={1000}
       display="flex"
@@ -233,6 +247,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
       
       <VStack spacing={0} align="stretch" h="100%">
         <Box
+          h="64px"
           p={isCollapsed ? 2 : 4}
           borderBottom="1px solid"
           css={{
@@ -241,10 +256,12 @@ export const Sidebar = ({ onToggle, onResize }) => {
               borderColor: `${getBorderColor('dark')} !important`,
             }
           }}
+          display="flex"
+          alignItems="center"
         >
-          <HStack justify={isCollapsed ? 'center' : 'space-between'} mb={isCollapsed ? 0 : 4}>
+          <HStack justify={isCollapsed ? 'center' : 'space-between'} w="100%" spacing={2}>
             {!isCollapsed && (
-              <HStack spacing={3} align="center">
+              <HStack spacing={3} align="center" flex={1}>
                 <Image 
                   src="/images/cross-view-logo-sidebar.svg" 
                   alt="Crossview Logo" 
@@ -256,6 +273,40 @@ export const Sidebar = ({ onToggle, onResize }) => {
                 Crossview
               </Text>
               </HStack>
+            )}
+            {!isCollapsed && (
+              <Box
+                as="button"
+                onClick={() => {
+                  const saved = localStorage.getItem('contextSidebarCollapsed');
+                  const newState = saved !== 'true';
+                  localStorage.setItem('contextSidebarCollapsed', newState.toString());
+                  window.dispatchEvent(new CustomEvent('contextSidebarWidthChanged'));
+                }}
+                p={2}
+                borderRadius="md"
+                bg="transparent"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                minW="40px"
+                minH="40px"
+                aria-label="Toggle context sidebar"
+                transition="all 0.2s"
+                color="gray.600"
+                _dark={{ color: 'gray.300' }}
+                _hover={{ 
+                  bg: 'gray.100', 
+                  _dark: { 
+                    bg: 'gray.800',
+                    color: 'gray.200'
+                  },
+                  color: 'gray.700'
+                }}
+                title="Toggle context sidebar"
+              >
+                <FiGrid size={18} />
+              </Box>
             )}
             <Box
               as="button"
@@ -288,14 +339,6 @@ export const Sidebar = ({ onToggle, onResize }) => {
               )}
             </Box>
           </HStack>
-          {!isCollapsed && (
-            <Box>
-              <Text fontSize="xs" fontWeight="semibold" color="gray.500" mb={2} px={2}>
-                CONTEXT
-              </Text>
-              <ContextSelector />
-            </Box>
-          )}
         </Box>
 
         <Box flex={1} overflowY="auto" p={2}>
@@ -310,6 +353,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
                 const isActive = location.pathname === item.path || (item.hasSubMenu && subMenuItems.some(sub => location.pathname === sub.path || location.pathname.startsWith(sub.path + '/')));
                 const isExpanded = expandedMenus[item.id] || false;
                 const hasSubMenu = item.hasSubMenu && subMenuItems && subMenuItems.length > 0;
+                const shouldHideSubMenu = selectedContextError && hasSubMenu;
                 
                 return (
                   <Box key={item.id}>
@@ -353,11 +397,11 @@ export const Sidebar = ({ onToggle, onResize }) => {
                           {item.label}
                         </Text>
                       </HStack>
-                      {hasSubMenu && (
+                      {hasSubMenu && !shouldHideSubMenu && (
                         isExpanded ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />
                       )}
                     </Box>
-                    {hasSubMenu && isExpanded && (
+                    {hasSubMenu && isExpanded && !shouldHideSubMenu && (
                       <VStack spacing={0} align="stretch" pl={8} mt={1}>
                         {item.id === 'composite-resources' && loadingCompositeKinds ? (
                           <Box px={3} py={2} display="flex" alignItems="center" gap={2}>
