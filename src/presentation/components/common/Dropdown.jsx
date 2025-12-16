@@ -1,9 +1,11 @@
 import {
   Box,
   Text,
+  HStack,
+  Icon,
 } from '@chakra-ui/react';
 import { useState, useRef, useEffect } from 'react';
-import { FiChevronDown } from 'react-icons/fi';
+import { FiChevronDown, FiAlertCircle } from 'react-icons/fi';
 import { getBorderColor, getBackgroundColor, getTextColor } from '../../utils/theme.js';
 import { useAppContext } from '../../providers/AppProvider.jsx';
 
@@ -69,6 +71,16 @@ export const Dropdown = ({
           },
         }}
       >
+        <HStack spacing={2} flex={1} minW={0}>
+          {(() => {
+            const selectedOption = options.find(opt => opt.value === value);
+            if (selectedOption?.hasError) {
+              return (
+                <Icon as={FiAlertCircle} color="red.500" boxSize={4} flexShrink={0} />
+              );
+            }
+            return null;
+          })()}
         <Text 
           isTruncated 
           flex={1}
@@ -79,6 +91,7 @@ export const Dropdown = ({
         >
           {selectedLabel}
         </Text>
+        </HStack>
         <Box
           ml={2}
           flexShrink={0}
@@ -131,6 +144,10 @@ export const Dropdown = ({
                   },
                 }}
               >
+                <HStack spacing={2} w="100%" minW={0}>
+                  {option.hasError && (
+                    <Icon as={FiAlertCircle} color="red.500" boxSize={4} flexShrink={0} />
+                  )}
                 <Text
                   fontSize="sm"
                   fontWeight={isSelected ? 'medium' : 'normal'}
@@ -138,7 +155,7 @@ export const Dropdown = ({
                   whiteSpace="nowrap"
                   overflow="hidden"
                   textOverflow="ellipsis"
-                  w="100%"
+                    flex={1}
                   minW={0}
                   css={{
                     color: isSelected ? `${selectedTextColor} !important` : `${secondaryTextColor} !important`,
@@ -146,6 +163,7 @@ export const Dropdown = ({
                 >
                   {option.label}
                 </Text>
+                </HStack>
               </Box>
             );
           })}

@@ -29,6 +29,7 @@ export const AppProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [serverError, setServerError] = useState(null);
+  const [contextErrors, setContextErrors] = useState({});
   const [colorMode, setColorMode] = useState(() => {
     const saved = localStorage.getItem('colorMode');
     return saved || 'light';
@@ -94,12 +95,67 @@ export const AppProvider = ({ children }) => {
     }
   }, [user, selectedContext]);
 
+  useEffect(() => {
+    const handleContextsUpdated = async () => {
+      if (!user) return;
+      try {
+        const contextsList = await getKubernetesContextsUseCase.execute();
+        setContexts(contextsList);
+      } catch (error) {
+        console.warn('Failed to refresh contexts:', error.message);
+      }
+    };
+
+    window.addEventListener('contextsUpdated', handleContextsUpdated);
+    return () => {
+      window.removeEventListener('contextsUpdated', handleContextsUpdated);
+    };
+  }, [user, getKubernetesContextsUseCase]);
+
+  useEffect(() => {
+    const checkContextConnection = async () => {
+      if (!selectedContext || !user) return;
+      
+      const contextNameStr = typeof selectedContext === 'string' ? selectedContext : selectedContext?.name || selectedContext;
+      if (!contextNameStr) return;
+      
+      try {
+        const isConnected = await kubernetesRepository.isConnected(contextNameStr);
+        
+        if (!isConnected) {
+          setContextErrors(prev => ({
+            ...prev,
+            [contextNameStr]: 'Unable to connect to the Kubernetes cluster. Please check your connection settings.'
+          }));
+        } else {
+          setContextErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors[contextNameStr];
+            return newErrors;
+          });
+        }
+      } catch (error) {
+        setContextErrors(prev => ({
+          ...prev,
+          [contextNameStr]: error.message || 'Failed to connect to the Kubernetes cluster.'
+        }));
+      }
+    };
+    
+    checkContextConnection();
+  }, [selectedContext, user, kubernetesRepository]);
+
   const handleContextChange = async (contextName) => {
     try {
       await kubernetesRepository.setContext(contextName);
       setSelectedContext(contextName);
     } catch (error) {
       console.error('Failed to set context:', error);
+      const contextNameStr = typeof contextName === 'string' ? contextName : contextName?.name || contextName;
+      setContextErrors(prev => ({
+        ...prev,
+        [contextNameStr]: error.message || 'Failed to connect to the Kubernetes cluster.'
+      }));
     }
   };
 
@@ -158,7 +214,11 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('savedSearches', JSON.stringify(updated));
   };
 
-  const value = useMemo(() => ({
+  const value = useMemo(() => {
+    const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext?.name || selectedContext;
+    const selectedContextError = contextName ? contextErrors[contextName] : null;
+    
+    return {
     kubernetesRepository,
     getDashboardDataUseCase,
     getKubernetesContextsUseCase,
@@ -170,6 +230,8 @@ export const AppProvider = ({ children }) => {
     user,
     authChecked,
     serverError,
+      contextErrors,
+      selectedContextError,
     login: handleLogin,
     register: handleRegister,
     logout: handleLogout,
@@ -179,7 +241,8 @@ export const AppProvider = ({ children }) => {
     saveSearch: handleSaveSearch,
     loadSearch: handleLoadSearch,
     deleteSearch: handleDeleteSearch,
-  }), [kubernetesRepository, getDashboardDataUseCase, getKubernetesContextsUseCase, authService, userService, selectedContext, contexts, user, authChecked, serverError, colorMode, savedSearches]);
+    };
+  }, [kubernetesRepository, getDashboardDataUseCase, getKubernetesContextsUseCase, authService, userService, selectedContext, contexts, user, authChecked, serverError, contextErrors, colorMode, savedSearches]);
 
   return (
     <ChakraProvider value={defaultSystem}>

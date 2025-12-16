@@ -8,6 +8,7 @@ import { useNavigate, useLocation, Routes, Route } from 'react-router-dom';
 import { useEffect } from 'react';
 import { UserManagement } from './UserManagement.jsx';
 import { Appearance } from './Appearance.jsx';
+import { ContextManagement } from './ContextManagement.jsx';
 
 export const Settings = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export const Settings = () => {
 
   const isUserManagement = location.pathname.includes('/user-management');
   const isAppearance = location.pathname.includes('/appearance');
+  const isContextManagement = location.pathname.includes('/context-management');
 
   // Default to appearance if no sub-route is specified
   useEffect(() => {
@@ -52,11 +54,23 @@ export const Settings = () => {
         >
           User Management
         </Button>
+        <Button
+          variant={isContextManagement ? 'solid' : 'ghost'}
+          onClick={() => navigate('/settings/context-management')}
+          size="sm"
+          bg={isContextManagement ? 'gray.900' : 'transparent'}
+          _dark={{ bg: isContextManagement ? 'white' : 'transparent', color: isContextManagement ? 'gray.900' : 'gray.300' }}
+          color={isContextManagement ? 'white' : 'gray.700'}
+          _hover={{ bg: isContextManagement ? 'gray.800' : 'gray.100', _dark: { bg: isContextManagement ? 'gray.100' : 'gray.700' } }}
+        >
+          Contexts
+        </Button>
             </HStack>
 
       <Routes>
         <Route path="appearance" element={<Appearance />} />
         <Route path="user-management" element={<UserManagement />} />
+        <Route path="context-management" element={<ContextManagement />} />
         <Route path="*" element={<Appearance />} />
       </Routes>
     </Box>
