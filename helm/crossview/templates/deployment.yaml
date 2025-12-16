@@ -65,13 +65,13 @@ spec:
                   name: {{ include "crossview.fullname" . }}-config
                   key: DB_USER
             {{- if .Values.secrets.existingSecret }}
-            - name: DB_PASSWORD
+            - name: DB_PASS
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.secrets.existingSecret }}
                   key: {{ .Values.secrets.existingSecretKeys.dbPassword }}
             {{- else if .Values.secrets.dbPassword }}
-            - name: DB_PASSWORD
+            - name: DB_PASS
               valueFrom:
                 secretKeyRef:
                   name: {{ include "crossview.fullname" . }}-secrets
@@ -122,7 +122,7 @@ spec:
                   name: {{ include "crossview.fullname" . }}-config
                   key: DB_USER
             {{- if .Values.secrets.existingSecret }}
-            - name: DB_PASSWORD
+            - name: DB_PASS
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.secrets.existingSecret }}
@@ -133,7 +133,7 @@ spec:
                   name: {{ .Values.secrets.existingSecret }}
                   key: {{ .Values.secrets.existingSecretKeys.sessionSecret }}
             {{- else if and .Values.secrets.dbPassword .Values.secrets.sessionSecret }}
-            - name: DB_PASSWORD
+            - name: DB_PASS
               valueFrom:
                 secretKeyRef:
                   name: {{ include "crossview.fullname" . }}-secrets
