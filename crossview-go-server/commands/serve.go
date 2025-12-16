@@ -26,9 +26,18 @@ func (s *ServeCommand) Run() lib.CommandRunner {
 		logger lib.Logger,
 		database lib.Database,
 	) {
-		// Run database migrations
+		sqlDB, err := database.DB.DB()
+		if err != nil {
+			logger.Panicf("Failed to get underlying SQL DB: %v", err)
+		}
+		
+		if err := sqlDB.Ping(); err != nil {
+			logger.Panicf("Failed to ping database: %v", err)
+		}
+		
 		userRepo := models.NewUserRepository(database.DB)
 		if err := userRepo.AutoMigrate(); err != nil {
+			logger.Errorf("Migration error details: %+v", err)
 			logger.Panicf("Failed to run database migrations: %v", err)
 		}
 		logger.Info("Database migrations completed")
