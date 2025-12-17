@@ -8,10 +8,11 @@ import { useAppContext } from '../../providers/AppProvider.jsx';
 import { getBackgroundColor } from '../../utils/theme.js';
 
 export const Layout = ({ children }) => {
-  const { colorMode, selectedContextError, selectedContext } = useAppContext();
+  const { colorMode, selectedContextError, selectedContext, isInClusterMode } = useAppContext();
   const [sidebarWidth, setSidebarWidth] = useState(280);
   const [contextSidebarWidth, setContextSidebarWidth] = useState(60);
   const [showContextSidebar, setShowContextSidebar] = useState(() => {
+    if (isInClusterMode) return false;
     const saved = localStorage.getItem('contextSidebarCollapsed');
     return saved !== 'true';
   });
@@ -25,6 +26,11 @@ export const Layout = ({ children }) => {
   };
 
   useEffect(() => {
+    if (isInClusterMode) {
+      setContextSidebarWidth(0);
+      setShowContextSidebar(false);
+      return;
+    }
     const updateContextSidebarWidth = () => {
       const saved = localStorage.getItem('contextSidebarCollapsed');
       const isCollapsed = saved === 'true';
@@ -37,7 +43,7 @@ export const Layout = ({ children }) => {
     };
     window.addEventListener('contextSidebarWidthChanged', handleWidthChange);
     return () => window.removeEventListener('contextSidebarWidthChanged', handleWidthChange);
-  }, []);
+  }, [isInClusterMode]);
 
   const bgColor = getBackgroundColor(colorMode, 'html');
   const totalLeftWidth = sidebarWidth + contextSidebarWidth;

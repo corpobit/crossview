@@ -3,12 +3,15 @@ package lib
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
 	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	gormlogger "gorm.io/gorm/logger"
-	"os"
-	"time"
 )
 
 // Logger structure
@@ -32,19 +35,32 @@ type GormLogger struct {
 var (
 	globalLogger *Logger
 	zapLogger    *zap.Logger
+	loggerOnce   sync.Once
+	loggerMu     sync.RWMutex
 )
 
 // GetLogger get the logger
 func GetLogger() Logger {
-	if globalLogger == nil {
+	loggerOnce.Do(func() {
 		logger := newLogger(NewEnv())
 		globalLogger = &logger
-	}
+	})
 	return *globalLogger
 }
 
 // GetGinLogger get the gin logger
 func (l Logger) GetGinLogger() GinLogger {
+	loggerMu.RLock()
+	defer loggerMu.RUnlock()
+	
+	if zapLogger == nil {
+		tempLogger, _ := zap.NewDevelopment()
+		logger := tempLogger.WithOptions(zap.WithCaller(false))
+		return GinLogger{
+			Logger: newSugaredLogger(logger),
+		}
+	}
+	
 	logger := zapLogger.WithOptions(
 		zap.WithCaller(false),
 	)
@@ -55,6 +71,15 @@ func (l Logger) GetGinLogger() GinLogger {
 
 // GetFxLogger gets logger for go-fx
 func (l *Logger) GetFxLogger() fxevent.Logger {
+	loggerMu.RLock()
+	defer loggerMu.RUnlock()
+	
+	if zapLogger == nil {
+		tempLogger, _ := zap.NewDevelopment()
+		logger := tempLogger.WithOptions(zap.WithCaller(false))
+		return &FxLogger{Logger: newSugaredLogger(logger)}
+	}
+	
 	logger := zapLogger.WithOptions(
 		zap.WithCaller(false),
 	)
@@ -130,6 +155,23 @@ func (l *FxLogger) LogEvent(event fxevent.Event) {
 
 // GetGormLogger gets the gorm framework logger
 func (l Logger) GetGormLogger() *GormLogger {
+	loggerMu.RLock()
+	defer loggerMu.RUnlock()
+	
+	if zapLogger == nil {
+		tempLogger, _ := zap.NewDevelopment()
+		logger := tempLogger.WithOptions(
+			zap.AddCaller(),
+			zap.AddCallerSkip(3),
+		)
+		return &GormLogger{
+			Logger: newSugaredLogger(logger),
+			Config: gormlogger.Config{
+				LogLevel: gormlogger.Info,
+			},
+		}
+	}
+	
 	logger := zapLogger.WithOptions(
 		zap.AddCaller(),
 		zap.AddCallerSkip(3),
@@ -149,23 +191,70 @@ func newSugaredLogger(logger *zap.Logger) *Logger {
 	}
 }
 
-// newLogger sets up logger
+func colorLevelEncoder(level zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
+	switch level {
+	case zapcore.DebugLevel:
+		enc.AppendString("\033[36mDEBUG\033[0m")
+	case zapcore.InfoLevel:
+		enc.AppendString("\033[32mINFO\033[0m")
+	case zapcore.WarnLevel:
+		enc.AppendString("\033[33mWARN\033[0m")
+	case zapcore.ErrorLevel:
+		enc.AppendString("\033[31mERROR\033[0m")
+	case zapcore.FatalLevel:
+		enc.AppendString("\033[35mFATAL\033[0m")
+	case zapcore.PanicLevel:
+		enc.AppendString("\033[35mPANIC\033[0m")
+	default:
+		enc.AppendString(level.CapitalString())
+	}
+}
+
+func timeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+	enc.AppendString(t.Format("2006-01-02 15:04:05.000"))
+}
+
+func callerEncoder(caller zapcore.EntryCaller, enc zapcore.PrimitiveArrayEncoder) {
+	if caller.Defined {
+		enc.AppendString("\033[90m" + caller.TrimmedPath() + "\033[0m")
+	} else {
+		enc.AppendString("\033[90m???\033[0m")
+	}
+}
+
 func newLogger(env Env) Logger {
-
-	config := zap.NewDevelopmentConfig()
 	logOutput := os.Getenv("LOG_OUTPUT")
+	isDevelopment := env.Environment == "development" || env.Environment == ""
 
-	if env.Environment == "development" {
-		fmt.Println("encode level")
-		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	var config zap.Config
+	if isDevelopment {
+		config = zap.NewDevelopmentConfig()
+		config.EncoderConfig.EncodeTime = timeEncoder
+		config.EncoderConfig.EncodeLevel = colorLevelEncoder
+		config.EncoderConfig.EncodeCaller = callerEncoder
+		config.EncoderConfig.EncodeDuration = zapcore.SecondsDurationEncoder
+		config.EncoderConfig.StacktraceKey = "stacktrace"
+		config.EncoderConfig.CallerKey = "caller"
+		config.EncoderConfig.MessageKey = "msg"
+		config.EncoderConfig.LevelKey = "level"
+		config.EncoderConfig.TimeKey = "time"
+		config.EncoderConfig.NameKey = "logger"
+		config.EncoderConfig.FunctionKey = "func"
+	} else {
+		config = zap.NewProductionConfig()
+		config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+		config.EncoderConfig.EncodeLevel = zapcore.LowercaseLevelEncoder
+		if logOutput != "" {
+			config.OutputPaths = []string{logOutput}
+			config.ErrorOutputPaths = []string{logOutput}
+		}
 	}
 
-	if env.Environment == "production" && logOutput != "" {
-		config.OutputPaths = []string{logOutput}
+	logLevel := env.LogLevel
+	if logLevel == "" {
+		logLevel = os.Getenv("LOG_LEVEL")
 	}
-
-	logLevel := os.Getenv("LOG_LEVEL")
-	level := zap.PanicLevel
+	level := zapcore.InfoLevel
 	switch logLevel {
 	case "debug":
 		level = zapcore.DebugLevel
@@ -177,29 +266,58 @@ func newLogger(env Env) Logger {
 		level = zapcore.ErrorLevel
 	case "fatal":
 		level = zapcore.FatalLevel
-	default:
+	case "panic":
 		level = zap.PanicLevel
+	default:
+		if isDevelopment {
+			level = zapcore.DebugLevel
+		} else {
+			level = zapcore.InfoLevel
+		}
 	}
 	config.Level.SetLevel(level)
 
-	zapLogger, _ = config.Build()
-	logger := newSugaredLogger(zapLogger)
+	if isDevelopment {
+		config.Development = true
+		config.DisableStacktrace = false
+	}
+
+	var opts []zap.Option
+	opts = append(opts, zap.AddCaller(), zap.AddCallerSkip(1))
+	if isDevelopment {
+		opts = append(opts, zap.AddStacktrace(zapcore.ErrorLevel))
+	}
+
+	loggerMu.Lock()
+	defer loggerMu.Unlock()
+	
+	builtLogger, err := config.Build(opts...)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to initialize logger: %v", err))
+	}
+	
+	zapLogger = builtLogger
+	logger := newSugaredLogger(builtLogger)
 
 	return *logger
 }
 
-// Write interface implementation for gin-framework
 func (l GinLogger) Write(p []byte) (n int, err error) {
-	l.Info(string(p))
+	msg := string(p)
+	msg = strings.TrimSpace(msg)
+	if msg != "" {
+		l.Info("\033[36m[GIN]\033[0m " + msg)
+	}
 	return len(p), nil
 }
 
 // Printf prits go-fx logs
 func (l FxLogger) Printf(str string, args ...interface{}) {
 	if len(args) > 0 {
-		l.Debugf(str, args)
+		l.Debugf(str, args...)
+	} else {
+		l.Debug(str)
 	}
-	l.Debug(str)
 }
 
 // GORM Framework Logger Interface Implementations
@@ -215,22 +333,33 @@ func (l *GormLogger) LogMode(level gormlogger.LogLevel) gormlogger.Interface {
 // Info prints info
 func (l GormLogger) Info(ctx context.Context, str string, args ...interface{}) {
 	if l.LogLevel >= gormlogger.Info {
-		l.Debugf(str, args...)
+		if len(args) > 0 {
+			l.Debugf(str, args...)
+		} else {
+			l.Debug(str)
+		}
 	}
 }
 
 // Warn prints warn messages
 func (l GormLogger) Warn(ctx context.Context, str string, args ...interface{}) {
 	if l.LogLevel >= gormlogger.Warn {
-		l.Warnf(str, args...)
+		if len(args) > 0 {
+			l.Warnf(str, args...)
+		} else {
+			l.Logger.Warn(str)
+		}
 	}
-
 }
 
 // Error prints error messages
 func (l GormLogger) Error(ctx context.Context, str string, args ...interface{}) {
 	if l.LogLevel >= gormlogger.Error {
-		l.Errorf(str, args...)
+		if len(args) > 0 {
+			l.Errorf(str, args...)
+		} else {
+			l.Logger.Error(str)
+		}
 	}
 }
 
