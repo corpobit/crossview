@@ -34,7 +34,7 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "crossview.fullname" $ }}
+                name: {{ include "crossview.fullname" $ }}-service
                 port:
                   number: {{ $.Values.service.port }}
           {{- end }}
