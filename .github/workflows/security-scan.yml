@@ -21,6 +21,8 @@ on:
       - 'crossview-go-server/go.mod'
       - 'crossview-go-server/go.sum'
       - 'helm/**'
+  release:
+    types: [published]
   schedule:
     - cron: '0 2 * * 1'
   workflow_dispatch:
@@ -76,10 +78,21 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
 
-      - name: Scan application Docker image
+      - name: Scan application Docker image (latest)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'corpobit/crossview:latest'
+          format: 'table'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          exit-code: '0'
+          ignore-unfixed: false
+        continue-on-error: true
+
+      - name: Scan application Docker image (versioned tag if available)
+        uses: aquasecurity/trivy-action@master
+        if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')
+        with:
+          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ github.ref_name }}'
           format: 'table'
           severity: 'CRITICAL,HIGH,MEDIUM'
           exit-code: '0'

@@ -283,14 +283,13 @@ jobs:
           
           echo "Multi-arch manifest created for ${{ steps.version.outputs.tag }} and latest"
 
-  scan-and-release:
+  create-release:
     needs: [check-version-bump, build-and-release, create-multi-arch-manifest]
     if: needs.check-version-bump.outputs.is_version_bump != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
-      security-events: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -302,43 +301,6 @@ jobs:
         run: |
           echo "version=${{ needs.build-and-release.outputs.version }}" >> $GITHUB_OUTPUT
           echo "tag=${{ needs.build-and-release.outputs.tag }}" >> $GITHUB_OUTPUT
-
-      - name: Scan Docker image with Trivy (table output)
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}'
-          format: 'table'
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          exit-code: '0'
-          ignore-unfixed: false
-        continue-on-error: true
-
-      - name: Scan Docker image with Trivy (SARIF)
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'
-          ignore-unfixed: false
-        continue-on-error: true
-
-      - name: Check if SARIF file exists
-        id: check_sarif
-        if: always()
-        run: |
-          if [ -f trivy-results.sarif ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
-        if: always() && steps.check_sarif.outputs.exists == 'true'
-        with:
-          sarif_file: 'trivy-results.sarif'
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
