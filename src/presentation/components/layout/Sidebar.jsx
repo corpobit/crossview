@@ -28,6 +28,10 @@ export const Sidebar = ({ onToggle, onResize }) => {
   const { user, logout, kubernetesRepository, selectedContext, colorMode, selectedContextError, isInClusterMode } = useAppContext();
 
   useEffect(() => {
+    if (isInClusterMode) {
+      setContextSidebarWidth(0);
+      return;
+    }
     const updateContextSidebarWidth = () => {
       const saved = localStorage.getItem('contextSidebarCollapsed');
       setContextSidebarWidth(saved === 'true' ? 0 : 60);
@@ -38,7 +42,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
     };
     window.addEventListener('contextSidebarWidthChanged', handleWidthChange);
     return () => window.removeEventListener('contextSidebarWidthChanged', handleWidthChange);
-  }, []);
+  }, [isInClusterMode]);
 
   useEffect(() => {
     const currentWidth = isCollapsed ? 60 : width;
@@ -224,7 +228,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
       }}
       transition={isResizing ? 'none' : 'width 0.2s, left 0.2s'}
       position="fixed"
-      left={`${contextSidebarWidth}px`}
+      left={`${isInClusterMode ? 0 : contextSidebarWidth}px`}
       top={0}
       zIndex={1000}
       display="flex"
@@ -274,7 +278,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
               </Text>
               </HStack>
             )}
-            {!isCollapsed && (
+            {!isCollapsed && !isInClusterMode && (
               <Box
                 as="button"
                 onClick={() => {

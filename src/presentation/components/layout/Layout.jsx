@@ -46,11 +46,11 @@ export const Layout = ({ children }) => {
   }, [isInClusterMode]);
 
   const bgColor = getBackgroundColor(colorMode, 'html');
-  const totalLeftWidth = sidebarWidth + contextSidebarWidth;
+  const totalLeftWidth = sidebarWidth + (isInClusterMode ? 0 : contextSidebarWidth);
 
   return (
     <Box minH="100vh" bg={bgColor}>
-      {showContextSidebar && <ContextSidebar />}
+      {!isInClusterMode && showContextSidebar && <ContextSidebar />}
       <Sidebar onToggle={handleSidebarToggle} onResize={handleSidebarResize} />
       <Box 
         ml={`${totalLeftWidth}px`} 
