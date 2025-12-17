@@ -84,7 +84,7 @@ spec:
               command:
                 - /bin/sh
                 - -c
-                - pg_isready -U $(POSTGRES_USER)
+                - pg_isready -U "{{ .Values.env.DB_USER | default "postgres" }}"
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
@@ -94,7 +94,7 @@ spec:
               command:
                 - /bin/sh
                 - -c
-                - pg_isready -U $(POSTGRES_USER)
+                - pg_isready -U "{{ .Values.env.DB_USER | default "postgres" }}"
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 3
