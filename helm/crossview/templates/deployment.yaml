@@ -40,6 +40,10 @@ spec:
       initContainers:
         - name: wait-for-db
           image: "{{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}"
+          {{- with .Values.database.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           command: ['sh', '-c']
           args:
             - |
@@ -85,6 +89,10 @@ spec:
           {{- if .Values.image.platform }}
           # Note: Platform selection via runtimeClassName or nodeSelector may be needed
           # For ARM64 hosts running amd64 images, ensure your cluster supports emulation
+          {{- end }}
+          {{- with .Values.app.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
             - name: http

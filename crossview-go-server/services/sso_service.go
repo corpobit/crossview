@@ -36,12 +36,17 @@ func (s SSOService) GetSSOStatus() lib.SSOConfig {
 	return s.ssoConfig
 }
 
-func (s SSOService) InitiateOIDC(ctx context.Context) (string, error) {
+func (s SSOService) InitiateOIDC(ctx context.Context, callbackURL string) (string, error) {
 	if !s.ssoConfig.Enabled || !s.ssoConfig.OIDC.Enabled {
 		return "", fmt.Errorf("OIDC SSO is not enabled")
 	}
 	
 	oidcConfig := s.ssoConfig.OIDC
+	
+	// Use provided callback URL, fallback to config if not provided
+	if callbackURL == "" {
+		callbackURL = oidcConfig.CallbackURL
+	}
 	
 	var authURL string
 	var state string
@@ -81,7 +86,7 @@ func (s SSOService) InitiateOIDC(ctx context.Context) (string, error) {
 	
 	params := url.Values{}
 	params.Set("client_id", oidcConfig.ClientId)
-	params.Set("redirect_uri", oidcConfig.CallbackURL)
+	params.Set("redirect_uri", callbackURL)
 	params.Set("response_type", "code")
 	params.Set("scope", oidcConfig.Scope)
 	params.Set("state", state)
@@ -91,12 +96,17 @@ func (s SSOService) InitiateOIDC(ctx context.Context) (string, error) {
 	return authURL, nil
 }
 
-func (s SSOService) HandleOIDCCallback(ctx context.Context, code, state string) (*models.User, error) {
+func (s SSOService) HandleOIDCCallback(ctx context.Context, code, state string, callbackURL string) (*models.User, error) {
 	if !s.ssoConfig.Enabled || !s.ssoConfig.OIDC.Enabled {
 		return nil, fmt.Errorf("OIDC SSO is not enabled")
 	}
 	
 	oidcConfig := s.ssoConfig.OIDC
+	
+	// Use provided callback URL, fallback to config if not provided
+	if callbackURL == "" {
+		callbackURL = oidcConfig.CallbackURL
+	}
 	
 	var tokenURL string
 	var userInfoURL string
@@ -145,7 +155,7 @@ func (s SSOService) HandleOIDCCallback(ctx context.Context, code, state string) 
 	tokenData := url.Values{}
 	tokenData.Set("grant_type", "authorization_code")
 	tokenData.Set("code", code)
-	tokenData.Set("redirect_uri", oidcConfig.CallbackURL)
+	tokenData.Set("redirect_uri", callbackURL)
 	tokenData.Set("client_id", oidcConfig.ClientId)
 	tokenData.Set("client_secret", oidcConfig.ClientSecret)
 	
@@ -209,7 +219,7 @@ func (s SSOService) HandleOIDCCallback(ctx context.Context, code, state string) 
 	return user, nil
 }
 
-func (s SSOService) InitiateSAML(ctx context.Context) (string, error) {
+func (s SSOService) InitiateSAML(ctx context.Context, callbackURL string) (string, error) {
 	if !s.ssoConfig.Enabled || !s.ssoConfig.SAML.Enabled {
 		return "", fmt.Errorf("SAML SSO is not enabled")
 	}
@@ -223,7 +233,7 @@ func (s SSOService) InitiateSAML(ctx context.Context) (string, error) {
 	return samlConfig.EntryPoint, nil
 }
 
-func (s SSOService) HandleSAMLCallback(ctx context.Context, samlResponse string) (*models.User, error) {
+func (s SSOService) HandleSAMLCallback(ctx context.Context, samlResponse string, callbackURL string) (*models.User, error) {
 	if !s.ssoConfig.Enabled || !s.ssoConfig.SAML.Enabled {
 		return nil, fmt.Errorf("SAML SSO is not enabled")
 	}

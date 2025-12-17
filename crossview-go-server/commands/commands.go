@@ -28,6 +28,7 @@ func WrapSubCommand(name string, cmd lib.Command, opt fx.Option) *cobra.Command 
 		Short: cmd.Short(),
 		Run: func(c *cobra.Command, args []string) {
 			logger := lib.GetLogger()
+			logger.Info("Initializing application...")
 			opts := fx.Options(
 				fx.WithLogger(func() fxevent.Logger {
 					return logger.GetFxLogger()
@@ -37,10 +38,19 @@ func WrapSubCommand(name string, cmd lib.Command, opt fx.Option) *cobra.Command 
 			ctx := context.Background()
 			app := fx.New(opt, opts)
 			err := app.Start(ctx)
-			defer app.Stop(ctx)
 			if err != nil {
+				logger.Errorf("Failed to start application: %v", err)
+				if stopErr := app.Stop(ctx); stopErr != nil {
+					logger.Errorf("Error during shutdown after failed start: %v", stopErr)
+				}
 				logger.Fatal(err)
 			}
+			defer func() {
+				logger.Info("Shutting down application...")
+				if stopErr := app.Stop(ctx); stopErr != nil {
+					logger.Errorf("Error during shutdown: %v", stopErr)
+				}
+			}()
 		},
 	}
 	cmd.Setup(wrappedCmd)

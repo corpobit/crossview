@@ -12,6 +12,7 @@ type Env struct {
 	ServerPort    string `mapstructure:"SERVER_PORT"`
 	Environment   string `mapstructure:"ENV"`
 	LogOutput     string `mapstructure:"LOG_OUTPUT"`
+	LogLevel      string `mapstructure:"LOG_LEVEL"`
 	DBUsername    string `mapstructure:"DB_USER"`
 	DBPassword    string `mapstructure:"DB_PASS"`
 	DBHost        string `mapstructure:"DB_HOST"`
@@ -57,6 +58,8 @@ func NewEnv() Env {
 	env.Environment = getEnvOrDefault("NODE_ENV", getEnvOrDefault("ENV", 
 		viper.GetString("ENV")))
 	env.LogOutput = getEnvOrDefault("LOG_OUTPUT", viper.GetString("LOG_OUTPUT"))
+	env.LogLevel = getEnvOrDefault("LOG_LEVEL", 
+		getConfigValue("server.log.level", viper.GetString("LOG_LEVEL"), ""))
 	
 	env.DBUsername = getEnvOrDefault("DB_USER", getEnvOrDefault("DB_USERNAME", 
 		getConfigValue("database.username", viper.GetString("DB_USER"), "postgres")))
