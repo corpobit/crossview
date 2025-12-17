@@ -57,7 +57,7 @@ func TestSSOService_InitiateOIDC_NotEnabled(t *testing.T) {
 	env := setupTestEnv()
 
 	service := NewSSOService(logger, env, lib.Database{DB: db})
-	_, err := service.InitiateOIDC(context.Background())
+	_, err := service.InitiateOIDC(context.Background(), "")
 
 	if err == nil {
 		t.Error("Expected error when OIDC is not enabled")
@@ -100,7 +100,7 @@ func TestSSOService_InitiateOIDC_WithIssuer(t *testing.T) {
 	service.ssoConfig.OIDC.CallbackURL = "http://localhost:3001/api/auth/oidc/callback"
 	service.ssoConfig.OIDC.Scope = "openid profile email"
 
-	authURL, err := service.InitiateOIDC(context.Background())
+	authURL, err := service.InitiateOIDC(context.Background(), "")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -136,7 +136,7 @@ func TestSSOService_InitiateOIDC_WithAuthorizationURL(t *testing.T) {
 	service.ssoConfig.OIDC.CallbackURL = "http://localhost:3001/api/auth/oidc/callback"
 	service.ssoConfig.OIDC.Scope = "openid profile email"
 
-	authURL, err := service.InitiateOIDC(context.Background())
+	authURL, err := service.InitiateOIDC(context.Background(), "")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -177,7 +177,7 @@ func TestSSOService_HandleOIDCCallback_NotEnabled(t *testing.T) {
 	env := setupTestEnv()
 
 	service := NewSSOService(logger, env, lib.Database{DB: db})
-	_, err := service.HandleOIDCCallback(context.Background(), "code", "state")
+	_, err := service.HandleOIDCCallback(context.Background(), "code", "state", "")
 
 	if err == nil {
 		t.Error("Expected error when OIDC is not enabled")
@@ -260,7 +260,7 @@ func TestSSOService_HandleOIDCCallback_Success(t *testing.T) {
 	service.ssoConfig.OIDC.ClientSecret = "test-secret"
 	service.ssoConfig.OIDC.CallbackURL = "http://localhost:3001/api/auth/oidc/callback"
 
-	user, err := service.HandleOIDCCallback(context.Background(), "test-code", "test-state")
+	user, err := service.HandleOIDCCallback(context.Background(), "test-code", "test-state", "")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -395,7 +395,7 @@ func TestSSOService_InitiateSAML_NotEnabled(t *testing.T) {
 	env := setupTestEnv()
 
 	service := NewSSOService(logger, env, lib.Database{DB: db})
-	_, err := service.InitiateSAML(context.Background())
+	_, err := service.InitiateSAML(context.Background(), "")
 
 	if err == nil {
 		t.Error("Expected error when SAML is not enabled")
@@ -421,7 +421,7 @@ func TestSSOService_InitiateSAML_Success(t *testing.T) {
 	service.ssoConfig.SAML.Enabled = true
 	service.ssoConfig.SAML.EntryPoint = "http://example.com/saml/login"
 
-	entryPoint, err := service.InitiateSAML(context.Background())
+	entryPoint, err := service.InitiateSAML(context.Background(), "")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -446,7 +446,7 @@ func TestSSOService_InitiateSAML_NoEntryPoint(t *testing.T) {
 	service.ssoConfig.SAML.Enabled = true
 	service.ssoConfig.SAML.EntryPoint = ""
 
-	_, err := service.InitiateSAML(context.Background())
+	_, err := service.InitiateSAML(context.Background(), "")
 	if err == nil {
 		t.Error("Expected error when entry point is not configured")
 	}
@@ -462,7 +462,7 @@ func TestSSOService_HandleSAMLCallback_NotEnabled(t *testing.T) {
 	env := setupTestEnv()
 
 	service := NewSSOService(logger, env, lib.Database{DB: db})
-	_, err := service.HandleSAMLCallback(context.Background(), "saml-response")
+	_, err := service.HandleSAMLCallback(context.Background(), "saml-response", "")
 
 	if err == nil {
 		t.Error("Expected error when SAML is not enabled")
@@ -487,7 +487,7 @@ func TestSSOService_HandleSAMLCallback_NotImplemented(t *testing.T) {
 	service.ssoConfig.Enabled = true
 	service.ssoConfig.SAML.Enabled = true
 
-	_, err := service.HandleSAMLCallback(context.Background(), "saml-response")
+	_, err := service.HandleSAMLCallback(context.Background(), "saml-response", "")
 	if err == nil {
 		t.Error("Expected error for not implemented SAML callback")
 	}

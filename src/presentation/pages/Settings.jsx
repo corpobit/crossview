@@ -9,21 +9,24 @@ import { useEffect } from 'react';
 import { UserManagement } from './UserManagement.jsx';
 import { Appearance } from './Appearance.jsx';
 import { ContextManagement } from './ContextManagement.jsx';
+import { useAppContext } from '../providers/AppProvider.jsx';
 
 export const Settings = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isInClusterMode } = useAppContext();
 
   const isUserManagement = location.pathname.includes('/user-management');
   const isAppearance = location.pathname.includes('/appearance');
   const isContextManagement = location.pathname.includes('/context-management');
 
-  // Default to appearance if no sub-route is specified
   useEffect(() => {
     if (location.pathname === '/settings' || location.pathname === '/settings/') {
       navigate('/settings/appearance', { replace: true });
+    } else if (isInClusterMode && location.pathname === '/settings/context-management') {
+      navigate('/settings/appearance', { replace: true });
     }
-  }, [location.pathname, navigate]);
+  }, [location.pathname, navigate, isInClusterMode]);
 
   return (
     <Box>
@@ -54,17 +57,19 @@ export const Settings = () => {
         >
           User Management
         </Button>
-        <Button
-          variant={isContextManagement ? 'solid' : 'ghost'}
-          onClick={() => navigate('/settings/context-management')}
-          size="sm"
-          bg={isContextManagement ? 'gray.900' : 'transparent'}
-          _dark={{ bg: isContextManagement ? 'white' : 'transparent', color: isContextManagement ? 'gray.900' : 'gray.300' }}
-          color={isContextManagement ? 'white' : 'gray.700'}
-          _hover={{ bg: isContextManagement ? 'gray.800' : 'gray.100', _dark: { bg: isContextManagement ? 'gray.100' : 'gray.700' } }}
-        >
-          Contexts
-        </Button>
+        {!isInClusterMode && (
+          <Button
+            variant={isContextManagement ? 'solid' : 'ghost'}
+            onClick={() => navigate('/settings/context-management')}
+            size="sm"
+            bg={isContextManagement ? 'gray.900' : 'transparent'}
+            _dark={{ bg: isContextManagement ? 'white' : 'transparent', color: isContextManagement ? 'gray.900' : 'gray.300' }}
+            color={isContextManagement ? 'white' : 'gray.700'}
+            _hover={{ bg: isContextManagement ? 'gray.800' : 'gray.100', _dark: { bg: isContextManagement ? 'gray.100' : 'gray.700' } }}
+          >
+            Contexts
+          </Button>
+        )}
             </HStack>
 
       <Routes>

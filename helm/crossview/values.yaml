@@ -28,6 +28,14 @@ app:
     fsGroup: 1000
     seccompProfile:
       type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
 
 # Deployment strategy
 deployment:
@@ -124,6 +132,8 @@ database:
   containerSecurityContext:
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 999
     capabilities:
       drop:
         - ALL

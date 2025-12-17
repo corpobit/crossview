@@ -11,8 +11,12 @@ import { useAppContext } from '../../providers/AppProvider.jsx';
 import { getBorderColor, getBackgroundColor } from '../../utils/theme.js';
 
 export const ContextSidebar = () => {
-  const { contexts, selectedContext, setSelectedContext, contextErrors, colorMode } = useAppContext();
+  const { contexts, selectedContext, setSelectedContext, contextErrors, colorMode, isInClusterMode } = useAppContext();
   const navigate = useNavigate();
+
+  if (isInClusterMode) {
+    return null;
+  }
 
   const handleContextClick = async (contextName) => {
     await setSelectedContext(contextName);

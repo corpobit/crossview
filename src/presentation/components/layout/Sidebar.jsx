@@ -25,7 +25,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
   const cancelRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, kubernetesRepository, selectedContext, colorMode, selectedContextError } = useAppContext();
+  const { user, logout, kubernetesRepository, selectedContext, colorMode, selectedContextError, isInClusterMode } = useAppContext();
 
   useEffect(() => {
     const updateContextSidebarWidth = () => {
@@ -177,7 +177,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
       subMenuItems: [
         { id: 'settings-appearance', label: 'Appearance', icon: FiSliders, path: '/settings/appearance' },
         { id: 'settings-users', label: 'User Management', icon: FiUsers, path: '/settings/user-management' },
-        { id: 'settings-contexts', label: 'Contexts', icon: FiDatabase, path: '/settings/context-management' },
+        ...(isInClusterMode ? [] : [{ id: 'settings-contexts', label: 'Contexts', icon: FiDatabase, path: '/settings/context-management' }]),
       ]
     },
   ];

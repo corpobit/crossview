@@ -13,6 +13,8 @@ database:
 # Server Configuration
 server:
   port: 3001
+  log:
+    level: info  # Options: debug, info, warn, error, fatal, panic
   cors:
     origin: http://localhost:5173
     credentials: true

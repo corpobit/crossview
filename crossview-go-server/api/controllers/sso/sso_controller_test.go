@@ -19,10 +19,10 @@ func setupMockSSOService() MockSSOService {
 
 type MockSSOService struct {
 	GetSSOStatusFunc        func() lib.SSOConfig
-	InitiateOIDCFunc        func(ctx context.Context) (string, error)
-	HandleOIDCCallbackFunc  func(ctx context.Context, code, state string) (*models.User, error)
-	InitiateSAMLFunc        func(ctx context.Context) (string, error)
-	HandleSAMLCallbackFunc  func(ctx context.Context, samlResponse string) (*models.User, error)
+	InitiateOIDCFunc        func(ctx context.Context, callbackURL string) (string, error)
+	HandleOIDCCallbackFunc  func(ctx context.Context, code, state string, callbackURL string) (*models.User, error)
+	InitiateSAMLFunc        func(ctx context.Context, callbackURL string) (string, error)
+	HandleSAMLCallbackFunc  func(ctx context.Context, samlResponse string, callbackURL string) (*models.User, error)
 }
 
 func (m MockSSOService) GetSSOStatus() lib.SSOConfig {
@@ -32,30 +32,30 @@ func (m MockSSOService) GetSSOStatus() lib.SSOConfig {
 	return lib.SSOConfig{Enabled: false}
 }
 
-func (m MockSSOService) InitiateOIDC(ctx context.Context) (string, error) {
+func (m MockSSOService) InitiateOIDC(ctx context.Context, callbackURL string) (string, error) {
 	if m.InitiateOIDCFunc != nil {
-		return m.InitiateOIDCFunc(ctx)
+		return m.InitiateOIDCFunc(ctx, callbackURL)
 	}
 	return "", nil
 }
 
-func (m MockSSOService) HandleOIDCCallback(ctx context.Context, code, state string) (*models.User, error) {
+func (m MockSSOService) HandleOIDCCallback(ctx context.Context, code, state string, callbackURL string) (*models.User, error) {
 	if m.HandleOIDCCallbackFunc != nil {
-		return m.HandleOIDCCallbackFunc(ctx, code, state)
+		return m.HandleOIDCCallbackFunc(ctx, code, state, callbackURL)
 	}
 	return nil, nil
 }
 
-func (m MockSSOService) InitiateSAML(ctx context.Context) (string, error) {
+func (m MockSSOService) InitiateSAML(ctx context.Context, callbackURL string) (string, error) {
 	if m.InitiateSAMLFunc != nil {
-		return m.InitiateSAMLFunc(ctx)
+		return m.InitiateSAMLFunc(ctx, callbackURL)
 	}
 	return "", nil
 }
 
-func (m MockSSOService) HandleSAMLCallback(ctx context.Context, samlResponse string) (*models.User, error) {
+func (m MockSSOService) HandleSAMLCallback(ctx context.Context, samlResponse string, callbackURL string) (*models.User, error) {
 	if m.HandleSAMLCallbackFunc != nil {
-		return m.HandleSAMLCallbackFunc(ctx, samlResponse)
+		return m.HandleSAMLCallbackFunc(ctx, samlResponse, callbackURL)
 	}
 	return nil, nil
 }
@@ -102,7 +102,7 @@ func TestSSOController_InitiateOIDC_Success(t *testing.T) {
 	env := setupTestEnv()
 	mockService := setupMockSSOService()
 
-	mockService.InitiateOIDCFunc = func(ctx context.Context) (string, error) {
+	mockService.InitiateOIDCFunc = func(ctx context.Context, callbackURL string) (string, error) {
 		return "http://example.com/auth?client_id=test", nil
 	}
 
@@ -130,7 +130,7 @@ func TestSSOController_InitiateOIDC_Error(t *testing.T) {
 	env := setupTestEnv()
 	mockService := setupMockSSOService()
 
-	mockService.InitiateOIDCFunc = func(ctx context.Context) (string, error) {
+	mockService.InitiateOIDCFunc = func(ctx context.Context, callbackURL string) (string, error) {
 		return "", http.ErrMissingFile
 	}
 
@@ -163,7 +163,7 @@ func TestSSOController_HandleOIDCCallback_Success(t *testing.T) {
 		Role:     "user",
 	}
 
-	mockService.HandleOIDCCallbackFunc = func(ctx context.Context, code, state string) (*models.User, error) {
+	mockService.HandleOIDCCallbackFunc = func(ctx context.Context, code, state string, callbackURL string) (*models.User, error) {
 		return testUser, nil
 	}
 
@@ -250,7 +250,7 @@ func TestSSOController_HandleOIDCCallback_ServiceError(t *testing.T) {
 	env := setupTestEnv()
 	mockService := setupMockSSOService()
 
-	mockService.HandleOIDCCallbackFunc = func(ctx context.Context, code, state string) (*models.User, error) {
+	mockService.HandleOIDCCallbackFunc = func(ctx context.Context, code, state string, callbackURL string) (*models.User, error) {
 		return nil, http.ErrMissingFile
 	}
 
@@ -279,7 +279,7 @@ func TestSSOController_InitiateSAML_Success(t *testing.T) {
 	env := setupTestEnv()
 	mockService := setupMockSSOService()
 
-	mockService.InitiateSAMLFunc = func(ctx context.Context) (string, error) {
+	mockService.InitiateSAMLFunc = func(ctx context.Context, callbackURL string) (string, error) {
 		return "http://example.com/saml/login", nil
 	}
 
@@ -307,7 +307,7 @@ func TestSSOController_InitiateSAML_Error(t *testing.T) {
 	env := setupTestEnv()
 	mockService := setupMockSSOService()
 
-	mockService.InitiateSAMLFunc = func(ctx context.Context) (string, error) {
+	mockService.InitiateSAMLFunc = func(ctx context.Context, callbackURL string) (string, error) {
 		return "", http.ErrMissingFile
 	}
 
@@ -340,7 +340,7 @@ func TestSSOController_HandleSAMLCallback_Success(t *testing.T) {
 		Role:     "user",
 	}
 
-	mockService.HandleSAMLCallbackFunc = func(ctx context.Context, samlResponse string) (*models.User, error) {
+	mockService.HandleSAMLCallbackFunc = func(ctx context.Context, samlResponse string, callbackURL string) (*models.User, error) {
 		return testUser, nil
 	}
 
@@ -401,7 +401,7 @@ func TestSSOController_HandleSAMLCallback_ServiceError(t *testing.T) {
 	env := setupTestEnv()
 	mockService := setupMockSSOService()
 
-	mockService.HandleSAMLCallbackFunc = func(ctx context.Context, samlResponse string) (*models.User, error) {
+	mockService.HandleSAMLCallbackFunc = func(ctx context.Context, samlResponse string, callbackURL string) (*models.User, error) {
 		return nil, http.ErrMissingFile
 	}
 
