@@ -2,6 +2,7 @@ package sso
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -37,7 +38,10 @@ func (c *SSOController) GetStatus(ctx *gin.Context) {
 }
 
 func (c *SSOController) InitiateOIDC(ctx *gin.Context) {
-	authURL, err := c.ssoService.InitiateOIDC(ctx.Request.Context())
+	// Build callback URL dynamically from request origin
+	callbackURL := c.buildCallbackURL(ctx, "/api/auth/oidc/callback")
+	
+	authURL, err := c.ssoService.InitiateOIDC(ctx.Request.Context(), callbackURL)
 	if err != nil {
 		c.logger.Errorf("OIDC initiation failed: %s", err.Error())
 		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -66,7 +70,10 @@ func (c *SSOController) HandleOIDCCallback(ctx *gin.Context) {
 		return
 	}
 	
-	user, err := c.ssoService.HandleOIDCCallback(ctx.Request.Context(), code, state)
+	// Build callback URL dynamically from request origin
+	callbackURL := c.buildCallbackURL(ctx, "/api/auth/oidc/callback")
+	
+	user, err := c.ssoService.HandleOIDCCallback(ctx.Request.Context(), code, state, callbackURL)
 	if err != nil {
 		c.logger.Errorf("OIDC callback failed: %s", err.Error())
 		frontendURL := c.env.CORSOrigin
@@ -90,7 +97,10 @@ func (c *SSOController) HandleOIDCCallback(ctx *gin.Context) {
 }
 
 func (c *SSOController) InitiateSAML(ctx *gin.Context) {
-	authURL, err := c.ssoService.InitiateSAML(ctx.Request.Context())
+	// Build callback URL dynamically from request origin
+	callbackURL := c.buildCallbackURL(ctx, "/api/auth/saml/callback")
+	
+	authURL, err := c.ssoService.InitiateSAML(ctx.Request.Context(), callbackURL)
 	if err != nil {
 		c.logger.Errorf("SAML initiation failed: %s", err.Error())
 		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -109,7 +119,10 @@ func (c *SSOController) HandleSAMLCallback(ctx *gin.Context) {
 		return
 	}
 	
-	user, err := c.ssoService.HandleSAMLCallback(ctx.Request.Context(), samlResponse)
+	// Build callback URL dynamically from request origin
+	callbackURL := c.buildCallbackURL(ctx, "/api/auth/saml/callback")
+	
+	user, err := c.ssoService.HandleSAMLCallback(ctx.Request.Context(), samlResponse, callbackURL)
 	if err != nil {
 		c.logger.Errorf("SAML callback failed: %s", err.Error())
 		frontendURL := c.env.CORSOrigin
@@ -130,5 +143,47 @@ func (c *SSOController) HandleSAMLCallback(ctx *gin.Context) {
 	c.logger.Infof("SAML login successful: userId=%d, username=%s", user.ID, user.Username)
 	frontendURL := c.env.CORSOrigin
 	ctx.Redirect(http.StatusFound, frontendURL)
+}
+
+// buildCallbackURL constructs the callback URL dynamically from the request
+// Falls back to config value if request origin cannot be determined
+func (c *SSOController) buildCallbackURL(ctx *gin.Context, callbackPath string) string {
+	// Try to get the origin from the request
+	scheme := "http"
+	if ctx.GetHeader("X-Forwarded-Proto") == "https" || ctx.Request.TLS != nil {
+		scheme = "https"
+	}
+	
+	host := ctx.GetHeader("X-Forwarded-Host")
+	if host == "" {
+		host = ctx.Request.Host
+	}
+	
+	// If we have a valid host, build the callback URL dynamically
+	if host != "" {
+		callbackURL := url.URL{
+			Scheme: scheme,
+			Host:   host,
+			Path:   callbackPath,
+		}
+		return callbackURL.String()
+	}
+	
+	// Fallback to config value
+	// Extract callback URL from config by parsing the CORS origin
+	if c.env.CORSOrigin != "" {
+		originURL, err := url.Parse(c.env.CORSOrigin)
+		if err == nil {
+			callbackURL := url.URL{
+				Scheme: originURL.Scheme,
+				Host:   originURL.Host,
+				Path:   callbackPath,
+			}
+			return callbackURL.String()
+		}
+	}
+	
+	// Last resort: use default from config
+	return "http://localhost:3001" + callbackPath
 }
 

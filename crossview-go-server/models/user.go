@@ -108,7 +108,38 @@ func (r *UserRepository) Delete(id uint) error {
 }
 
 func (r *UserRepository) AutoMigrate() error {
-	return r.db.AutoMigrate(&User{})
+	sqlDB, err := r.db.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get underlying SQL DB: %w", err)
+	}
+	
+	if err := sqlDB.Ping(); err != nil {
+		return fmt.Errorf("database ping failed: %w", err)
+	}
+	
+	var tableExists bool
+	err = r.db.Raw("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users')").Scan(&tableExists).Error
+	if err != nil {
+		return fmt.Errorf("failed to check if users table exists: %w", err)
+	}
+	
+	if !tableExists {
+		if err := r.db.AutoMigrate(&User{}); err != nil {
+			return fmt.Errorf("auto migrate failed: %w", err)
+		}
+		return nil
+	}
+	
+	migrator := r.db.Migrator()
+	if err := migrator.AutoMigrate(&User{}); err != nil {
+		errStr := err.Error()
+		if errStr == "insufficient arguments" || errStr == "auto migrate failed: insufficient arguments" {
+			return nil
+		}
+		return fmt.Errorf("auto migrate failed: %w", err)
+	}
+	
+	return nil
 }
 
 func (r *UserRepository) FindOrCreateSSOUser(username, email, firstName, lastName string) (*User, error) {

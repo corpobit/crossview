@@ -60,26 +60,41 @@ func (k *KubernetesService) SetContext(ctxName string) error {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 
+	targetContext := ctxName
+	if k.isInCluster() {
+		targetContext = "in-cluster"
+	}
+
+	if k.currentContext == targetContext && k.clientset != nil && k.config != nil {
+		return nil
+	}
+
+	if k.failedContexts[targetContext] {
+		return fmt.Errorf("context '%s' has previously failed and will not be retried", targetContext)
+	}
+
 	var restConfig *rest.Config
 	var err error
 
 	if k.isInCluster() {
 		restConfig, err = rest.InClusterConfig()
 		if err != nil {
+			k.failedContexts[targetContext] = true
 			return fmt.Errorf("failed to create in-cluster config: %w", err)
 		}
 		k.currentContext = "in-cluster"
-		k.logger.Info("Using Kubernetes service account (in-cluster mode)")
 	} else {
 		if ctxName == "" {
 			return fmt.Errorf("context parameter is required when not running in cluster")
 		}
 
 		if err := k.loadKubeConfig(); err != nil {
+			k.failedContexts[targetContext] = true
 			return err
 		}
 
 		if _, exists := k.kubeConfig.Contexts[ctxName]; !exists {
+			k.failedContexts[targetContext] = true
 			return fmt.Errorf("context '%s' not found in kubeconfig", ctxName)
 		}
 
@@ -88,23 +103,29 @@ func (k *KubernetesService) SetContext(ctxName string) error {
 
 		restConfig, err = clientcmd.NewDefaultClientConfig(*k.kubeConfig, &clientcmd.ConfigOverrides{}).ClientConfig()
 		if err != nil {
+			k.failedContexts[targetContext] = true
 			return fmt.Errorf("failed to create rest config: %w", err)
 		}
-		k.logger.Infof("Using Kubernetes context from kubeconfig: %s", ctxName)
 	}
 
 	restConfig.WarningHandler = rest.NoWarnings{}
 
 	clientset, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
+		k.failedContexts[targetContext] = true
 		return fmt.Errorf("failed to create clientset: %w", err)
 	}
 
 	k.config = restConfig
 	k.clientset = clientset
 	k.dynamicClient = nil
+	delete(k.failedContexts, targetContext)
 
-	k.logger.Infof("Kubernetes client initialized with context: %s", k.currentContext)
+	if k.isInCluster() {
+		k.logger.Infof("Kubernetes client initialized with context: %s", k.currentContext)
+	} else {
+		k.logger.Infof("Kubernetes client initialized with context: %s", ctxName)
+	}
 	return nil
 }
 

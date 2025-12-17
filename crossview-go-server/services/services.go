@@ -10,10 +10,10 @@ import (
 
 type SSOServiceInterface interface {
 	GetSSOStatus() lib.SSOConfig
-	InitiateOIDC(ctx context.Context) (string, error)
-	HandleOIDCCallback(ctx context.Context, code, state string) (*models.User, error)
-	InitiateSAML(ctx context.Context) (string, error)
-	HandleSAMLCallback(ctx context.Context, samlResponse string) (*models.User, error)
+	InitiateOIDC(ctx context.Context, callbackURL string) (string, error)
+	HandleOIDCCallback(ctx context.Context, code, state string, callbackURL string) (*models.User, error)
+	InitiateSAML(ctx context.Context, callbackURL string) (string, error)
+	HandleSAMLCallback(ctx context.Context, samlResponse string, callbackURL string) (*models.User, error)
 }
 
 // Module exports services present

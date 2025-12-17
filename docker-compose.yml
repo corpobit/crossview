@@ -14,6 +14,7 @@ services:
       - DB_PASSWORD=password
       - KUBECONFIG=/app/.kube/config
       - SESSION_SECRET=crossview-secret-key-change-in-production
+      - LOG_LEVEL=info
     volumes:
       - ./config/config.yaml:/app/config/config.yaml:ro
       - ~/.kube/config:/app/.kube/config:ro

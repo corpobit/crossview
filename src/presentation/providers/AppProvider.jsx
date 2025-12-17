@@ -43,6 +43,12 @@ export const AppProvider = ({ children }) => {
     }
   });
 
+  const isInClusterMode = useMemo(() => {
+    if (contexts.length !== 1) return false;
+    const contextName = typeof contexts[0] === 'string' ? contexts[0] : contexts[0]?.name || contexts[0];
+    return contextName === 'in-cluster';
+  }, [contexts]);
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -241,8 +247,9 @@ export const AppProvider = ({ children }) => {
     saveSearch: handleSaveSearch,
     loadSearch: handleLoadSearch,
     deleteSearch: handleDeleteSearch,
+    isInClusterMode,
     };
-  }, [kubernetesRepository, getDashboardDataUseCase, getKubernetesContextsUseCase, authService, userService, selectedContext, contexts, user, authChecked, serverError, contextErrors, colorMode, savedSearches]);
+  }, [kubernetesRepository, getDashboardDataUseCase, getKubernetesContextsUseCase, authService, userService, selectedContext, contexts, user, authChecked, serverError, contextErrors, colorMode, savedSearches, isInClusterMode]);
 
   return (
     <ChakraProvider value={defaultSystem}>
