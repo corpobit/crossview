@@ -72,11 +72,13 @@ spec:
             {{- with .Values.database.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-          {{- if .Values.database.persistence.enabled }}
           volumeMounts:
+            {{- if .Values.database.persistence.enabled }}
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data
-          {{- end }}
+            {{- end }}
+            - name: postgres-socket
+              mountPath: /var/run/postgresql
           livenessProbe:
             exec:
               command:
@@ -93,18 +95,20 @@ spec:
                 - /bin/sh
                 - -c
                 - pg_isready -U $(POSTGRES_USER)
-            initialDelaySeconds: 5
+            initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
           resources:
             {{- toYaml .Values.database.resources | nindent 12 }}
-      {{- if .Values.database.persistence.enabled }}
       volumes:
+        {{- if .Values.database.persistence.enabled }}
         - name: postgres-storage
           persistentVolumeClaim:
             claimName: {{ include "crossview.fullname" . }}-postgres-pvc
-      {{- end }}
+        {{- end }}
+        - name: postgres-socket
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
