@@ -343,6 +343,14 @@ jobs:
         with:
           version: '3.13.0'
 
+      - name: Update Helm Chart.yaml with version
+        run: |
+          CHART_VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s/^version:.*/version: $CHART_VERSION/" helm/crossview/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"$CHART_VERSION\"/" helm/crossview/Chart.yaml
+          echo "Updated Chart.yaml to version $CHART_VERSION:"
+          cat helm/crossview/Chart.yaml
+
       - name: Package Helm chart
         run: |
           mkdir -p ./charts
