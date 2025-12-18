@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,7 +23,31 @@ func (k *KubernetesService) GetManagedResources(contextName string, forceRefresh
 				return nil, fmt.Errorf("failed to initialize kubernetes context: %w", err)
 			}
 		}
+		contextName = k.GetCurrentContext()
 	}
+
+	// Check cache if not forcing refresh
+	if !forceRefresh {
+		k.mu.RLock()
+		if cachedResult, exists := k.managedResourcesCache[contextName]; exists {
+			if cacheTime, timeExists := k.managedResourcesCacheTime[contextName]; timeExists {
+				if time.Since(cacheTime) < k.managedResourcesCacheTTL {
+					k.logger.Infof("Returning cached managed resources for context: %s", contextName)
+					// Create a copy with fromCache: true
+					result := make(map[string]interface{})
+					for key, value := range cachedResult {
+						result[key] = value
+					}
+					result["fromCache"] = true
+					k.mu.RUnlock()
+					return result, nil
+				}
+			}
+		}
+		k.mu.RUnlock()
+	}
+
+	k.logger.Infof("Fetching fresh managed resources for context: %s (forceRefresh: %t)", contextName, forceRefresh)
 
 	config, err := k.GetConfig()
 	if err != nil {
@@ -253,9 +278,19 @@ func (k *KubernetesService) GetManagedResources(contextName string, forceRefresh
 		}
 	}
 
-	return map[string]interface{}{
+	// Cache the results
+	result := map[string]interface{}{
 		"items":     allResources,
 		"fromCache": false,
-	}, nil
+	}
+
+	k.mu.Lock()
+	k.managedResourcesCache[contextName] = result
+	k.managedResourcesCacheTime[contextName] = time.Now()
+	k.mu.Unlock()
+
+	k.logger.Infof("Cached managed resources for context: %s (%d items)", contextName, len(allResources))
+
+	return result, nil
 }
 

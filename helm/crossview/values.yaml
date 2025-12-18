@@ -75,7 +75,7 @@ healthCheck:
 
 # Service configuration
 service:
-  type: LoadBalancer
+  type: ClusterIP
   port: 80
   targetPort: 3001
   sessionAffinity: ClientIP
