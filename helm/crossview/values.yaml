@@ -105,7 +105,7 @@ database:
   enabled: true
   image:
     repository: postgres
-    tag: "16.3-alpine"
+    tag: "latest"
   resources:
     requests:
       memory: "256Mi"

@@ -75,7 +75,7 @@ spec:
           volumeMounts:
             {{- if .Values.database.persistence.enabled }}
             - name: postgres-storage
-              mountPath: /var/lib/postgresql/data
+              mountPath: /var/lib/postgresql
             {{- end }}
             - name: postgres-socket
               mountPath: /var/run/postgresql
