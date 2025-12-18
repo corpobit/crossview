@@ -9,10 +9,10 @@ entries:
           image: postgres:latest
     apiVersion: v2
     appVersion: 2.8.0
-    created: "2025-12-18T18:46:21.014563867Z"
+    created: "2025-12-18T20:18:05.617380891Z"
     description: A Helm chart for Crossview - Crossplane resource visualization and
       management platform
-    digest: c51bb6450cb452e0b6284f6fc1e01e213c06232a16deb244201c7cc7ceeb35ef
+    digest: c29c560e7d8adbb0f7cb5a55e409a57db793a1c607b1498f5631fac4632647c9
     home: https://github.com/corpobit/crossview
     icon: https://corpobit.github.io/crossview/images/helm-logo.svg
     keywords:
@@ -37,7 +37,7 @@ entries:
           image: postgres:16.3-alpine
     apiVersion: v2
     appVersion: 2.7.0
-    created: "2025-12-18T18:46:21.013750743Z"
+    created: "2025-12-18T20:18:05.616597048Z"
     description: A Helm chart for Crossview - Crossplane resource visualization and
       management platform
     digest: fd0290b92896559bfeb24c5d46805ca1c9ccde793533314ea1f30a740d053bbc
@@ -65,7 +65,7 @@ entries:
           image: postgres:16.3-alpine
     apiVersion: v2
     appVersion: 2.6.0
-    created: "2025-12-18T18:46:21.012980397Z"
+    created: "2025-12-18T20:18:05.615810009Z"
     description: A Helm chart for Crossview - Crossplane resource visualization and
       management platform
     digest: f5af8a15f238b295206b6e530442f70254a810a284e6bf7847a8c19ed10bd6ac
@@ -85,4 +85,4 @@ entries:
     urls:
     - https://corpobit.github.io/crossview/charts/crossview-2.6.0.tgz
     version: 2.6.0
-generated: "2025-12-18T18:46:21.012040286Z"
+generated: "2025-12-18T20:18:05.614828627Z"
