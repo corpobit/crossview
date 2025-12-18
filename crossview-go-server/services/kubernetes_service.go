@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"crossview-go-server/lib"
 	"k8s.io/client-go/kubernetes"
@@ -22,6 +23,7 @@ type KubernetesServiceInterface interface {
 	AddKubeConfig(kubeConfigYAML string) ([]string, error)
 	RemoveContext(ctxName string) error
 	ClearFailedContext(ctxName string)
+	ClearManagedResourcesCache(contextName string)
 	GetResources(apiVersion, kind, namespace, contextName, plural string, limit *int64, continueToken string) (map[string]interface{}, error)
 	GetResource(apiVersion, kind, name, namespace, contextName, plural string) (map[string]interface{}, error)
 	GetEvents(kind, name, namespace, contextName string) ([]map[string]interface{}, error)
@@ -38,6 +40,12 @@ type KubernetesService struct {
 	dynamicClient interface{}
 	pluralCache   map[string]string
 	failedContexts map[string]bool
+	
+	// Managed resources cache
+	managedResourcesCache map[string]map[string]interface{}
+	managedResourcesCacheTime map[string]time.Time
+	managedResourcesCacheTTL time.Duration
+	
 	mu            sync.RWMutex
 }
 
@@ -47,6 +55,9 @@ func NewKubernetesService(logger lib.Logger, env lib.Env) KubernetesServiceInter
 		env:           env,
 		pluralCache:   make(map[string]string),
 		failedContexts: make(map[string]bool),
+		managedResourcesCache: make(map[string]map[string]interface{}),
+		managedResourcesCacheTime: make(map[string]time.Time),
+		managedResourcesCacheTTL: 5 * time.Minute, // 5 minute TTL
 	}
 
 	serviceAccountPath := "/var/run/secrets/kubernetes.io/serviceaccount"
@@ -125,6 +136,23 @@ func (k *KubernetesService) ClearFailedContext(ctxName string) {
 	}
 	
 	delete(k.failedContexts, targetContext)
+}
+
+func (k *KubernetesService) ClearManagedResourcesCache(contextName string) {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	
+	if contextName == "" {
+		// Clear all cache
+		k.managedResourcesCache = make(map[string]map[string]interface{})
+		k.managedResourcesCacheTime = make(map[string]time.Time)
+		k.logger.Info("Cleared all managed resources cache")
+	} else {
+		// Clear cache for specific context
+		delete(k.managedResourcesCache, contextName)
+		delete(k.managedResourcesCacheTime, contextName)
+		k.logger.Infof("Cleared managed resources cache for context: %s", contextName)
+	}
 }
 
 func fileExists(path string) bool {
