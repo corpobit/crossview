@@ -43,7 +43,12 @@ func TestSSOService_GetSSOStatus(t *testing.T) {
 	logger := setupTestLogger()
 	env := setupTestEnv()
 
-	service := NewSSOService(logger, env, lib.Database{DB: db})
+	service := SSOService{
+		logger:    logger,
+		env:       env,
+		ssoConfig: lib.SSOConfig{Enabled: false},
+		userRepo:  models.NewUserRepository(db),
+	}
 	config := service.GetSSOStatus()
 
 	if config.Enabled {
@@ -56,11 +61,17 @@ func TestSSOService_InitiateOIDC_NotEnabled(t *testing.T) {
 	logger := setupTestLogger()
 	env := setupTestEnv()
 
-	service := NewSSOService(logger, env, lib.Database{DB: db})
+	service := SSOService{
+		logger:    logger,
+		env:       env,
+		ssoConfig: lib.SSOConfig{Enabled: false, OIDC: lib.OIDCConfig{Enabled: false}},
+		userRepo:  models.NewUserRepository(db),
+	}
 	_, err := service.InitiateOIDC(context.Background(), "")
 
 	if err == nil {
 		t.Error("Expected error when OIDC is not enabled")
+		return
 	}
 
 	if err.Error() != "OIDC SSO is not enabled" {
@@ -100,7 +111,7 @@ func TestSSOService_InitiateOIDC_WithIssuer(t *testing.T) {
 	service.ssoConfig.OIDC.CallbackURL = "http://localhost:3001/api/auth/oidc/callback"
 	service.ssoConfig.OIDC.Scope = "openid profile email"
 
-	authURL, err := service.InitiateOIDC(context.Background(), "")
+	authURL, err := service.InitiateOIDC(context.Background(), "http://localhost:3001/api/auth/oidc/callback")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -136,7 +147,7 @@ func TestSSOService_InitiateOIDC_WithAuthorizationURL(t *testing.T) {
 	service.ssoConfig.OIDC.CallbackURL = "http://localhost:3001/api/auth/oidc/callback"
 	service.ssoConfig.OIDC.Scope = "openid profile email"
 
-	authURL, err := service.InitiateOIDC(context.Background(), "")
+	authURL, err := service.InitiateOIDC(context.Background(), "http://localhost:3001/api/auth/oidc/callback")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -165,7 +176,7 @@ func TestSSOService_InitiateOIDC_NoConfig(t *testing.T) {
 	service.ssoConfig.OIDC.Issuer = ""
 	service.ssoConfig.OIDC.AuthorizationURL = ""
 
-	_, err := service.InitiateOIDC(context.Background())
+	_, err := service.InitiateOIDC(context.Background(), "http://localhost:3001/api/auth/oidc/callback")
 	if err == nil {
 		t.Error("Expected error when authorization URL is not configured")
 	}
@@ -176,11 +187,17 @@ func TestSSOService_HandleOIDCCallback_NotEnabled(t *testing.T) {
 	logger := setupTestLogger()
 	env := setupTestEnv()
 
-	service := NewSSOService(logger, env, lib.Database{DB: db})
-	_, err := service.HandleOIDCCallback(context.Background(), "code", "state", "")
+	service := SSOService{
+		logger:    logger,
+		env:       env,
+		ssoConfig: lib.SSOConfig{Enabled: false, OIDC: lib.OIDCConfig{Enabled: false}},
+		userRepo:  models.NewUserRepository(db),
+	}
+	_, err := service.HandleOIDCCallback(context.Background(), "code", "state", "http://localhost:3001/api/auth/oidc/callback")
 
 	if err == nil {
 		t.Error("Expected error when OIDC is not enabled")
+		return
 	}
 
 	if err.Error() != "OIDC SSO is not enabled" {
@@ -302,7 +319,7 @@ func TestSSOService_HandleOIDCCallback_TokenExchangeFailure(t *testing.T) {
 	service.ssoConfig.OIDC.CallbackURL = "http://localhost:3001/api/auth/oidc/callback"
 	service.ssoConfig.OIDC.TokenURL = tokenServer.URL
 
-	_, err := service.HandleOIDCCallback(context.Background(), "test-code", "test-state")
+	_, err := service.HandleOIDCCallback(context.Background(), "test-code", "test-state", "http://localhost:3001/api/auth/oidc/callback")
 	if err == nil {
 		t.Error("Expected error when token exchange fails")
 	}
@@ -342,7 +359,7 @@ func TestSSOService_HandleOIDCCallback_UserInfoFailure(t *testing.T) {
 	service.ssoConfig.OIDC.TokenURL = tokenServer.URL
 	service.ssoConfig.OIDC.UserInfoURL = userInfoServer.URL
 
-	_, err := service.HandleOIDCCallback(context.Background(), "test-code", "test-state")
+	_, err := service.HandleOIDCCallback(context.Background(), "test-code", "test-state", "http://localhost:3001/api/auth/oidc/callback")
 	if err == nil {
 		t.Error("Expected error when userinfo request fails")
 	}
@@ -383,7 +400,7 @@ func TestSSOService_HandleOIDCCallback_MissingUserInfo(t *testing.T) {
 	service.ssoConfig.OIDC.TokenURL = tokenServer.URL
 	service.ssoConfig.OIDC.UserInfoURL = userInfoServer.URL
 
-	_, err := service.HandleOIDCCallback(context.Background(), "test-code", "test-state")
+	_, err := service.HandleOIDCCallback(context.Background(), "test-code", "test-state", "http://localhost:3001/api/auth/oidc/callback")
 	if err == nil {
 		t.Error("Expected error when userinfo is missing username and email")
 	}
@@ -394,11 +411,17 @@ func TestSSOService_InitiateSAML_NotEnabled(t *testing.T) {
 	logger := setupTestLogger()
 	env := setupTestEnv()
 
-	service := NewSSOService(logger, env, lib.Database{DB: db})
+	service := SSOService{
+		logger:    logger,
+		env:       env,
+		ssoConfig: lib.SSOConfig{Enabled: false, SAML: lib.SAMLConfig{Enabled: false}},
+		userRepo:  models.NewUserRepository(db),
+	}
 	_, err := service.InitiateSAML(context.Background(), "")
 
 	if err == nil {
 		t.Error("Expected error when SAML is not enabled")
+		return
 	}
 
 	if err.Error() != "SAML SSO is not enabled" {
@@ -461,17 +484,24 @@ func TestSSOService_HandleSAMLCallback_NotEnabled(t *testing.T) {
 	logger := setupTestLogger()
 	env := setupTestEnv()
 
-	service := NewSSOService(logger, env, lib.Database{DB: db})
-	_, err := service.HandleSAMLCallback(context.Background(), "saml-response", "")
+	service := SSOService{
+		logger:    logger,
+		env:       env,
+		ssoConfig: lib.SSOConfig{Enabled: false, SAML: lib.SAMLConfig{Enabled: false}},
+		userRepo:  models.NewUserRepository(db),
+	}
+	_, err := service.HandleSAMLCallback(context.Background(), "saml-response", "http://localhost:3001/api/auth/saml/callback")
 
 	if err == nil {
 		t.Error("Expected error when SAML is not enabled")
+		return
 	}
 
 	if err.Error() != "SAML SSO is not enabled" {
 		t.Errorf("Expected 'SAML SSO is not enabled', got '%s'", err.Error())
 	}
 }
+
 
 func TestSSOService_HandleSAMLCallback_NotImplemented(t *testing.T) {
 	db := setupTestDB(t)
