@@ -8,8 +8,36 @@ entries:
         - name: postgres
           image: postgres:latest
     apiVersion: v2
+    appVersion: 2.9.0
+    created: "2025-12-19T19:21:35.709349424Z"
+    description: A Helm chart for Crossview - Crossplane resource visualization and
+      management platform
+    digest: ff4d81c46214db075ef1866d63da572a26e081e80a57be5a7620a21840f9e5fe
+    home: https://github.com/corpobit/crossview
+    icon: https://corpobit.github.io/crossview/images/helm-logo.svg
+    keywords:
+    - kubernetes
+    - crossplane
+    - visualization
+    - management
+    maintainers:
+    - name: Crossview Team
+    name: crossview
+    sources:
+    - https://github.com/corpobit/crossview
+    type: application
+    urls:
+    - https://corpobit.github.io/crossview/charts/crossview-2.9.0.tgz
+    version: 2.9.0
+  - annotations:
+      artifacthub.io/images: |
+        - name: crossview
+          image: corpobit/crossview:latest
+        - name: postgres
+          image: postgres:latest
+    apiVersion: v2
     appVersion: 2.8.0
-    created: "2025-12-18T20:18:46.08790629Z"
+    created: "2025-12-19T19:21:35.70859577Z"
     description: A Helm chart for Crossview - Crossplane resource visualization and
       management platform
     digest: 020d417af2f4b4f7a2fe43200d1478ec4cd8ca569c1bdde07c9d42afc0fa9e23
@@ -37,7 +65,7 @@ entries:
           image: postgres:16.3-alpine
     apiVersion: v2
     appVersion: 2.7.0
-    created: "2025-12-18T20:18:46.087129208Z"
+    created: "2025-12-19T19:21:35.707813023Z"
     description: A Helm chart for Crossview - Crossplane resource visualization and
       management platform
     digest: fd0290b92896559bfeb24c5d46805ca1c9ccde793533314ea1f30a740d053bbc
@@ -65,7 +93,7 @@ entries:
           image: postgres:16.3-alpine
     apiVersion: v2
     appVersion: 2.6.0
-    created: "2025-12-18T20:18:46.086338379Z"
+    created: "2025-12-19T19:21:35.707014566Z"
     description: A Helm chart for Crossview - Crossplane resource visualization and
       management platform
     digest: f5af8a15f238b295206b6e530442f70254a810a284e6bf7847a8c19ed10bd6ac
@@ -85,4 +113,4 @@ entries:
     urls:
     - https://corpobit.github.io/crossview/charts/crossview-2.6.0.tgz
     version: 2.6.0
-generated: "2025-12-18T20:18:46.085362304Z"
+generated: "2025-12-19T19:21:35.706051102Z"
