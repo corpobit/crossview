@@ -9,6 +9,13 @@ This Helm chart deploys Crossview, a Crossplane resource visualization and manag
 - A Kubernetes cluster with appropriate RBAC permissions
 - (Optional) Ingress controller if you want to use Ingress
 
+## Recent Updates
+
+- Updated PostgreSQL image to latest version (PostgreSQL 18 compatible)
+- Fixed PostgreSQL volume mount path for PostgreSQL 18 compatibility
+- Improved chart version synchronization in CI/CD pipeline
+- Enhanced OCI registry integration
+
 ## Installation
 
 ### Option 1: Install from OCI Registry (Recommended)
@@ -17,8 +24,8 @@ Install directly from Docker Hub OCI registry. No repository setup needed!
 
 ```bash
 # Install from OCI registry
-helm install crossview oci://corpobit/crossview-chart \
-  --version v1.6.0 \
+helm install crossview oci://docker.io/corpobit/crossview-chart \
+  --version 2.9.0 \
   --namespace crossview \
   --create-namespace \
   --set secrets.dbPassword=your-db-password \
@@ -46,7 +53,7 @@ helm install crossview crossview/crossview \
 helm install crossview crossview/crossview \
   --namespace crossview \
   --create-namespace \
-  --set image.tag=v1.5.0 \
+  --set image.tag=2.9.0 \
   --set app.replicas=3 \
   --set secrets.dbPassword=your-db-password \
   --set secrets.sessionSecret=$(openssl rand -base64 32) \
@@ -80,8 +87,11 @@ The following table lists the configurable parameters and their default values:
 | `ingress.enabled` | Enable Ingress | `false` |
 | `ingress.className` | Ingress class name | `nginx` |
 | `database.enabled` | Enable PostgreSQL database | `true` |
+| `database.image.repository` | PostgreSQL image repository | `postgres` |
+| `database.image.tag` | PostgreSQL image tag | `latest` (PostgreSQL 18) |
 | `database.persistence.enabled` | Enable database persistence | `true` |
 | `database.persistence.size` | Database PVC size | `10Gi` |
+| `database.persistence.accessMode` | Database PVC access mode | `ReadWriteOnce` |
 | `secrets.dbPassword` | Database password (required) | `""` |
 | `secrets.sessionSecret` | Session secret (required) | `""` |
 | `resources.requests.memory` | Memory request | `256Mi` |
@@ -94,7 +104,7 @@ The following table lists the configurable parameters and their default values:
 ```bash
 helm upgrade crossview crossview/crossview \
   --namespace crossview \
-  --set image.tag=v1.5.0 \
+  --set image.tag=2.9.0 \
   --set secrets.dbPassword=your-db-password \
   --set secrets.sessionSecret=your-session-secret
 ```
@@ -143,6 +153,8 @@ helm install crossview crossview/crossview \
 - The session secret should be a secure random string (use `openssl rand -base64 32`)
 - RBAC resources (ClusterRole and ClusterRoleBinding) are created automatically
 - The service account is created with the necessary permissions to read Kubernetes resources
+- PostgreSQL 18 compatibility: The chart uses the latest PostgreSQL image with updated volume mount paths for PostgreSQL 18
+- When upgrading from older versions, ensure your database persistence volume is compatible with PostgreSQL 18
 
 ## Support
 
