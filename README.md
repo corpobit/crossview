@@ -12,6 +12,17 @@
 
 ![Crossview Dashboard](public/images/dashboard.png)
 
+## Features
+
+- **Real-Time Resource Watching**: Monitor any Kubernetes resource in real-time with event-driven updates using Kubernetes Informers
+- **Multi-Cluster Support**: Manage and switch between multiple Kubernetes contexts seamlessly
+- **Resource Visualization**: Browse and visualize Crossplane resources (providers, XRDs, compositions, claims, etc.)
+- **Resource Details**: View comprehensive resource information including status conditions, metadata, events, and relationships
+- **Modern UI**: Built with React and Chakra UI with dark mode support
+- **High Performance**: Backend built with Go and Gin framework for optimal performance
+- **WebSocket Support**: Real-time updates via WebSocket connections
+- **SSO Integration**: Support for OIDC and SAML authentication
+
 ## Getting Started
 
 ### Prerequisites
@@ -95,7 +106,7 @@ The app will be available at `http://localhost:3001` (both frontend and API)
 
 ## Backend API
 
-The backend API is built with Go and runs on port 3001. It provides the following endpoints:
+The backend API is built with Go using the Gin framework and runs on port 3001. It provides the following endpoints:
 
 - `GET /api/health` - Health check and connection status
 - `GET /api/contexts` - List available Kubernetes contexts
@@ -105,11 +116,12 @@ The backend API is built with Go and runs on port 3001. It provides the followin
 - `GET /api/resource?apiVersion=&kind=&name=&namespace=&context=` - Get single resource
 - `GET /api/events?kind=&name=&namespace=&context=` - Get resource events
 - `GET /api/managed?context=` - List managed resources
+- `GET /api/watch` - WebSocket endpoint for real-time resource watching
 - `POST /api/auth/login` - User login
 - `POST /api/auth/logout` - User logout
 - `GET /api/auth/check` - Check authentication status
 
-The backend uses the Go Kubernetes client to access Kubernetes clusters:
+The backend uses the Go Kubernetes client with Informers for efficient, event-driven resource monitoring:
 
 **When running in a Kubernetes pod:**
 - Automatically uses service account token (no config file needed)
@@ -189,8 +201,6 @@ docker run -p 3001:3001 \
 Create a `docker-compose.yml`:
 
 ```yaml
-version: '3.8'
-
 services:
   crossview:
     build: .
@@ -211,7 +221,7 @@ services:
       - postgres
 
   postgres:
-    image: postgres:15-alpine
+    image: postgres:latest
     environment:
       - POSTGRES_DB=crossview
       - POSTGRES_USER=postgres
@@ -219,7 +229,7 @@ services:
     ports:
       - "8920:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
 
 volumes:
   postgres_data:
@@ -270,11 +280,19 @@ The application loads configuration in this order (highest to lowest priority):
 
 ## Tech Stack
 
+### Frontend
 - **React** - UI library
 - **Vite** - Build tool and dev server
 - **Chakra UI** - Component library
 - **React Router** - Routing
-- **@kubernetes/client-node** - Kubernetes client (for backend)
+- **WebSocket** - Real-time updates
+
+### Backend
+- **Go** - Programming language
+- **Gin** - Web framework
+- **Kubernetes client-go** - Kubernetes API client
+- **Kubernetes Informers** - Event-driven resource watching
+- **PostgreSQL** - Database (via GORM)
 
 ## Contributing
 
