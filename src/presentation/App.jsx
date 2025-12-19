@@ -13,6 +13,7 @@ import { ResourceKind } from './pages/ResourceKind.jsx';
 import { CompositeResourceKind } from './pages/CompositeResourceKind.jsx';
 import { Search } from './pages/Search.jsx';
 import { useAppContext } from './providers/AppProvider.jsx';
+import { OnWatchResourcesProvider } from './providers/OnWatchResourcesProvider.jsx';
 import { Box, Text, VStack, Icon, Button } from '@chakra-ui/react';
 import { FiAlertCircle, FiRefreshCw } from 'react-icons/fi';
 
@@ -115,6 +116,7 @@ function App() {
         path="/*"
         element={
           <ProtectedRoute>
+            <OnWatchResourcesProvider>
             <Layout>
               <Routes>
                 <Route index element={<Dashboard />} />
@@ -131,6 +133,7 @@ function App() {
                 <Route path="settings/*" element={<Settings />} />
               </Routes>
             </Layout>
+            </OnWatchResourcesProvider>
           </ProtectedRoute>
         }
       />

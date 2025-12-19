@@ -33,11 +33,17 @@ func NewSSOService(logger lib.Logger, env lib.Env, db lib.Database) SSOServiceIn
 }
 
 func (s SSOService) GetSSOStatus() lib.SSOConfig {
-	return s.ssoConfig
+	if s.ssoConfig.Enabled {
+		return s.ssoConfig
+	}
+	return lib.SSOConfig{Enabled: false}
 }
 
 func (s SSOService) InitiateOIDC(ctx context.Context, callbackURL string) (string, error) {
-	if !s.ssoConfig.Enabled || !s.ssoConfig.OIDC.Enabled {
+	if !s.ssoConfig.Enabled {
+		return "", fmt.Errorf("OIDC SSO is not enabled")
+	}
+	if !s.ssoConfig.OIDC.Enabled {
 		return "", fmt.Errorf("OIDC SSO is not enabled")
 	}
 	
@@ -97,6 +103,9 @@ func (s SSOService) InitiateOIDC(ctx context.Context, callbackURL string) (strin
 }
 
 func (s SSOService) HandleOIDCCallback(ctx context.Context, code, state string, callbackURL string) (*models.User, error) {
+	if !s.ssoConfig.Enabled || !s.ssoConfig.OIDC.Enabled {
+		return nil, fmt.Errorf("OIDC SSO is not enabled")
+	}
 	if !s.ssoConfig.Enabled || !s.ssoConfig.OIDC.Enabled {
 		return nil, fmt.Errorf("OIDC SSO is not enabled")
 	}
