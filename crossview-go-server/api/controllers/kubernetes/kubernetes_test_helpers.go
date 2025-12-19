@@ -27,6 +27,10 @@ type MockKubernetesService struct {
 	GetClientsetFunc         func() (kubernetes.Interface, error)
 	GetConfigFunc            func() (*rest.Config, error)
 	IsConnectedFunc          func(ctxName string) (bool, error)
+	AddKubeConfigFunc        func(kubeConfigYAML string) ([]string, error)
+	RemoveContextFunc        func(ctxName string) error
+	ClearFailedContextFunc   func(ctxName string)
+	ClearManagedResourcesCacheFunc func(contextName string)
 	GetResourcesFunc         func(apiVersion, kind, namespace, contextName, plural string, limit *int64, continueToken string) (map[string]interface{}, error)
 	GetResourceFunc          func(apiVersion, kind, name, namespace, contextName, plural string) (map[string]interface{}, error)
 	GetEventsFunc            func(kind, name, namespace, contextName string) ([]map[string]interface{}, error)
@@ -101,5 +105,31 @@ func (m MockKubernetesService) GetManagedResources(contextName string, forceRefr
 		return m.GetManagedResourcesFunc(contextName, forceRefresh)
 	}
 	return map[string]interface{}{"items": []interface{}{}}, nil
+}
+
+func (m MockKubernetesService) AddKubeConfig(kubeConfigYAML string) ([]string, error) {
+	if m.AddKubeConfigFunc != nil {
+		return m.AddKubeConfigFunc(kubeConfigYAML)
+	}
+	return []string{}, nil
+}
+
+func (m MockKubernetesService) RemoveContext(ctxName string) error {
+	if m.RemoveContextFunc != nil {
+		return m.RemoveContextFunc(ctxName)
+	}
+	return nil
+}
+
+func (m MockKubernetesService) ClearFailedContext(ctxName string) {
+	if m.ClearFailedContextFunc != nil {
+		m.ClearFailedContextFunc(ctxName)
+	}
+}
+
+func (m MockKubernetesService) ClearManagedResourcesCache(contextName string) {
+	if m.ClearManagedResourcesCacheFunc != nil {
+		m.ClearManagedResourcesCacheFunc(contextName)
+	}
 }
 

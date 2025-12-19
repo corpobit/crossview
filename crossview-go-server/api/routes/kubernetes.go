@@ -10,6 +10,7 @@ type KubernetesRoutes struct{
 	logger lib.Logger
 	handler lib.RequestHandler
 	controller kubernetes.KubernetesController
+	watchController *kubernetes.WatchController
 	authMiddleware middlewares.SessionAuthMiddleware
 }
 
@@ -17,12 +18,14 @@ func NewKubernetesRoutes(
 	logger lib.Logger,
 	handler lib.RequestHandler,
 	controller kubernetes.KubernetesController,
+	watchController *kubernetes.WatchController,
 	authMiddleware middlewares.SessionAuthMiddleware,
 ) KubernetesRoutes{
 	return KubernetesRoutes{
 		logger: logger,
 		handler: handler,
 		controller: controller,
+		watchController: watchController,
 		authMiddleware: authMiddleware,
 	}
 }
@@ -49,5 +52,6 @@ func (r KubernetesRoutes) Setup(){
 		api.GET("/resource", r.authMiddleware.Handler(), r.controller.GetResource)
 		api.GET("/events", r.authMiddleware.Handler(), r.controller.GetEvents)
 		api.GET("/managed", r.authMiddleware.Handler(), r.controller.GetManagedResources)
+		api.GET("/watch", r.authMiddleware.Handler(), r.watchController.WatchResources)
 	}
 }
