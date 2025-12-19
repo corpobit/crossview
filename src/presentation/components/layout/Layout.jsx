@@ -4,11 +4,14 @@ import { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar.jsx';
 import { ContextSidebar } from './ContextSidebar.jsx';
 import { Header } from './Header.jsx';
+import { OnWatchResourcesSlideout } from '../common/OnWatchResourcesSlideout.jsx';
 import { useAppContext } from '../../providers/AppProvider.jsx';
+import { useOnWatchResources } from '../../providers/OnWatchResourcesProvider.jsx';
 import { getBackgroundColor } from '../../utils/theme.js';
 
 export const Layout = ({ children }) => {
   const { colorMode, selectedContextError, selectedContext, isInClusterMode } = useAppContext();
+  const { watchedResources, isCollapsed: isOnWatchCollapsed } = useOnWatchResources();
   const [sidebarWidth, setSidebarWidth] = useState(280);
   const [contextSidebarWidth, setContextSidebarWidth] = useState(60);
   const [showContextSidebar, setShowContextSidebar] = useState(() => {
@@ -16,6 +19,7 @@ export const Layout = ({ children }) => {
     const saved = localStorage.getItem('contextSidebarCollapsed');
     return saved !== 'true';
   });
+  const onWatchWidth = watchedResources.length > 0 && !isOnWatchCollapsed ? 400 : 0;
 
   const handleSidebarToggle = (collapsed, width) => {
     setSidebarWidth(width || (collapsed ? 60 : 280));
@@ -54,7 +58,8 @@ export const Layout = ({ children }) => {
       <Sidebar onToggle={handleSidebarToggle} onResize={handleSidebarResize} />
       <Box 
         ml={`${totalLeftWidth}px`} 
-        transition="margin-left 0.2s"
+        mr={`${onWatchWidth}px`}
+        transition="margin-left 0.2s, margin-right 0.3s"
       >
         <Header sidebarWidth={totalLeftWidth} />
         <Box pt="64px" px={6} pb={0} mb={0} bg={bgColor} minH="calc(100vh - 64px)">
@@ -87,6 +92,7 @@ export const Layout = ({ children }) => {
           </Box>
         </Box>
       </Box>
+      <OnWatchResourcesSlideout />
     </Box>
   );
 };

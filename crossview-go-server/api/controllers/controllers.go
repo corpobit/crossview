@@ -14,6 +14,7 @@ var Module = fx.Options(
 	fx.Provide(auth.NewAuthController),
 	fx.Provide(sso.NewSSOController),
 	fx.Provide(kubernetes.NewKubernetesController),
+	fx.Provide(kubernetes.NewWatchController),
 	fx.Provide(config.NewConfigController),
 	fx.Provide(user.NewUserController),
 )

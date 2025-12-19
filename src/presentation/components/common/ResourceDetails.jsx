@@ -5,9 +5,10 @@ import {
   Button,
   Badge,
 } from '@chakra-ui/react';
-import { FiArrowLeft, FiMinus } from 'react-icons/fi';
+import { FiArrowLeft, FiMinus, FiEye, FiEyeOff } from 'react-icons/fi';
 import { useState } from 'react';
 import { useAppContext } from '../../providers/AppProvider.jsx';
+import { useOnWatchResources } from '../../providers/OnWatchResourcesProvider.jsx';
 import { useResourceData } from '../../hooks/useResourceData.js';
 import { ResourceTabs } from './ResourceTabs.jsx';
 import { ResourceOverview } from './ResourceOverview.jsx';
@@ -19,10 +20,42 @@ import { getBorderColor } from '../../utils/theme.js';
 
 export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
   const { colorMode } = useAppContext();
+  const { addResource, removeResource, watchedResources } = useOnWatchResources();
   const [activeTab, setActiveTab] = useState('overview');
   
   // Use the custom hook for resource data loading
   const { loading, fullResource, relatedResources, events, eventsLoading } = useResourceData(resource);
+
+  const getResourceKey = (res) => {
+    return `${res.apiVersion || ''}:${res.kind || ''}:${res.metadata?.namespace || ''}:${res.metadata?.name || ''}`;
+  };
+
+  // Check if resource is watched - use both current resource and fullResource
+  const currentResource = fullResource || resource;
+  const resourceKey = currentResource ? getResourceKey(currentResource) : null;
+  const watchedResource = resourceKey ? watchedResources.find(r => {
+    const rKey = r._key || getResourceKey(r);
+    return rKey === resourceKey;
+  }) : null;
+  const isWatched = !!watchedResource;
+
+  const handleWatchToggle = () => {
+    if (isWatched && watchedResource) {
+      // Unwatch the resource - use _key if available, otherwise calculate it
+      const keyToRemove = watchedResource._key || getResourceKey(watchedResource);
+      removeResource(keyToRemove);
+    } else {
+      // Watch the resource
+      const resourceToAdd = fullResource || resource;
+      if (resourceToAdd) {
+        const resourceWithPlural = {
+          ...resourceToAdd,
+          _plural: resource.plural || resourceToAdd.plural || null,
+        };
+        addResource(resourceWithPlural);
+      }
+    }
+  };
 
   if (!resource) return null;
 
@@ -62,21 +95,34 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
         flexShrink={0}
         position="relative"
       >
-        <Button
-          size="sm"
-          variant="ghost"
-          position="absolute"
-          top={2}
-          right={2}
-          onClick={onClose}
-          aria-label="Minimize"
-          minW="auto"
-          w="32px"
-          h="32px"
-          p={0}
-        >
-          <FiMinus />
-        </Button>
+        <HStack spacing={1} position="absolute" top={2} right={2}>
+          <Button
+            size="sm"
+            variant={isWatched ? "solid" : "outline"}
+            onClick={handleWatchToggle}
+            colorScheme={isWatched ? "blue" : "blue"}
+            fontSize="xs"
+            px={2}
+            h="24px"
+          >
+            <HStack spacing={1} alignItems="center">
+              {isWatched ? <FiEyeOff size={14} /> : <FiEye size={14} />}
+              <Text fontSize="xs">{isWatched ? "Watching" : "Watch"}</Text>
+            </HStack>
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onClose}
+            aria-label="Minimize"
+            minW="auto"
+            w="32px"
+            h="32px"
+            p={0}
+          >
+            <FiMinus />
+          </Button>
+        </HStack>
         {onBack && (
           <Button
             size="sm"
