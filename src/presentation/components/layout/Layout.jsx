@@ -5,13 +5,14 @@ import { Sidebar } from './Sidebar.jsx';
 import { ContextSidebar } from './ContextSidebar.jsx';
 import { Header } from './Header.jsx';
 import { OnWatchResourcesSlideout } from '../common/OnWatchResourcesSlideout.jsx';
+import { NotificationToast } from '../common/NotificationToast.jsx';
 import { useAppContext } from '../../providers/AppProvider.jsx';
 import { useOnWatchResources } from '../../providers/OnWatchResourcesProvider.jsx';
 import { getBackgroundColor } from '../../utils/theme.js';
 
 export const Layout = ({ children }) => {
   const { colorMode, selectedContextError, selectedContext, isInClusterMode } = useAppContext();
-  const { watchedResources, isCollapsed: isOnWatchCollapsed } = useOnWatchResources();
+  const { watchedResources, isCollapsed: isOnWatchCollapsed, notifications, removeNotification } = useOnWatchResources();
   const [sidebarWidth, setSidebarWidth] = useState(280);
   const [contextSidebarWidth, setContextSidebarWidth] = useState(60);
   const [showContextSidebar, setShowContextSidebar] = useState(() => {
@@ -60,9 +61,12 @@ export const Layout = ({ children }) => {
         ml={`${totalLeftWidth}px`} 
         mr={`${onWatchWidth}px`}
         transition="margin-left 0.2s, margin-right 0.3s"
+        w={`calc(100% - ${totalLeftWidth}px - ${onWatchWidth}px)`}
+        maxW={`calc(100% - ${totalLeftWidth}px - ${onWatchWidth}px)`}
+        overflow="hidden"
       >
         <Header sidebarWidth={totalLeftWidth} />
-        <Box pt="64px" px={6} pb={0} mb={0} bg={bgColor} minH="calc(100vh - 64px)">
+        <Box pt="64px" px={6} pb={0} mb={0} bg={bgColor} minH="calc(100vh - 64px)" w="100%" maxW="100%" overflowX="hidden">
           {selectedContextError && selectedContext && (
             <Box pt={6} pb={4}>
               <Box
@@ -93,6 +97,22 @@ export const Layout = ({ children }) => {
         </Box>
       </Box>
       <OnWatchResourcesSlideout />
+      {notifications.map((notification, index) => (
+        <Box
+          key={notification.id}
+          position="fixed"
+          top={`${80 + index * 90}px`}
+          right="24px"
+          zIndex={10000}
+        >
+          <NotificationToast
+            message={notification.message}
+            resourceName={notification.resourceName}
+            onClose={() => removeNotification(notification.id)}
+            colorMode={colorMode}
+          />
+        </Box>
+      ))}
     </Box>
   );
 };

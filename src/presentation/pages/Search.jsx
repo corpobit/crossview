@@ -12,22 +12,26 @@ import {
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
+import { Dialog } from '../components/common/Dialog.jsx';
+import { getTextColor } from '../utils/theme.js';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 import { QuickFilters } from '../components/common/QuickFilters.jsx';
 import { Input } from '../components/common/Input.jsx';
 import { SearchResourcesUseCase } from '../../domain/usecases/SearchResourcesUseCase.js';
-import { FiX, FiBookmark, FiSearch, FiTrash2 } from 'react-icons/fi';
+import { FiX, FiBookmark, FiSearch, FiTrash2, FiTag, FiLayers, FiFolder, FiHash } from 'react-icons/fi';
 import { getStatusColor, getStatusText, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
 
 export const Search = () => {
-  const { kubernetesRepository, selectedContext, saveSearch, savedSearches, deleteSearch } = useAppContext();
+  const { kubernetesRepository, selectedContext, saveSearch, savedSearches, deleteSearch, colorMode } = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [searchName, setSearchName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [searchToDelete, setSearchToDelete] = useState({ id: null, name: null });
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const inputRef = useRef(null);
@@ -98,9 +102,8 @@ export const Search = () => {
 
   const handleDeleteSavedSearch = (e, searchId, searchName) => {
     e.stopPropagation();
-    if (window.confirm(`Are you sure you want to delete "${searchName || 'this search'}"?`)) {
-      deleteSearch(searchId);
-    }
+    setSearchToDelete({ id: searchId, name: searchName || 'this search' });
+    setDeleteDialogOpen(true);
   };
   const [results, setResults] = useState([]);
   const [filteredResults, setFilteredResults] = useState([]);
@@ -417,52 +420,58 @@ export const Search = () => {
     },
   ];
 
-  if (!query) {
-    return (
-      <Box
-        display="flex"
-        flexDirection="column"
-        minH="calc(100vh - 164px)"
-        justifyContent="center"
-        alignItems="center"
-        w="100%"
-      >
-        <VStack spacing={8} align="center" mb={12} w="100%" maxW="900px" mx="auto">
-          <VStack spacing={6} align="center">
+  return (
+    <>
+      {!query ? (
+        <Box
+          display="flex"
+          flexDirection="column"
+          minH="calc(100vh - 164px)"
+          justifyContent="center"
+          alignItems="center"
+          w="100%"
+          animation="fadeIn 0.3s ease-in"
+          px={6}
+        >
+        <VStack spacing={10} align="center" w="100%" maxW="1000px" mx="auto">
+          <VStack spacing={4} align="center">
             <Text
-              fontSize="5xl"
+              fontSize="6xl"
               fontWeight="bold"
               textAlign="center"
               color="gray.900"
               _dark={{ color: 'white' }}
-              letterSpacing="-0.03em"
-              lineHeight="1.1"
+              letterSpacing="-0.04em"
+              lineHeight="1"
+              mb={2}
             >
               Search Resources
             </Text>
             <Text
-              fontSize="xl"
+              fontSize="lg"
               textAlign="center"
-              color="gray.600"
+              color="gray.500"
               _dark={{ color: 'gray.400' }}
-              maxW="600px"
-              lineHeight="1.6"
+              maxW="700px"
+              lineHeight="1.7"
+              fontWeight="normal"
             >
-              Find Crossplane resources across your cluster by name, kind, namespace, or labels
+              Discover and explore Crossplane resources across your cluster with powerful search capabilities
             </Text>
           </VStack>
           
-          <Box ref={searchBarRef} position="relative" w="100%" maxW="900px" mx="auto" mt={4}>
+          <Box ref={searchBarRef} position="relative" w="100%" maxW="800px" mx="auto" mt={2}>
             <Box
               position="absolute"
-              left="20px"
+              left="24px"
               top="50%"
               transform="translateY(-50%)"
               zIndex={1}
               pointerEvents="none"
               color="gray.400"
+              _dark={{ color: 'gray.500' }}
             >
-              <FiSearch size={22} />
+              <FiSearch size={24} />
             </Box>
             <Input
               ref={inputRef}
@@ -476,11 +485,32 @@ export const Search = () => {
               onFocus={() => {
                 setShowSuggestions(true);
               }}
-              pl="60px"
-              pr={searchQuery ? "50px" : "20px"}
+              pl="64px"
+              pr={searchQuery ? "56px" : "24px"}
               size="lg"
               fontSize="md"
-              h="56px"
+              h="64px"
+              borderRadius="xl"
+              border="2px solid"
+              borderColor="gray.200"
+              bg="white"
+              _dark={{
+                borderColor: 'gray.700',
+                bg: 'gray.800'
+              }}
+              _hover={{
+                borderColor: 'gray.300',
+                _dark: { borderColor: 'gray.600' }
+              }}
+              _focus={{
+                borderColor: 'blue.500',
+                boxShadow: '0 0 0 3px rgba(66, 153, 225, 0.1)',
+                _dark: {
+                  borderColor: 'blue.400',
+                  boxShadow: '0 0 0 3px rgba(66, 153, 225, 0.2)',
+                }
+              }}
+              transition="all 0.2s"
             />
             {searchQuery && (
               <Box
@@ -580,9 +610,8 @@ export const Search = () => {
                               variant="ghost"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (window.confirm(`Are you sure you want to delete "${suggestion.savedName}"?`)) {
-                                  deleteSearch(suggestion.savedId);
-                                }
+                                setSearchToDelete({ id: suggestion.savedId, name: suggestion.savedName });
+                                setDeleteDialogOpen(true);
                               }}
                               aria-label={`Delete saved search: ${suggestion.savedName}`}
                               colorScheme="red"
@@ -611,163 +640,345 @@ export const Search = () => {
           </Box>
         </VStack>
 
-        <Box
-          w="100%"
-          maxW="900px"
-          mx="auto"
-          mt={0}
-          p={8}
-          borderRadius="xl"
-          border="1px solid"
-          borderColor="gray.200"
-          bg="white"
-          _dark={{ 
-            borderColor: 'gray.700',
-            bg: 'gray.800'
-          }}
-        >
-          <VStack spacing={6} align="center">
-            <Text
-              fontSize="2xl"
-              fontWeight="semibold"
-              color="gray.900"
-              _dark={{ color: 'white' }}
-              textAlign="center"
-              letterSpacing="-0.01em"
-              mb={6}
-            >
-              Search Tips
-            </Text>
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacingX={6} spacingY={10} w="100%">
-              <VStack spacing={0} align="start" py={2}>
-                <Badge colorScheme="blue" fontSize="sm" px={2} py={1} borderRadius="md" mb={0.5}>
-                  Name
-                </Badge>
-                <Text 
-                  fontSize="sm" 
-                  color="gray.700" 
-                  _dark={{ color: 'gray.300' }}
-                  textAlign="left"
-                >
-                  Search by resource name
-                </Text>
-              </VStack>
-              
-              <VStack spacing={0} align="start" py={2}>
-                <Badge colorScheme="green" fontSize="sm" px={2} py={1} borderRadius="md" mb={0.5}>
-                  Kind
-                </Badge>
-                <Text 
-                  fontSize="sm" 
-                  color="gray.700" 
-                  _dark={{ color: 'gray.300' }}
-                  textAlign="left"
-                >
-                  Filter by resource type (XRD, Composition, etc.)
-                </Text>
-              </VStack>
-              
-              <VStack spacing={0} align="start" py={2}>
-                <Badge colorScheme="purple" fontSize="sm" px={2} py={1} borderRadius="md" mb={0.5}>
-                  Namespace
-                </Badge>
-                <Text 
-                  fontSize="sm" 
-                  color="gray.700" 
-                  _dark={{ color: 'gray.300' }}
-                  textAlign="left"
-                >
-                  Search within specific namespaces
-                </Text>
-              </VStack>
-              
-              <VStack spacing={0} align="start" py={2}>
-                <Badge colorScheme="orange" fontSize="sm" px={2} py={1} borderRadius="md" mb={0.5}>
-                  Labels
-                </Badge>
-                <Text 
-                  fontSize="sm" 
-                  color="gray.700" 
-                  _dark={{ color: 'gray.300' }}
-                  textAlign="left"
-                >
-                  Find resources by label selectors
-                </Text>
-              </VStack>
-            </SimpleGrid>
-          </VStack>
-        </Box>
-      </Box>
-    );
-  }
+         <Box
+           w="100%"
+           maxW="1000px"
+           mx="auto"
+           mt={16}
+         >
+           <VStack spacing={8} align="stretch">
+             <VStack spacing={2} align="center">
+               <Text
+                 fontSize="sm"
+                 fontWeight="semibold"
+                 color="gray.500"
+                 _dark={{ color: 'gray.400' }}
+                 textAlign="center"
+                 letterSpacing="0.1em"
+                 textTransform="uppercase"
+               >
+               Search Capabilities
+               </Text>
+               <Box w="40px" h="1px" bg="gray.300" _dark={{ bg: 'gray.600' }} />
+             </VStack>
+             <Box
+               display="grid"
+               gridTemplateColumns={{ base: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }}
+               gap={8}
+               w="100%"
+             >
+               <Box
+                 p={6}
+                 borderRadius="lg"
+                 border="1px solid"
+                 borderColor="gray.200"
+                 bg="white"
+                 _dark={{ 
+                   borderColor: 'gray.700',
+                   bg: 'gray.800'
+                 }}
+                 transition="all 0.2s"
+                 w="100%"
+                 _hover={{
+                   borderColor: 'blue.300',
+                   boxShadow: 'md',
+                   transform: 'translateY(-2px)',
+                   _dark: {
+                     borderColor: 'blue.500',
+                     boxShadow: 'lg',
+                   }
+                 }}
+               >
+                 <VStack spacing={4} align="start">
+                   <Box
+                     p={3}
+                     borderRadius="lg"
+                     bg="blue.50"
+                     color="blue.600"
+                     _dark={{ bg: 'blue.900/30', color: 'blue.400' }}
+                   >
+                     <FiTag size={22} />
+                   </Box>
+                   <VStack spacing={2} align="start">
+                     <Text
+                       fontSize="md"
+                       fontWeight="semibold"
+                       color="gray.900"
+                       _dark={{ color: 'gray.100' }}
+                     >
+                       By Name
+                     </Text>
+                     <Text
+                       fontSize="sm"
+                       color="gray.600"
+                       _dark={{ color: 'gray.300' }}
+                       lineHeight="1.6"
+                     >
+                       Search resources by their exact or partial name
+                     </Text>
+                   </VStack>
+                 </VStack>
+               </Box>
 
-  return (
-    <Box
+               <Box
+                 p={6}
+                 borderRadius="lg"
+                 border="1px solid"
+                 borderColor="gray.200"
+                 bg="white"
+                 _dark={{ 
+                   borderColor: 'gray.700',
+                   bg: 'gray.800'
+                 }}
+                 transition="all 0.2s"
+                 _hover={{
+                   borderColor: 'green.300',
+                   boxShadow: 'md',
+                   transform: 'translateY(-2px)',
+                   _dark: {
+                     borderColor: 'green.500',
+                     boxShadow: 'lg',
+                   }
+                 }}
+               >
+                 <VStack spacing={4} align="start">
+                   <Box
+                     p={3}
+                     borderRadius="lg"
+                     bg="green.50"
+                     color="green.600"
+                     _dark={{ bg: 'green.900/30', color: 'green.400' }}
+                   >
+                     <FiLayers size={22} />
+                   </Box>
+                   <VStack spacing={2} align="start">
+                     <Text
+                       fontSize="md"
+                       fontWeight="semibold"
+                       color="gray.900"
+                       _dark={{ color: 'gray.100' }}
+                     >
+                       By Kind
+                     </Text>
+                     <Text
+                       fontSize="sm"
+                       color="gray.600"
+                       _dark={{ color: 'gray.300' }}
+                       lineHeight="1.6"
+                     >
+                       Filter by resource type like XRD, Composition, or Provider
+                     </Text>
+                   </VStack>
+                 </VStack>
+               </Box>
+
+               <Box
+                 p={6}
+                 borderRadius="lg"
+                 border="1px solid"
+                 borderColor="gray.200"
+                 bg="white"
+                 _dark={{ 
+                   borderColor: 'gray.700',
+                   bg: 'gray.800'
+                 }}
+                 transition="all 0.2s"
+                 _hover={{
+                   borderColor: 'purple.300',
+                   boxShadow: 'md',
+                   transform: 'translateY(-2px)',
+                   _dark: {
+                     borderColor: 'purple.500',
+                     boxShadow: 'lg',
+                   }
+                 }}
+               >
+                 <VStack spacing={4} align="start">
+                   <Box
+                     p={3}
+                     borderRadius="lg"
+                     bg="purple.50"
+                     color="purple.600"
+                     _dark={{ bg: 'purple.900/30', color: 'purple.400' }}
+                   >
+                     <FiFolder size={22} />
+                   </Box>
+                   <VStack spacing={2} align="start">
+                     <Text
+                       fontSize="md"
+                       fontWeight="semibold"
+                       color="gray.900"
+                       _dark={{ color: 'gray.100' }}
+                     >
+                       By Namespace
+                     </Text>
+                     <Text
+                       fontSize="sm"
+                       color="gray.600"
+                       _dark={{ color: 'gray.300' }}
+                       lineHeight="1.6"
+                     >
+                       Find resources within specific namespaces
+                     </Text>
+                   </VStack>
+                 </VStack>
+               </Box>
+
+               <Box
+                 p={6}
+                 borderRadius="lg"
+                 border="1px solid"
+                 borderColor="gray.200"
+                 bg="white"
+                 _dark={{ 
+                   borderColor: 'gray.700',
+                   bg: 'gray.800'
+                 }}
+                 transition="all 0.2s"
+                 _hover={{
+                   borderColor: 'orange.300',
+                   boxShadow: 'md',
+                   transform: 'translateY(-2px)',
+                   _dark: {
+                     borderColor: 'orange.500',
+                     boxShadow: 'lg',
+                   }
+                 }}
+               >
+                 <VStack spacing={4} align="start">
+                   <Box
+                     p={3}
+                     borderRadius="lg"
+                     bg="orange.50"
+                     color="orange.600"
+                     _dark={{ bg: 'orange.900/30', color: 'orange.400' }}
+                   >
+                     <FiHash size={22} />
+                   </Box>
+                   <VStack spacing={2} align="start">
+                     <Text
+                       fontSize="md"
+                       fontWeight="semibold"
+                       color="gray.900"
+                       _dark={{ color: 'gray.100' }}
+                     >
+                       By Labels
+                     </Text>
+                     <Text
+                       fontSize="sm"
+                       color="gray.600"
+                       _dark={{ color: 'gray.300' }}
+                       lineHeight="1.6"
+                     >
+                       Search using label selectors and key-value pairs
+                     </Text>
+                   </VStack>
+                 </VStack>
+               </Box>
+             </Box>
+           </VStack>
+         </Box>
+      </Box>
+      ) : (
+        <Box
       display="flex"
       flexDirection="column"
       position="relative"
+      animation="fadeIn 0.3s ease-in"
+      w="100%"
     >
-      <Box
-        mb={6}
-        p={4}
-        borderRadius="lg"
-        bg="white"
-        border="1px solid"
-        borderColor="gray.200"
-        _dark={{ 
-          bg: 'gray.800',
-          borderColor: 'gray.700'
-        }}
-        boxShadow="sm"
-      >
-        <HStack justify="space-between" align="center">
-          <VStack align="start" spacing={1}>
-            <HStack spacing={3}>
-              <Text fontSize="xl" fontWeight="bold" color="gray.900" _dark={{ color: 'white' }}>
-                Search Results
-              </Text>
-              <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
-                {filteredResults.length} result{filteredResults.length !== 1 ? 's' : ''}
-              </Badge>
-            </HStack>
-            <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-              Searching for: &quot;{query}&quot;
-            </Text>
-          </VStack>
-          <Button
-            leftIcon={<FiBookmark />}
-            size="md"
-            variant="outline"
-            onClick={onOpen}
-            colorScheme="blue"
-          >
-            Save Search
-          </Button>
-        </HStack>
-      </Box>
+      <VStack spacing={6} align="stretch" w="100%">
+        <Box>
+          <HStack justify="space-between" align="flex-start" spacing={4}>
+            <VStack align="start" spacing={3} flex={1}>
+              <HStack spacing={4} align="center" flexWrap="wrap">
+                <Text fontSize="2xl" fontWeight="bold" color="gray.900" _dark={{ color: 'white' }}>
+                  Search Results
+                </Text>
+                <Badge 
+                  colorScheme="blue" 
+                  fontSize="sm" 
+                  px={3} 
+                  py={1.5}
+                  borderRadius="full"
+                  fontWeight="semibold"
+                >
+                  {filteredResults.length} result{filteredResults.length !== 1 ? 's' : ''}
+                </Badge>
+              </HStack>
+              <HStack spacing={2} align="center">
+                <Text fontSize="sm" color="gray.500" _dark={{ color: 'gray.400' }} fontWeight="medium">
+                  Query:
+                </Text>
+                <Text 
+                  fontSize="sm" 
+                  color="gray.700" 
+                  fontFamily="mono"
+                  px={2}
+                  py={1}
+                  bg="gray.50"
+                  _dark={{ color: 'gray.300', bg: 'gray.700' }}
+                  borderRadius="md"
+                >
+                  &quot;{query}&quot;
+                </Text>
+              </HStack>
+            </VStack>
+            <Button
+              leftIcon={<FiBookmark />}
+              size="md"
+              variant="outline"
+              onClick={onOpen}
+              colorScheme="blue"
+              borderRadius="lg"
+              fontWeight="medium"
+            >
+              Save Search
+            </Button>
+          </HStack>
+        </Box>
 
-      {query && (
-        <>
-          <Box mb={4}>
-            <QuickFilters 
-              onQuickFilter={(id) => setQuickFilter(quickFilter === id ? null : id)}
-              activeFilter={quickFilter}
-            />
-          </Box>
+        {query && (
+          <>
+            <Box>
+              <QuickFilters 
+                onQuickFilter={(id) => setQuickFilter(quickFilter === id ? null : id)}
+                activeFilter={quickFilter}
+              />
+            </Box>
 
-
-          <Box
-            display="flex"
-            flexDirection="column"
-            gap={4}
-          >
+            <Box
+              display="flex"
+              flexDirection="column"
+              gap={6}
+              w="100%"
+            >
             {loading ? (
-              <Box display="flex" justifyContent="center" alignItems="center" minH="400px">
-                <Spinner size="xl" />
+              <Box 
+                display="flex" 
+                flexDirection="column"
+                justifyContent="center" 
+                alignItems="center" 
+                minH="400px"
+                gap={4}
+              >
+                <Spinner size="xl" color="blue.500" thickness="4px" />
+                <Text color="gray.500" _dark={{ color: 'gray.400' }} fontSize="sm">
+                  Searching resources...
+                </Text>
               </Box>
             ) : error ? (
-              <Box p={6} bg="red.50" _dark={{ bg: 'red.900', color: 'red.100' }} borderRadius="md" color="red.800">
-                <Text>Error loading search results: {error}</Text>
+              <Box 
+                p={6} 
+                bg="red.50" 
+                borderRadius="xl" 
+                color="red.800"
+                border="1px solid"
+                borderColor="red.200"
+                _dark={{ bg: 'red.900/20', borderColor: 'red.800', color: 'red.200' }}
+              >
+                <Text fontWeight="semibold" mb={1}>Error loading search results</Text>
+                <Text fontSize="sm">{error}</Text>
               </Box>
             ) : (
               <Box
@@ -794,7 +1005,6 @@ export const Search = () => {
                 flex="1"
                 display="flex"
                 flexDirection="column"
-                mb={8}
               >
                 <ResourceDetails
                   resource={selectedResource}
@@ -806,73 +1016,65 @@ export const Search = () => {
             )}
           </Box>
         </>
+        )}
+      </VStack>
+      </Box>
       )}
 
-      {isOpen && (
-        <Box
-          position="fixed"
-          top={0}
-          left={0}
-          right={0}
-          bottom={0}
-          bg="blackAlpha.600"
-          zIndex={1000}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          onClick={onClose}
-        >
-          <Box
-            p={6}
-            maxW="500px"
-            w="90%"
-            bg="white"
-            border="1px solid"
-            borderRadius="md"
-            borderColor="gray.200"
-            _dark={{ bg: 'gray.800', borderColor: 'gray.700' }}
-            boxShadow="xl"
-            onClick={(e) => e.stopPropagation()}
-            position="relative"
-            zIndex={1001}
-          >
-            <HStack justify="space-between" mb={4}>
-              <Text fontSize="xl" fontWeight="bold">Save Search</Text>
-              <IconButton
-                icon={<FiX />}
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                aria-label="Close"
-              />
-            </HStack>
-            <VStack spacing={4} align="stretch">
-              <Box>
-                <Text fontSize="sm" fontWeight="semibold" mb={2}>Search Name</Text>
-                <Input
-                  placeholder="My saved search"
-                  value={searchName}
-                  onChange={(e) => setSearchName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSaveSearch()}
-                />
-              </Box>
-              <Box>
-                <Text fontSize="sm" fontWeight="semibold" mb={2}>Query</Text>
-                <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>{query}</Text>
-              </Box>
-            </VStack>
-            <HStack justify="flex-end" mt={6}>
-              <Button variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button colorScheme="blue" onClick={handleSaveSearch} isDisabled={!searchName.trim()}>
-                Save
-              </Button>
-            </HStack>
+      <Dialog
+        isOpen={isOpen}
+        onClose={onClose}
+        onConfirm={handleSaveSearch}
+        title="Save Search"
+        confirmLabel="Save"
+        cancelLabel="Cancel"
+        confirmColorScheme="blue"
+        colorMode={colorMode}
+        maxW="500px"
+        isConfirmDisabled={!searchName.trim()}
+      >
+        <VStack spacing={4} align="stretch">
+          <Box>
+            <Text fontSize="sm" fontWeight="semibold" mb={2} color={getTextColor(colorMode, 'primary')}>
+              Search Name
+            </Text>
+            <Input
+              placeholder="My saved search"
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !searchName.trim() ? null : handleSaveSearch()}
+            />
           </Box>
-        </Box>
-      )}
-    </Box>
+          <Box>
+            <Text fontSize="sm" fontWeight="semibold" mb={2} color={getTextColor(colorMode, 'primary')}>
+              Query
+            </Text>
+            <Text fontSize="sm" color={getTextColor(colorMode, 'secondary')}>{query}</Text>
+          </Box>
+        </VStack>
+      </Dialog>
+
+      <Dialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setSearchToDelete({ id: null, name: null });
+        }}
+        onConfirm={() => {
+          if (searchToDelete.id) {
+            deleteSearch(searchToDelete.id);
+          }
+          setDeleteDialogOpen(false);
+          setSearchToDelete({ id: null, name: null });
+        }}
+        title="Delete Saved Search"
+        message={`Are you sure you want to delete "${searchToDelete.name}"?`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        confirmColorScheme="red"
+        colorMode={colorMode}
+      />
+    </>
   );
 };
 
