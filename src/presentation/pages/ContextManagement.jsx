@@ -11,10 +11,11 @@ import {
 import { FiUpload, FiCheckCircle, FiAlertCircle, FiCheck, FiTrash2, FiRefreshCw, FiDatabase, FiServer } from 'react-icons/fi';
 import { useState, useRef } from 'react';
 import { Container } from '../components/common/Container.jsx';
+import { Dialog } from '../components/common/Dialog.jsx';
 import { useAppContext } from '../providers/AppProvider.jsx';
 
 export const ContextManagement = () => {
-  const { contexts, kubernetesRepository, getKubernetesContextsUseCase, selectedContext, contextErrors } = useAppContext();
+  const { contexts, kubernetesRepository, getKubernetesContextsUseCase, selectedContext, contextErrors, colorMode } = useAppContext();
   const [kubeConfigText, setKubeConfigText] = useState('');
   const [loading, setLoading] = useState(false);
   const [deletingContext, setDeletingContext] = useState(null);
@@ -469,55 +470,17 @@ export const ContextManagement = () => {
         </Container>
       </VStack>
 
-      {isDeleteDialogOpen && (
-        <Box
-          position="fixed"
-          top={0}
-          left={0}
-          right={0}
-          bottom={0}
-          bg="blackAlpha.600"
-          zIndex={1000}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          onClick={() => setIsDeleteDialogOpen(false)}
-        >
-          <Box
-            p={6}
-            maxW="400px"
-            w="90%"
-            bg="white"
-            border="1px solid"
-            borderRadius="md"
-            borderColor="gray.200"
-            _dark={{ bg: 'gray.800', borderColor: 'gray.700' }}
-            boxShadow="xl"
-            onClick={(e) => e.stopPropagation()}
-            position="relative"
-            zIndex={1001}
-          >
-            <Text fontSize="lg" fontWeight="bold" mb={4}>
-              Remove Context
-            </Text>
-            <Text mb={6} color="gray.600" _dark={{ color: 'gray.400' }}>
-              Are you sure you want to remove context <strong>"{contextToDelete}"</strong>? This action cannot be undone.
-            </Text>
-            <HStack justify="flex-end" spacing={3}>
-              <Button onClick={() => setIsDeleteDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                colorScheme="red"
-                onClick={handleRemoveContextConfirm}
-                isLoading={deletingContext === contextToDelete}
-              >
-                Remove
-              </Button>
-            </HStack>
-          </Box>
-        </Box>
-      )}
+      <Dialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleRemoveContextConfirm}
+        title="Remove Context"
+        message={`Are you sure you want to remove context "${contextToDelete}"? This action cannot be undone.`}
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        confirmColorScheme="red"
+        colorMode={colorMode}
+      />
     </Box>
   );
 };

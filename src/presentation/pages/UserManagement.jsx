@@ -9,12 +9,14 @@ import { Input } from '../components/common/Input.jsx';
 import { Dropdown } from '../components/common/Dropdown.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
+import { Dialog } from '../components/common/Dialog.jsx';
+import { getTextColor } from '../utils/theme.js';
 import { FiPlus, FiEdit2 } from 'react-icons/fi';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { useState, useEffect } from 'react';
 
 export const UserManagement = () => {
-  const { user, userService } = useAppContext();
+  const { user, userService, colorMode } = useAppContext();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -90,7 +92,9 @@ export const UserManagement = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) {
+      e.preventDefault();
+    }
     setFormError('');
     setSubmitting(true);
 
@@ -277,143 +281,101 @@ export const UserManagement = () => {
         />
       )}
 
-      {isCreateOpen && (
-        <Box
-          position="fixed"
-          top={0}
-          left={0}
-          right={0}
-          bottom={0}
-          bg="blackAlpha.600"
-          zIndex={1000}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          onClick={onCreateClose}
-        >
-          <Box
-            p={6}
-            maxW="500px"
-            w="90%"
-            bg="white"
-            border="1px solid"
-            borderRadius="md"
-            borderColor="gray.200"
-            _dark={{ bg: 'gray.800', borderColor: 'gray.700' }}
-            boxShadow="xl"
-            onClick={(e) => e.stopPropagation()}
-            position="relative"
-            zIndex={1001}
-          >
-            <Text fontSize="xl" fontWeight="bold" mb={4}>
-              {editingUser ? 'Edit User' : 'Create User'}
-            </Text>
+      <Dialog
+        isOpen={isCreateOpen}
+        onClose={onCreateClose}
+        onConfirm={handleSubmit}
+        title={editingUser ? 'Edit User' : 'Create User'}
+        confirmLabel={submitting ? 'Processing...' : editingUser ? 'Update' : 'Create'}
+        cancelLabel="Cancel"
+        confirmColorScheme="blue"
+        colorMode={colorMode}
+        maxW="500px"
+        isConfirmDisabled={submitting}
+      >
+        <Box as="form" onSubmit={handleSubmit}>
+          {formError && (
+            <Box
+              p={3}
+              mb={4}
+              bg="red.50"
+              _dark={{ bg: 'red.900', borderColor: 'red.700', color: 'red.100' }}
+              border="1px"
+              borderColor="red.200"
+              borderRadius="md"
+              color="red.800"
+            >
+              <Text fontSize="sm">{formError}</Text>
+            </Box>
+          )}
 
-            {formError && (
-              <Box
-                p={3}
-                mb={4}
-                bg="red.50"
-                _dark={{ bg: 'red.900', borderColor: 'red.700', color: 'red.100' }}
-                border="1px"
-                borderColor="red.200"
-                borderRadius="md"
-                color="red.800"
-              >
-                <Text fontSize="sm">{formError}</Text>
+          <VStack spacing={4} align="stretch">
+            <Box>
+              <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'primary')}>
+                Username
+              </Text>
+              <Input
+                type="text"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                required
+              />
+            </Box>
+
+            <Box>
+              <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'primary')}>
+                Email
+              </Text>
+              <Input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+              />
+            </Box>
+
+            <Box>
+              <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'primary')}>
+                Role
+              </Text>
+              <Dropdown
+                value={formData.role}
+                onChange={(value) => setFormData({ ...formData, role: value })}
+                options={[
+                  { value: 'user', label: 'User' },
+                  { value: 'admin', label: 'Admin' },
+                ]}
+              />
+            </Box>
+
+            <Box>
+              <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'primary')}>
+                Password {editingUser && '(leave blank to keep current)'}
+              </Text>
+              <Input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required={!editingUser}
+              />
+            </Box>
+
+            {formData.password && (
+              <Box>
+                <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'primary')}>
+                  Confirm Password
+                </Text>
+                <Input
+                  type="password"
+                  value={formData.passwordConfirmation}
+                  onChange={(e) => setFormData({ ...formData, passwordConfirmation: e.target.value })}
+                  required={!!formData.password}
+                />
               </Box>
             )}
-
-            <Box as="form" onSubmit={handleSubmit}>
-              <VStack spacing={4} align="stretch">
-                <Box>
-                  <Text fontSize="sm" fontWeight="500" mb={2} color="gray.700" _dark={{ color: 'gray.300' }}>
-                    Username
-                  </Text>
-                  <Input
-                    type="text"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    required
-                  />
-                </Box>
-
-                <Box>
-                  <Text fontSize="sm" fontWeight="500" mb={2} color="gray.700" _dark={{ color: 'gray.300' }}>
-                    Email
-                  </Text>
-                  <Input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                  />
-                </Box>
-
-                <Box>
-                  <Text fontSize="sm" fontWeight="500" mb={2} color="gray.700" _dark={{ color: 'gray.300' }}>
-                    Role
-                  </Text>
-                  <Dropdown
-                    value={formData.role}
-                    onChange={(value) => setFormData({ ...formData, role: value })}
-                    options={[
-                      { value: 'user', label: 'User' },
-                      { value: 'admin', label: 'Admin' },
-                    ]}
-                  />
-                </Box>
-
-                <Box>
-                  <Text fontSize="sm" fontWeight="500" mb={2} color="gray.700" _dark={{ color: 'gray.300' }}>
-                    Password {editingUser && '(leave blank to keep current)'}
-                  </Text>
-                  <Input
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required={!editingUser}
-                  />
-                </Box>
-
-                {formData.password && (
-                  <Box>
-                    <Text fontSize="sm" fontWeight="500" mb={2} color="gray.700" _dark={{ color: 'gray.300' }}>
-                      Confirm Password
-                    </Text>
-                    <Input
-                      type="password"
-                      value={formData.passwordConfirmation}
-                      onChange={(e) => setFormData({ ...formData, passwordConfirmation: e.target.value })}
-                      required={!!formData.password}
-                    />
-                  </Box>
-                )}
-
-                <HStack spacing={3} justify="flex-end" mt={4}>
-                  <Button
-                    variant="ghost"
-                    onClick={onCreateClose}
-                    disabled={submitting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    bg="gray.900"
-                    _hover={{ bg: 'gray.800' }}
-                    _dark={{ bg: 'white', color: 'gray.900', _hover: { bg: 'gray.100' } }}
-                    color="white"
-                    disabled={submitting}
-                  >
-                    {submitting ? 'Processing...' : editingUser ? 'Update' : 'Create'}
-                  </Button>
-                </HStack>
-              </VStack>
-            </Box>
-          </Box>
+          </VStack>
         </Box>
-      )}
+      </Dialog>
     </Box>
   );
 };

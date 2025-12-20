@@ -487,6 +487,142 @@ export const ResourceOverview = ({ fullResource, resource, relatedResources, onR
           </Box>
         )}
 
+        {/* Properties section for Functions */}
+        {fullResource.kind === 'Function' && (
+          <Box p={5}>
+            <HStack spacing={2} mb={4}>
+              <Box color="purple.500" _dark={{ color: 'purple.400' }}>
+                <FiLayers size={18} />
+              </Box>
+              <Text fontSize="md" fontWeight="bold" color="gray.800" _dark={{ color: 'gray.100' }}>Function Details</Text>
+            </HStack>
+            <VStack align="stretch" spacing={3}>
+              {fullResource.spec?.package && (
+                <Box
+                  p={3}
+                  bg="gray.50"
+                  _dark={{ bg: 'gray.700' }}
+                  borderRadius="md"
+                >
+                  <Text fontSize="xs" fontWeight="semibold" color="gray.500" _dark={{ color: 'gray.400' }} mb={1}>
+                    Package
+                  </Text>
+                  <Text fontSize="sm" color="gray.900" _dark={{ color: 'gray.100' }} fontFamily="mono">
+                    {fullResource.spec.package}
+                  </Text>
+                </Box>
+              )}
+              {fullResource.status?.currentRevision && (
+                <Box
+                  p={3}
+                  bg="gray.50"
+                  _dark={{ bg: 'gray.700' }}
+                  borderRadius="md"
+                >
+                  <Text fontSize="xs" fontWeight="semibold" color="gray.500" _dark={{ color: 'gray.400' }} mb={1}>
+                    Current Revision
+                  </Text>
+                  <Text fontSize="sm" color="gray.900" _dark={{ color: 'gray.100' }} fontFamily="mono">
+                    {fullResource.status.currentRevision}
+                  </Text>
+                </Box>
+              )}
+              {fullResource.status?.currentIdentifier && (
+                <Box
+                  p={3}
+                  bg="gray.50"
+                  _dark={{ bg: 'gray.700' }}
+                  borderRadius="md"
+                >
+                  <Text fontSize="xs" fontWeight="semibold" color="gray.500" _dark={{ color: 'gray.400' }} mb={1}>
+                    Current Identifier
+                  </Text>
+                  <Text fontSize="sm" color="gray.900" _dark={{ color: 'gray.100' }} fontFamily="mono">
+                    {fullResource.status.currentIdentifier}
+                  </Text>
+                </Box>
+              )}
+              {fullResource.status?.resolvedPackage && (
+                <Box
+                  p={3}
+                  bg="gray.50"
+                  _dark={{ bg: 'gray.700' }}
+                  borderRadius="md"
+                >
+                  <Text fontSize="xs" fontWeight="semibold" color="gray.500" _dark={{ color: 'gray.400' }} mb={1}>
+                    Resolved Package
+                  </Text>
+                  <Text fontSize="sm" color="gray.900" _dark={{ color: 'gray.100' }} fontFamily="mono">
+                    {fullResource.status.resolvedPackage}
+                  </Text>
+                </Box>
+              )}
+              {fullResource.spec?.controllerConfigRef && (
+                <Box
+                  p={3}
+                  bg="gray.50"
+                  _dark={{ bg: 'gray.700' }}
+                  borderRadius="md"
+                >
+                  <Text fontSize="xs" fontWeight="semibold" color="gray.500" _dark={{ color: 'gray.400' }} mb={1}>
+                    Controller Config Reference
+                  </Text>
+                  <Text fontSize="sm" color="gray.900" _dark={{ color: 'gray.100' }}>
+                    {fullResource.spec.controllerConfigRef.name || fullResource.spec.controllerConfigRef}
+                  </Text>
+                </Box>
+              )}
+              {fullResource.status?.conditions && fullResource.status.conditions.length > 0 && (
+                <Box>
+                  <Text fontSize="xs" fontWeight="semibold" color="gray.500" _dark={{ color: 'gray.400' }} mb={2}>
+                    Conditions
+                  </Text>
+                  <VStack align="stretch" spacing={2}>
+                    {fullResource.status.conditions.map((condition, idx) => (
+                      <Box
+                        key={idx}
+                        p={3}
+                        bg="gray.50"
+                        _dark={{ bg: 'gray.700' }}
+                        borderRadius="md"
+                        borderLeft="4px solid"
+                        borderColor={condition.status === 'True' ? 'green.500' : condition.status === 'False' ? 'red.500' : 'yellow.500'}
+                      >
+                        <HStack justify="space-between" mb={1}>
+                          <Text fontSize="sm" fontWeight="semibold" color="gray.900" _dark={{ color: 'gray.100' }}>
+                            {condition.type}
+                          </Text>
+                          <Badge
+                            colorScheme={condition.status === 'True' ? 'green' : condition.status === 'False' ? 'red' : 'yellow'}
+                            fontSize="xs"
+                          >
+                            {condition.status}
+                          </Badge>
+                        </HStack>
+                        {condition.reason && (
+                          <Text fontSize="xs" color="gray.600" _dark={{ color: 'gray.400' }} mb={1}>
+                            Reason: {condition.reason}
+                          </Text>
+                        )}
+                        {condition.message && (
+                          <Text fontSize="xs" color="gray.600" _dark={{ color: 'gray.400' }}>
+                            {condition.message}
+                          </Text>
+                        )}
+                        {condition.lastTransitionTime && (
+                          <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.500' }} mt={1}>
+                            Last transition: {new Date(condition.lastTransitionTime).toLocaleString()}
+                          </Text>
+                        )}
+                      </Box>
+                    ))}
+                  </VStack>
+                </Box>
+              )}
+            </VStack>
+          </Box>
+        )}
+
         {/* Properties section for CompositeResourceDefinitions */}
         {fullResource.kind === 'CompositeResourceDefinition' && (
           <Box p={5}>

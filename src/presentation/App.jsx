@@ -4,6 +4,7 @@ import { Dashboard } from './pages/Dashboard.jsx';
 import { Login } from './pages/Login.jsx';
 import { Settings } from './pages/Settings.jsx';
 import { Providers } from './pages/Providers.jsx';
+import { Functions } from './pages/Functions.jsx';
 import { Compositions } from './pages/Compositions.jsx';
 import { CompositeResourceDefinitions } from './pages/CompositeResourceDefinitions.jsx';
 import { CompositeResources } from './pages/CompositeResources.jsx';
@@ -121,6 +122,7 @@ function App() {
               <Routes>
                 <Route index element={<Dashboard />} />
                 <Route path="providers" element={<Providers />} />
+                <Route path="functions" element={<Functions />} />
                 <Route path="compositions" element={<Compositions />} />
                 <Route path="xrds" element={<CompositeResourceDefinitions />} />
                 <Route path="composite-resources" element={<CompositeResources />} />

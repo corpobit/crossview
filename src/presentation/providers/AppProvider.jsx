@@ -24,12 +24,27 @@ export const AppProvider = ({ children }) => {
   const getKubernetesContextsUseCase = useMemo(() => new GetKubernetesContextsUseCase(kubernetesRepository), [kubernetesRepository]);
   const authService = useMemo(() => new AuthService(), []);
   const userService = useMemo(() => new UserService(), []);
-  const [selectedContext, setSelectedContext] = useState(null);
+  const [selectedContext, setSelectedContext] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lastUsedContext');
+      return saved || null;
+    } catch {
+      return null;
+    }
+  });
   const [contexts, setContexts] = useState([]);
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [serverError, setServerError] = useState(null);
   const [contextErrors, setContextErrors] = useState({});
+  const [workingContexts, setWorkingContexts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('workingContexts');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [colorMode, setColorMode] = useState(() => {
     const saved = localStorage.getItem('colorMode');
     return saved || 'light';
@@ -86,20 +101,103 @@ export const AppProvider = ({ children }) => {
       try {
         const contextsList = await getKubernetesContextsUseCase.execute();
         setContexts(contextsList);
-        if (contextsList.length > 0 && !selectedContext) {
-          const current = await kubernetesRepository.getCurrentContext();
-          const contextToSet = current || (typeof contextsList[0] === 'string' ? contextsList[0] : contextsList[0].name || contextsList[0]);
-          setSelectedContext(contextToSet);
+        
+        if (contextsList.length > 0) {
+          const contextNames = contextsList.map(ctx => typeof ctx === 'string' ? ctx : ctx?.name || ctx);
+          const currentContextName = typeof selectedContext === 'string' ? selectedContext : selectedContext?.name || selectedContext;
+          
+          if (currentContextName && contextNames.includes(currentContextName)) {
+            try {
+              const isValid = await kubernetesRepository.isConnected(currentContextName);
+              if (isValid) {
+                await kubernetesRepository.setContext(currentContextName);
+                setWorkingContexts(prev => {
+                  if (!prev.includes(currentContextName)) {
+                    const updated = [...prev, currentContextName];
+                    localStorage.setItem('workingContexts', JSON.stringify(updated));
+                    return updated;
+                  }
+                  return prev;
+                });
+                return;
+              }
+            } catch (error) {
+              console.warn(`Saved context ${currentContextName} is not working, trying others...`);
+            }
+          }
+          
+          const lastUsedContext = localStorage.getItem('lastUsedContext');
+          let contextToSet = null;
+          
+          if (lastUsedContext && contextNames.includes(lastUsedContext)) {
+            contextToSet = lastUsedContext;
+          } else {
+            const current = await kubernetesRepository.getCurrentContext();
+            if (current && contextNames.includes(current)) {
+              contextToSet = current;
+            } else {
+              const workingContextsList = JSON.parse(localStorage.getItem('workingContexts') || '[]');
+              const workingContext = workingContextsList.find(ctx => contextNames.includes(ctx));
+              if (workingContext) {
+                contextToSet = workingContext;
+              } else {
+                contextToSet = contextNames[0];
+              }
+            }
+          }
+          
+          if (contextToSet) {
+            try {
+              const isValid = await kubernetesRepository.isConnected(contextToSet);
+              if (isValid) {
+                await kubernetesRepository.setContext(contextToSet);
+                setSelectedContext(contextToSet);
+                localStorage.setItem('lastUsedContext', contextToSet);
+                setWorkingContexts(prev => {
+                  const updated = prev.includes(contextToSet) ? prev : [...prev, contextToSet];
+                  localStorage.setItem('workingContexts', JSON.stringify(updated));
+                  return updated;
+                });
+              } else {
+                await tryFindWorkingContext(contextsList, contextNames);
+              }
+            } catch (error) {
+              console.warn(`Context ${contextToSet} is not working, trying others...`);
+              await tryFindWorkingContext(contextsList, contextNames);
+            }
+          }
         }
       } catch (error) {
         console.warn('Failed to load contexts:', error.message);
         setContexts([]);
       }
     };
+    
+    const tryFindWorkingContext = async (contextsList, contextNames) => {
+      for (const contextName of contextNames) {
+        try {
+          const isValid = await kubernetesRepository.isConnected(contextName);
+          if (isValid) {
+            await kubernetesRepository.setContext(contextName);
+            setSelectedContext(contextName);
+            localStorage.setItem('lastUsedContext', contextName);
+            setWorkingContexts(prev => {
+              const updated = prev.includes(contextName) ? prev : [...prev, contextName];
+              localStorage.setItem('workingContexts', JSON.stringify(updated));
+              return updated;
+            });
+            return;
+          }
+        } catch (error) {
+          continue;
+        }
+      }
+    };
+    
     if (contexts.length === 0 && user) {
       loadContexts();
     }
-  }, [user, selectedContext]);
+  }, [user, kubernetesRepository, getKubernetesContextsUseCase]);
 
   useEffect(() => {
     const handleContextsUpdated = async () => {
@@ -133,11 +231,24 @@ export const AppProvider = ({ children }) => {
             ...prev,
             [contextNameStr]: 'Unable to connect to the Kubernetes cluster. Please check your connection settings.'
           }));
+          setWorkingContexts(prev => {
+            const updated = prev.filter(ctx => ctx !== contextNameStr);
+            localStorage.setItem('workingContexts', JSON.stringify(updated));
+            return updated;
+          });
         } else {
           setContextErrors(prev => {
             const newErrors = { ...prev };
             delete newErrors[contextNameStr];
             return newErrors;
+          });
+          setWorkingContexts(prev => {
+            if (!prev.includes(contextNameStr)) {
+              const updated = [...prev, contextNameStr];
+              localStorage.setItem('workingContexts', JSON.stringify(updated));
+              return updated;
+            }
+            return prev;
           });
         }
       } catch (error) {
@@ -145,6 +256,11 @@ export const AppProvider = ({ children }) => {
           ...prev,
           [contextNameStr]: error.message || 'Failed to connect to the Kubernetes cluster.'
         }));
+        setWorkingContexts(prev => {
+          const updated = prev.filter(ctx => ctx !== contextNameStr);
+          localStorage.setItem('workingContexts', JSON.stringify(updated));
+          return updated;
+        });
       }
     };
     
@@ -153,8 +269,37 @@ export const AppProvider = ({ children }) => {
 
   const handleContextChange = async (contextName) => {
     try {
-      await kubernetesRepository.setContext(contextName);
-      setSelectedContext(contextName);
+      const contextNameStr = typeof contextName === 'string' ? contextName : contextName?.name || contextName;
+      await kubernetesRepository.setContext(contextNameStr);
+      setSelectedContext(contextNameStr);
+      localStorage.setItem('lastUsedContext', contextNameStr);
+      
+      const isConnected = await kubernetesRepository.isConnected(contextNameStr);
+      if (isConnected) {
+        setWorkingContexts(prev => {
+          if (!prev.includes(contextNameStr)) {
+            const updated = [...prev, contextNameStr];
+            localStorage.setItem('workingContexts', JSON.stringify(updated));
+            return updated;
+          }
+          return prev;
+        });
+        setContextErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[contextNameStr];
+          return newErrors;
+        });
+      } else {
+        setContextErrors(prev => ({
+          ...prev,
+          [contextNameStr]: 'Unable to connect to the Kubernetes cluster. Please check your connection settings.'
+        }));
+        setWorkingContexts(prev => {
+          const updated = prev.filter(ctx => ctx !== contextNameStr);
+          localStorage.setItem('workingContexts', JSON.stringify(updated));
+          return updated;
+        });
+      }
     } catch (error) {
       console.error('Failed to set context:', error);
       const contextNameStr = typeof contextName === 'string' ? contextName : contextName?.name || contextName;
@@ -162,6 +307,11 @@ export const AppProvider = ({ children }) => {
         ...prev,
         [contextNameStr]: error.message || 'Failed to connect to the Kubernetes cluster.'
       }));
+      setWorkingContexts(prev => {
+        const updated = prev.filter(ctx => ctx !== contextNameStr);
+        localStorage.setItem('workingContexts', JSON.stringify(updated));
+        return updated;
+      });
     }
   };
 
