@@ -26,9 +26,14 @@ export const OnWatchResourcesProvider = ({ children }) => {
     return saved === 'true';
   });
   const [updatingResources, setUpdatingResources] = useState(new Set());
+  const [notifications, setNotifications] = useState([]);
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const watchedResourcesRef = useRef(watchedResources);
+  const isCollapsedRef = useRef(isCollapsed);
+  const notificationIdCounterRef = useRef(0);
+  const lastNotificationRef = useRef({});
+  const wsConnectedAtRef = useRef(null);
 
   const saveToLocalStorage = useCallback((resources) => {
     localStorage.setItem('onWatchResources', JSON.stringify(resources));
@@ -72,6 +77,10 @@ export const OnWatchResourcesProvider = ({ children }) => {
     watchedResourcesRef.current = watchedResources;
   }, [watchedResources]);
 
+  useEffect(() => {
+    isCollapsedRef.current = isCollapsed;
+  }, [isCollapsed]);
+
   const connectWebSocket = useCallback(() => {
     if (!user || !selectedContext) return;
 
@@ -92,6 +101,7 @@ export const OnWatchResourcesProvider = ({ children }) => {
 
       ws.onopen = () => {
         console.log('WebSocket opened, subscribing to resources');
+        wsConnectedAtRef.current = Date.now();
         if (reconnectTimeoutRef.current) {
           clearTimeout(reconnectTimeoutRef.current);
           reconnectTimeoutRef.current = null;
@@ -144,6 +154,43 @@ export const OnWatchResourcesProvider = ({ children }) => {
               saveToLocalStorage(updated);
               return updated;
             });
+
+            if (isCollapsedRef.current) {
+              const now = Date.now();
+              const connectedAt = wsConnectedAtRef.current;
+              
+              if (connectedAt && (now - connectedAt) < 5000) {
+                console.log('Ignoring notification for initial sync update:', key);
+              } else {
+                const resourceName = `${resource.kind}/${resource.metadata?.name || 'unknown'}`;
+                const lastNotification = lastNotificationRef.current[key];
+                
+                if (!lastNotification || (now - lastNotification.timestamp) > 1000) {
+                  notificationIdCounterRef.current += 1;
+                  const notificationId = `${now}-${notificationIdCounterRef.current}-${key}`;
+                  
+                  setNotifications(prev => {
+                    const existing = prev.find(n => n.resourceKey === key && (now - n.timestamp) < 2000);
+                    if (existing) {
+                      return prev;
+                    }
+                    
+                    lastNotificationRef.current[key] = {
+                      timestamp: now,
+                      id: notificationId,
+                    };
+                    
+                    return [...prev, {
+                      id: notificationId,
+                      message: 'Watched resource updated',
+                      resourceName: resourceName,
+                      resourceKey: key,
+                      timestamp: now,
+                    }];
+                  });
+                }
+              }
+            }
 
             setTimeout(() => {
               setUpdatingResources(prev => {
@@ -236,6 +283,10 @@ export const OnWatchResourcesProvider = ({ children }) => {
     });
   }, []);
 
+  const removeNotification = useCallback((id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  }, []);
+
   const value = {
     watchedResources,
     addResource,
@@ -244,6 +295,8 @@ export const OnWatchResourcesProvider = ({ children }) => {
     isCollapsed,
     toggleCollapse,
     updatingResources,
+    notifications,
+    removeNotification,
   };
 
   return (

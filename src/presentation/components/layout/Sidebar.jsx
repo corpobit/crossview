@@ -6,7 +6,7 @@ import {
   Button,
   Image,
 } from '@chakra-ui/react';
-import { FiChevronLeft, FiChevronRight, FiChevronDown, FiChevronUp, FiLayout, FiSettings, FiLogOut, FiPackage, FiFileText, FiLayers, FiBox, FiBook, FiServer, FiUsers, FiSliders, FiGrid, FiDatabase } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiChevronDown, FiChevronUp, FiLayout, FiSettings, FiPackage, FiFileText, FiLayers, FiBox, FiBook, FiServer, FiUsers, FiSliders, FiGrid, FiDatabase, FiCode, FiGithub } from 'react-icons/fi';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../../providers/AppProvider.jsx';
@@ -19,13 +19,11 @@ export const Sidebar = ({ onToggle, onResize }) => {
   const [expandedMenus, setExpandedMenus] = useState({});
   const [compositeResourceKinds, setCompositeResourceKinds] = useState([]);
   const [loadingCompositeKinds, setLoadingCompositeKinds] = useState(false);
-  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [contextSidebarWidth, setContextSidebarWidth] = useState(80);
   const sidebarRef = useRef(null);
-  const cancelRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, kubernetesRepository, selectedContext, colorMode, selectedContextError, isInClusterMode } = useAppContext();
+  const { kubernetesRepository, selectedContext, colorMode, selectedContextError, isInClusterMode } = useAppContext();
 
   useEffect(() => {
     if (isInClusterMode) {
@@ -87,15 +85,6 @@ export const Sidebar = ({ onToggle, onResize }) => {
     };
   }, [isResizing]);
 
-  const handleLogout = async () => {
-    try {
-      setIsLogoutDialogOpen(false);
-      await logout();
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
 
   // Fetch composite resource kinds dynamically (lightweight - only gets kinds from XRDs)
   useEffect(() => {
@@ -154,6 +143,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
     { id: 'dashboard', label: 'Dashboard', icon: FiLayout, path: '/' },
     // Core Crossplane Resources (building blocks)
     { id: 'providers', label: 'Providers', icon: FiPackage, path: '/providers', tooltip: 'Crossplane providers that extend Kubernetes capabilities' },
+    { id: 'functions', label: 'Functions', icon: FiCode, path: '/functions', tooltip: 'Crossplane Functions - composable building blocks for Compositions' },
     { id: 'xrds', label: 'XRDs', icon: FiBook, path: '/xrds', tooltip: 'Composite Resource Definitions - define custom resource types' },
     { id: 'compositions', label: 'Compositions', icon: FiLayers, path: '/compositions', tooltip: 'Templates that define how to compose resources' },
     // Crossplane Instances (created resources)
@@ -514,53 +504,58 @@ export const Sidebar = ({ onToggle, onResize }) => {
             }
           }}
         >
-          {!isCollapsed && user && (
-            <VStack spacing={2} align="stretch">
-              <Box
-                px={3}
-                py={2}
-                borderRadius="md"
-                bg="gray.50"
-                _dark={{ bg: 'gray.800' }}
+          {!isCollapsed && (
+            <VStack spacing={3} align="stretch">
+              <Text
+                fontSize="xs"
+                color="gray.500"
+                _dark={{ color: 'gray.400' }}
+                lineHeight="1.5"
+                textAlign="center"
               >
-                <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.400' }} mb={1}>
-                  Logged in as
+                Open-source project maintained by{' '}
+                <Text as="span" fontWeight="semibold" color="gray.700" _dark={{ color: 'gray.300' }}>
+                  Corpobit
                 </Text>
-                <Text fontSize="sm" fontWeight="semibold" color="gray.700" _dark={{ color: 'gray.300' }}>
-                  {user.username}
-                </Text>
-              </Box>
+              </Text>
               <Box
-                as="button"
+                as="a"
+                href="https://github.com/corpobit/crossview"
+                target="_blank"
+                rel="noopener noreferrer"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
                 w="100%"
                 px={3}
                 py={2}
                 borderRadius="md"
-                textAlign="left"
                 bg="transparent"
-                _hover={{ bg: 'red.50', _dark: { bg: 'red.900' } }}
-                onClick={() => setIsLogoutDialogOpen(true)}
+                _hover={{ bg: 'gray.100', _dark: { bg: 'gray.700' } }}
                 transition="all 0.2s"
+                textDecoration="none"
+                color="gray.700"
+                _dark={{ color: 'gray.300' }}
               >
-                <HStack spacing={3}>
-                  <FiLogOut size={18} color={colors.accent.red.primary} />
+                <HStack spacing={2}>
+                  <FiGithub size={18} style={{ color: 'inherit' }} />
                   <Text
                     fontSize="sm"
                     fontWeight="medium"
-                    color="red.600"
-                    _dark={{ color: 'red.400' }}
                   >
-                    Logout
+                    GitHub
                   </Text>
                 </HStack>
               </Box>
             </VStack>
           )}
-          {isCollapsed && user && (
+          {isCollapsed && (
             <VStack spacing={2} align="center">
               <Box
-                as="button"
-                onClick={() => setIsLogoutDialogOpen(true)}
+                as="a"
+                href="https://github.com/corpobit/crossview"
+                target="_blank"
+                rel="noopener noreferrer"
                 w="44px"
                 h="44px"
                 borderRadius="md"
@@ -568,62 +563,20 @@ export const Sidebar = ({ onToggle, onResize }) => {
                 alignItems="center"
                 justifyContent="center"
                 bg="transparent"
-                _hover={{ bg: 'red.50', _dark: { bg: 'red.900' } }}
-                aria-label="Logout"
+                _hover={{ bg: 'gray.100', _dark: { bg: 'gray.700' } }}
+                aria-label="GitHub"
                 transition="all 0.2s"
+                textDecoration="none"
+                color="gray.700"
+                _dark={{ color: 'gray.300' }}
               >
-                <FiLogOut size={20} style={{ color: colors.accent.red.primary }} />
+                <FiGithub size={20} style={{ color: 'inherit' }} />
               </Box>
             </VStack>
           )}
         </Box>
       </VStack>
 
-      {isLogoutDialogOpen && (
-        <Box
-          position="fixed"
-          top={0}
-          left={0}
-          right={0}
-          bottom={0}
-          bg="blackAlpha.600"
-          zIndex={1000}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          onClick={() => setIsLogoutDialogOpen(false)}
-        >
-          <Box
-            p={6}
-            maxW="400px"
-            w="90%"
-            bg="white"
-            border="1px solid"
-            borderRadius="md"
-            borderColor="gray.200"
-            _dark={{ bg: 'gray.800', borderColor: 'gray.700' }}
-            boxShadow="xl"
-            onClick={(e) => e.stopPropagation()}
-            position="relative"
-            zIndex={1001}
-          >
-            <Text fontSize="lg" fontWeight="bold" mb={4}>
-              Confirm Logout
-            </Text>
-            <Text mb={6} color="gray.600" _dark={{ color: 'gray.400' }}>
-              Are you sure you want to logout? You will need to login again to access the application.
-            </Text>
-            <HStack justify="flex-end" spacing={3}>
-              <Button ref={cancelRef} onClick={() => setIsLogoutDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button colorScheme="red" onClick={handleLogout}>
-                Logout
-              </Button>
-            </HStack>
-          </Box>
-        </Box>
-      )}
     </Box>
   );
 };

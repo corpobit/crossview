@@ -15,7 +15,7 @@ export const colors = {
     },
     dark: {
       html: '#18181B',
-      primary: '#1a1a1a',
+      primary: '#131315',
       secondary: '#242424',
       tertiary: '#2d2d2d',
       quaternary: '#353535',
