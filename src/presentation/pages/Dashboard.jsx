@@ -9,6 +9,7 @@ import { useAppContext } from '../providers/AppProvider.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 
 const ProvidersStatusWidget = lazy(() => import('../components/widgets/ProvidersStatusWidget.jsx').then(module => ({ default: module.ProvidersStatusWidget })));
+const FunctionsCountWidget = lazy(() => import('../components/widgets/FunctionsCountWidget.jsx').then(module => ({ default: module.FunctionsCountWidget })));
 const CompositionsCountWidget = lazy(() => import('../components/widgets/CompositionsCountWidget.jsx').then(module => ({ default: module.CompositionsCountWidget })));
 const ClaimsCountWidget = lazy(() => import('../components/widgets/ClaimsCountWidget.jsx').then(module => ({ default: module.ClaimsCountWidget })));
 const XRDCountWidget = lazy(() => import('../components/widgets/XRDCountWidget.jsx').then(module => ({ default: module.XRDCountWidget })));
@@ -116,7 +117,7 @@ export const Dashboard = () => {
 
       <Box
         display="grid"
-        gridTemplateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)', xl: 'repeat(5, 1fr)' }}
+        gridTemplateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)', xl: 'repeat(6, 1fr)' }}
         gap={4}
         mb={4}
       >
@@ -139,6 +140,10 @@ export const Dashboard = () => {
         <WidgetSuspense>
           <ProvidersStatusWidget />
         </WidgetSuspense>
+
+        <WidgetSuspense>
+          <FunctionsCountWidget />
+        </WidgetSuspense>
       </Box>
 
       <Box
@@ -158,17 +163,19 @@ export const Dashboard = () => {
 
       <Box
         display="grid"
-        gridTemplateColumns={{ base: '1fr', lg: '400px 1fr' }}
+        gridTemplateColumns={{ base: '1fr', lg: 'minmax(250px, 350px) minmax(0, 1fr)' }}
         gap={4}
         alignItems="stretch"
+        w="100%"
+        maxW="100%"
       >
-        <Box h="100%">
+        <Box h="100%" minW={0} maxW="100%" overflow="hidden">
           <WidgetSuspense>
             <RecentActivityWidget />
           </WidgetSuspense>
         </Box>
         
-        <Box h="100%">
+        <Box h="100%" minW={0} maxW="100%" overflow="hidden">
           <WidgetSuspense>
             <CompositeResourcesWidget onResourceClick={handleResourceClick} />
           </WidgetSuspense>

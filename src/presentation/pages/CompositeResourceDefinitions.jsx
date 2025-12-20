@@ -265,12 +265,7 @@ export const CompositeResourceDefinitions = () => {
       flexDirection="column"
       position="relative"
     >
-      <HStack justify="space-between" mb={6}>
-        <Text fontSize="2xl" fontWeight="bold">Composite Resource Definitions</Text>
-        <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-          {filteredXrds.length} definition{filteredXrds.length !== 1 ? 's' : ''}
-        </Text>
-      </HStack>
+      <Text fontSize="2xl" fontWeight="bold" mb={6}>Composite Resource Definitions</Text>
 
       <Box
         display="flex"
