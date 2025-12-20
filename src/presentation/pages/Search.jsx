@@ -694,9 +694,8 @@ export const Search = () => {
                      p={3}
                      borderRadius="lg"
                      bg="blue.50"
-                     _dark={{ bg: 'blue.900/30' }}
                      color="blue.600"
-                     _dark={{ color: 'blue.400' }}
+                     _dark={{ bg: 'blue.900/30', color: 'blue.400' }}
                    >
                      <FiTag size={22} />
                    </Box>
@@ -747,9 +746,8 @@ export const Search = () => {
                      p={3}
                      borderRadius="lg"
                      bg="green.50"
-                     _dark={{ bg: 'green.900/30' }}
                      color="green.600"
-                     _dark={{ color: 'green.400' }}
+                     _dark={{ bg: 'green.900/30', color: 'green.400' }}
                    >
                      <FiLayers size={22} />
                    </Box>
@@ -800,9 +798,8 @@ export const Search = () => {
                      p={3}
                      borderRadius="lg"
                      bg="purple.50"
-                     _dark={{ bg: 'purple.900/30' }}
                      color="purple.600"
-                     _dark={{ color: 'purple.400' }}
+                     _dark={{ bg: 'purple.900/30', color: 'purple.400' }}
                    >
                      <FiFolder size={22} />
                    </Box>
@@ -853,9 +850,8 @@ export const Search = () => {
                      p={3}
                      borderRadius="lg"
                      bg="orange.50"
-                     _dark={{ bg: 'orange.900/30' }}
                      color="orange.600"
-                     _dark={{ color: 'orange.400' }}
+                     _dark={{ bg: 'orange.900/30', color: 'orange.400' }}
                    >
                      <FiHash size={22} />
                    </Box>
@@ -917,12 +913,11 @@ export const Search = () => {
                 <Text 
                   fontSize="sm" 
                   color="gray.700" 
-                  _dark={{ color: 'gray.300' }}
                   fontFamily="mono"
                   px={2}
                   py={1}
                   bg="gray.50"
-                  _dark={{ bg: 'gray.700' }}
+                  _dark={{ color: 'gray.300', bg: 'gray.700' }}
                   borderRadius="md"
                 >
                   &quot;{query}&quot;
@@ -976,12 +971,11 @@ export const Search = () => {
               <Box 
                 p={6} 
                 bg="red.50" 
-                _dark={{ bg: 'red.900/20', borderColor: 'red.800' }} 
                 borderRadius="xl" 
                 color="red.800"
                 border="1px solid"
                 borderColor="red.200"
-                _dark={{ color: 'red.200' }}
+                _dark={{ bg: 'red.900/20', borderColor: 'red.800', color: 'red.200' }}
               >
                 <Text fontWeight="semibold" mb={1}>Error loading search results</Text>
                 <Text fontSize="sm">{error}</Text>
