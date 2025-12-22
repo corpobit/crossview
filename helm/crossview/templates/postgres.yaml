@@ -42,16 +42,23 @@ spec:
             - name: postgres
               containerPort: 5432
           env:
+{{- if .Values.config.existingConfigMap }}
+            - name: POSTGRES_DB
+              value: {{ .Values.env.DB_NAME | default "crossview" | quote }}
+            - name: POSTGRES_USER
+              value: {{ .Values.env.DB_USER | default "postgres" | quote }}
+{{- else }}
             - name: POSTGRES_DB
               valueFrom:
                 configMapKeyRef:
-                  name: {{ include "crossview.fullname" . }}-config
+                  name: {{ include "crossview.configMapName" . }}
                   key: DB_NAME
             - name: POSTGRES_USER
               valueFrom:
                 configMapKeyRef:
-                  name: {{ include "crossview.fullname" . }}-config
+                  name: {{ include "crossview.configMapName" . }}
                   key: DB_USER
+{{- end }}
             {{- if .Values.secrets.existingSecret }}
             - name: POSTGRES_PASSWORD
               valueFrom:

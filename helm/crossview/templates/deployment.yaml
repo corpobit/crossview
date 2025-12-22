@@ -53,21 +53,30 @@ spec:
               done
               echo "Database is ready and accepting connections!"
           env:
+{{- if .Values.config.existingConfigMap }}
+            - name: DB_PORT
+              value: {{ .Values.env.DB_PORT | default "5432" | quote }}
+            - name: DB_NAME
+              value: {{ .Values.env.DB_NAME | default "crossview" | quote }}
+            - name: DB_USER
+              value: {{ .Values.env.DB_USER | default "postgres" | quote }}
+{{- else }}
             - name: DB_PORT
               valueFrom:
                 configMapKeyRef:
-                  name: {{ include "crossview.fullname" . }}-config
+                  name: {{ include "crossview.configMapName" . }}
                   key: DB_PORT
             - name: DB_NAME
               valueFrom:
                 configMapKeyRef:
-                  name: {{ include "crossview.fullname" . }}-config
+                  name: {{ include "crossview.configMapName" . }}
                   key: DB_NAME
             - name: DB_USER
               valueFrom:
                 configMapKeyRef:
-                  name: {{ include "crossview.fullname" . }}-config
+                  name: {{ include "crossview.configMapName" . }}
                   key: DB_USER
+{{- end }}
             {{- if .Values.secrets.existingSecret }}
             - name: DB_PASS
               valueFrom:
@@ -99,36 +108,41 @@ spec:
               containerPort: {{ .Values.app.port }}
               protocol: TCP
           env:
+{{- if .Values.config.existingConfigMap }}
+            - name: CONFIG_PATH
+              value: /app/config/config.yaml
+{{- else }}
             - name: NODE_ENV
               valueFrom:
                 configMapKeyRef:
-                  name: {{ include "crossview.fullname" . }}-config
+                  name: {{ include "crossview.configMapName" . }}
                   key: NODE_ENV
             - name: PORT
               valueFrom:
                 configMapKeyRef:
-                  name: {{ include "crossview.fullname" . }}-config
+                  name: {{ include "crossview.configMapName" . }}
                   key: PORT
             - name: DB_HOST
               valueFrom:
                 configMapKeyRef:
-                  name: {{ include "crossview.fullname" . }}-config
+                  name: {{ include "crossview.configMapName" . }}
                   key: DB_HOST
             - name: DB_PORT
               valueFrom:
                 configMapKeyRef:
-                  name: {{ include "crossview.fullname" . }}-config
+                  name: {{ include "crossview.configMapName" . }}
                   key: DB_PORT
             - name: DB_NAME
               valueFrom:
                 configMapKeyRef:
-                  name: {{ include "crossview.fullname" . }}-config
+                  name: {{ include "crossview.configMapName" . }}
                   key: DB_NAME
             - name: DB_USER
               valueFrom:
                 configMapKeyRef:
-                  name: {{ include "crossview.fullname" . }}-config
+                  name: {{ include "crossview.configMapName" . }}
                   key: DB_USER
+{{- end }}
             {{- if .Values.secrets.existingSecret }}
             - name: DB_PASS
               valueFrom:
@@ -168,9 +182,19 @@ spec:
           volumeMounts:
             - name: logs
               mountPath: /app/logs
+{{- if .Values.config.existingConfigMap }}
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+{{- end }}
       volumes:
         - name: logs
           emptyDir: {}
+{{- if .Values.config.existingConfigMap }}
+        - name: config
+          configMap:
+            name: {{ include "crossview.configMapName" . }}
+{{- end }}
       {{- with .Values.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}

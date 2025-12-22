@@ -1,3 +1,4 @@
+{{- if not .Values.config.existingConfigMap }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -12,4 +13,5 @@ data:
   DB_PORT: {{ .Values.env.DB_PORT | quote }}
   DB_NAME: {{ .Values.env.DB_NAME | quote }}
   DB_USER: {{ .Values.env.DB_USER | quote }}
+{{- end }}
 

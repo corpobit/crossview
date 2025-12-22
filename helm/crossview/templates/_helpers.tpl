@@ -61,3 +61,14 @@ Get namespace - defaults to "default" if global.namespace is empty
 {{- end }}
 {{- end }}
 
+{{/*
+Get ConfigMap name - uses existing ConfigMap if specified, otherwise generates one
+*/}}
+{{- define "crossview.configMapName" -}}
+{{- if .Values.config.existingConfigMap }}
+{{- .Values.config.existingConfigMap }}
+{{- else }}
+{{- printf "%s-config" (include "crossview.fullname" .) }}
+{{- end }}
+{{- end }}
+
