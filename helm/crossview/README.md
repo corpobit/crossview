@@ -86,6 +86,7 @@ The following table lists the configurable parameters and their default values:
 | `service.port` | Service port | `80` |
 | `ingress.enabled` | Enable Ingress | `false` |
 | `ingress.className` | Ingress class name | `nginx` |
+| `config.existingConfigMap` | Reference to existing ConfigMap with config.yaml key (if set, ConfigMap creation is skipped and file is mounted) | `""` |
 | `database.enabled` | Enable PostgreSQL database | `true` |
 | `database.image.repository` | PostgreSQL image repository | `postgres` |
 | `database.image.tag` | PostgreSQL image tag | `latest` (PostgreSQL 18) |
@@ -94,6 +95,7 @@ The following table lists the configurable parameters and their default values:
 | `database.persistence.accessMode` | Database PVC access mode | `ReadWriteOnce` |
 | `secrets.dbPassword` | Database password (required) | `""` |
 | `secrets.sessionSecret` | Session secret (required) | `""` |
+| `secrets.existingSecret` | Reference to existing Secret (if set, Secret creation is skipped) | `""` |
 | `resources.requests.memory` | Memory request | `256Mi` |
 | `resources.requests.cpu` | CPU request | `250m` |
 | `resources.limits.memory` | Memory limit | `512Mi` |
@@ -129,6 +131,37 @@ helm install crossview crossview/crossview \
   --set secrets.dbPassword=your-db-password \
   --set secrets.sessionSecret=$(openssl rand -base64 32)
 ```
+
+## Using External ConfigMap with config.yaml
+
+If you want to use an existing ConfigMap that contains your `config.yaml` file, the application will read all settings (database, server, and SSO) from it.
+
+1. Create a ConfigMap from your config.yaml file:
+```bash
+kubectl create configmap my-crossview-config \
+  --from-file=config.yaml=/path/to/your/config.yaml \
+  --namespace crossview
+```
+
+2. Install the chart referencing the existing ConfigMap:
+```bash
+helm install crossview crossview/crossview \
+  --namespace crossview \
+  --create-namespace \
+  --set config.existingConfigMap=my-crossview-config \
+  --set secrets.dbPassword=your-db-password \
+  --set secrets.sessionSecret=$(openssl rand -base64 32)
+```
+
+**Configuration Priority:**
+1. **Existing ConfigMap** (if `config.existingConfigMap` is set) - Mounts as file at `/app/config/config.yaml`, application reads from it
+2. **Environment Variables** (if no existing ConfigMap) - Chart creates ConfigMap with env vars, application reads from env vars
+3. **Defaults** - Application falls back to default values
+
+**Note:** 
+- When using `config.existingConfigMap`, the ConfigMap must contain a `config.yaml` key with your full configuration
+- The application automatically handles priority: env vars > config file > defaults
+- If no `config.existingConfigMap` is set, the chart creates a ConfigMap with environment variables (NODE_ENV, PORT, DB_HOST, etc.)
 
 ## Ingress Configuration
 
