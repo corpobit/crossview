@@ -151,7 +151,7 @@
         "type": {
           "type": "string",
           "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"],
-          "default": "LoadBalancer"
+          "default": "ClusterIP"
         },
         "port": {
           "type": "integer",
