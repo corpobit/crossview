@@ -138,7 +138,16 @@ database:
       drop:
         - ALL
 
-# Environment variables
+# Configuration
+config:
+  # Reference to an existing ConfigMap (if set, ConfigMap creation is skipped)
+  # The existing ConfigMap should contain a 'config.yaml' key with the full configuration file
+  # The application will read database, server, and SSO settings from this file
+  # If not set, the chart will create a ConfigMap with environment variables
+  # Priority: existingConfigMap (as file) > env vars from chart ConfigMap > defaults
+  existingConfigMap: ""  # Set to your ConfigMap name, e.g., "my-crossview-config"
+
+# Environment variables (only used if config.existingConfigMap is not set)
 env:
   NODE_ENV: "production"
   PORT: "3001"
