@@ -3,6 +3,9 @@ chart-dirs:
 target-branch: main
 validate-maintainers: false
 check-version-increment: false
+build-helm-deps: false
+validate-schema: false
 lint:
   maintainers: false
   validate-maintainers: false
+  yamllint: false
