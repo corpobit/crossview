@@ -35,7 +35,7 @@ data:
   SAML_ENABLED: {{ .Values.config.sso.saml.enabled | default false | quote }}
   SAML_ENTRY_POINT: {{ .Values.config.sso.saml.entryPoint | default "http://localhost:8080/realms/crossview/protocol/saml" | quote }}
   SAML_ISSUER: {{ .Values.config.sso.saml.issuer | default "crossview" | quote }}
-  SAML_CERT: {{ if not .Values.config.sso.saml.cert }}{{ "" | quote }}{{ else }}{{ .Values.config.sso.saml.cert | quote }}{{ end }}
+  SAML_CERT: {{ .Values.config.sso.saml.cert | default "" | quote }}
   SAML_CALLBACK_URL: {{ .Values.config.sso.saml.callbackURL | default "http://localhost:3001/api/auth/saml/callback" | quote }}
   SAML_USERNAME_ATTRIBUTE: {{ .Values.config.sso.saml.usernameAttribute | default "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name" | quote }}
   SAML_EMAIL_ATTRIBUTE: {{ .Values.config.sso.saml.emailAttribute | default "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress" | quote }}
