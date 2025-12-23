@@ -1,22 +1,8 @@
 chart-dirs:
   - helm
 target-branch: main
-remote: origin
-chart-repos:
-  - crossview=https://corpobit.github.io/crossview
 validate-maintainers: false
 check-version-increment: false
-build-helm-deps: false
-validate-schema: false
 lint:
   maintainers: false
   validate-maintainers: false
-  yamllint:
-    config:
-      extends: default
-      rules:
-        line-length:
-          max: 200
-          level: warning
-  helm:
-    extra-args: --strict
