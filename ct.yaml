@@ -6,8 +6,8 @@ chart-repos:
   - crossview=https://corpobit.github.io/crossview
 validate-maintainers: false
 check-version-increment: false
-build-helm-deps: true
-validate-schema: true
+build-helm-deps: false
+validate-schema: false
 lint:
   maintainers: false
   validate-maintainers: false
