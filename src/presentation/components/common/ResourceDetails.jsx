@@ -110,18 +110,18 @@ export const ResourceDetails = ({ resource, onClose, onNavigate, onBack }) => {
               <Text fontSize="xs">{isWatched ? "Watching" : "Watch"}</Text>
             </HStack>
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onClose}
-            aria-label="Minimize"
-            minW="auto"
-            w="32px"
-            h="32px"
-            p={0}
-          >
-            <FiMinus />
-          </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onClose}
+          aria-label="Minimize"
+          minW="auto"
+          w="32px"
+          h="32px"
+          p={0}
+        >
+          <FiMinus />
+        </Button>
         </HStack>
         {onBack && (
           <Button

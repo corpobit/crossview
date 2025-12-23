@@ -1,0 +1,46 @@
+suite: test postgres deployment
+templates:
+  - postgres.yaml
+tests:
+  - it: should use database config values
+    set:
+      secrets:
+        dbPassword: test-password
+        sessionSecret: test-secret
+    template: postgres.yaml
+    documentIndex: 0
+    asserts:
+      - hasDocuments:
+          count: 3
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POSTGRES_DB
+            value: "crossview"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POSTGRES_USER
+            value: "postgres"
+
+  - it: should use direct values when config.ref is set
+    set:
+      config:
+        ref: existing-configmap
+      secrets:
+        dbPassword: test-password
+        sessionSecret: test-secret
+    template: postgres.yaml
+    documentIndex: 0
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POSTGRES_DB
+            value: "crossview"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POSTGRES_USER
+            value: "postgres"
+

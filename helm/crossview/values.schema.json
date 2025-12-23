@@ -323,34 +323,201 @@
         }
       }
     },
-    "env": {
+    "config": {
       "type": "object",
-      "description": "Environment variables",
+      "description": "Application configuration (matches config.yaml.example structure)",
       "properties": {
-        "NODE_ENV": {
+        "ref": {
           "type": "string",
-          "enum": ["production", "development", "test"],
-          "default": "production"
+          "description": "Reference to an existing ConfigMap (if set, ConfigMap creation is skipped)"
         },
-        "PORT": {
-          "type": "string",
-          "default": "3001"
+        "database": {
+          "type": "object",
+          "properties": {
+            "host": {
+              "type": "string",
+              "description": "Database host (empty for auto-detection: {release-name}-postgres)"
+            },
+            "port": {
+              "type": "integer",
+              "default": 5432
+            },
+            "database": {
+              "type": "string",
+              "default": "crossview"
+            },
+            "username": {
+              "type": "string",
+              "default": "postgres"
+            }
+          }
         },
-        "DB_HOST": {
-          "type": "string",
-          "description": "Database host (empty for auto-detection)"
+        "server": {
+          "type": "object",
+          "properties": {
+            "port": {
+              "type": "integer",
+              "default": 3001
+            },
+            "log": {
+              "type": "object",
+              "properties": {
+                "level": {
+                  "type": "string",
+                  "enum": ["debug", "info", "warn", "error", "fatal", "panic"],
+                  "default": "info"
+                }
+              }
+            },
+            "cors": {
+              "type": "object",
+              "properties": {
+                "origin": {
+                  "type": "string",
+                  "default": "http://localhost:5173"
+                },
+                "credentials": {
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            },
+            "session": {
+              "type": "object",
+              "properties": {
+                "cookie": {
+                  "type": "object",
+                  "properties": {
+                    "secure": {
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "httpOnly": {
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "maxAge": {
+                      "type": "integer",
+                      "default": 86400000
+                    }
+                  }
+                }
+              }
+            }
+          }
         },
-        "DB_PORT": {
-          "type": "string",
-          "default": "5432"
+        "sso": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "oidc": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "issuer": {
+                  "type": "string"
+                },
+                "clientId": {
+                  "type": "string"
+                },
+                "clientSecret": {
+                  "type": "string"
+                },
+                "authorizationURL": {
+                  "type": "string"
+                },
+                "tokenURL": {
+                  "type": "string"
+                },
+                "userInfoURL": {
+                  "type": "string"
+                },
+                "callbackURL": {
+                  "type": "string"
+                },
+                "scope": {
+                  "type": "string"
+                },
+                "usernameAttribute": {
+                  "type": "string"
+                },
+                "emailAttribute": {
+                  "type": "string"
+                },
+                "firstNameAttribute": {
+                  "type": "string"
+                },
+                "lastNameAttribute": {
+                  "type": "string"
+                }
+              }
+            },
+            "saml": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "entryPoint": {
+                  "type": "string"
+                },
+                "issuer": {
+                  "type": "string"
+                },
+                "cert": {
+                  "type": ["string", "null"]
+                },
+                "callbackURL": {
+                  "type": "string"
+                },
+                "usernameAttribute": {
+                  "type": "string"
+                },
+                "emailAttribute": {
+                  "type": "string"
+                },
+                "firstNameAttribute": {
+                  "type": "string"
+                },
+                "lastNameAttribute": {
+                  "type": "string"
+                }
+              }
+            }
+          }
         },
-        "DB_NAME": {
-          "type": "string",
-          "default": "crossview"
-        },
-        "DB_USER": {
-          "type": "string",
-          "default": "postgres"
+        "vite": {
+          "type": "object",
+          "properties": {
+            "server": {
+              "type": "object",
+              "properties": {
+                "proxy": {
+                  "type": "object",
+                  "properties": {
+                    "api": {
+                      "type": "object",
+                      "properties": {
+                        "target": {
+                          "type": "string"
+                        },
+                        "changeOrigin": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },

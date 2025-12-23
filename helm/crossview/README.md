@@ -86,7 +86,11 @@ The following table lists the configurable parameters and their default values:
 | `service.port` | Service port | `80` |
 | `ingress.enabled` | Enable Ingress | `false` |
 | `ingress.className` | Ingress class name | `nginx` |
-| `config.existingConfigMap` | Reference to existing ConfigMap with config.yaml key (if set, ConfigMap creation is skipped and file is mounted) | `""` |
+| `config.ref` | Reference to existing ConfigMap with environment variables (if set, ConfigMap creation is skipped) | `""` |
+| `config.database` | Database configuration (host, port, database, username) | See values.yaml |
+| `config.server` | Server configuration (port, log, cors, session) | See values.yaml |
+| `config.sso` | SSO configuration (OIDC, SAML) | See values.yaml |
+| `config.vite` | Vite/development server configuration | See values.yaml |
 | `database.enabled` | Enable PostgreSQL database | `true` |
 | `database.image.repository` | PostgreSQL image repository | `postgres` |
 | `database.image.tag` | PostgreSQL image tag | `latest` (PostgreSQL 18) |
@@ -126,20 +130,72 @@ helm install crossview crossview/crossview \
   --namespace crossview \
   --create-namespace \
   --set database.enabled=false \
-  --set env.DB_HOST=your-external-db-host \
-  --set env.DB_PORT=5432 \
+  --set config.database.host=your-external-db-host \
+  --set config.database.port=5432 \
   --set secrets.dbPassword=your-db-password \
   --set secrets.sessionSecret=$(openssl rand -base64 32)
 ```
 
-## Using External ConfigMap with config.yaml
+## Configuration
 
-If you want to use an existing ConfigMap that contains your `config.yaml` file, the application will read all settings (database, server, and SSO) from it.
+The Helm chart supports two configuration methods:
 
-1. Create a ConfigMap from your config.yaml file:
+### Method 1: Chart-Generated ConfigMap (Default)
+
+If `config.ref` is not set, the chart generates a ConfigMap with environment variables from the `config` section in `values.yaml`. The configuration structure matches `config.yaml.example`:
+
+```yaml
+config:
+  database:
+    host: ""  # Empty = auto-detect: {release-name}-postgres
+    port: 5432
+    database: crossview
+    username: postgres
+  server:
+    port: 3001
+    log:
+      level: info
+    cors:
+      origin: http://localhost:5173
+      credentials: true
+    session:
+      cookie:
+        secure: false
+        httpOnly: true
+        maxAge: 86400000
+  sso:
+    enabled: false
+    oidc:
+      enabled: false
+      issuer: http://localhost:8080/realms/crossview
+      clientId: crossview-client
+      # ... other OIDC settings
+    saml:
+      enabled: false
+      entryPoint: http://localhost:8080/realms/crossview/protocol/saml
+      # ... other SAML settings
+```
+
+The chart creates a ConfigMap with environment variables (DB_HOST, DB_PORT, DB_NAME, DB_USER, PORT, LOG_LEVEL, CORS_ORIGIN, SSO_ENABLED, OIDC_*, SAML_*, etc.). These are injected into the application pods via `configMapKeyRef`. Sensitive values (database password, session secret) are provided via Secrets and injected as environment variables (`DB_PASS`, `SESSION_SECRET`).
+
+### Method 2: Existing ConfigMap
+
+If you want to use an existing ConfigMap that contains environment variables:
+
+1. Create a ConfigMap with environment variables:
 ```bash
 kubectl create configmap my-crossview-config \
-  --from-file=config.yaml=/path/to/your/config.yaml \
+  --from-literal=DB_HOST=crossview-postgres \
+  --from-literal=DB_PORT=5432 \
+  --from-literal=DB_NAME=crossview \
+  --from-literal=DB_USER=postgres \
+  --from-literal=PORT=3001 \
+  --from-literal=LOG_LEVEL=info \
+  --from-literal=CORS_ORIGIN=http://localhost:5173 \
+  --from-literal=SSO_ENABLED=false \
+  --from-literal=OIDC_ENABLED=false \
+  --from-literal=OIDC_ISSUER=http://localhost:8080/realms/crossview \
+  --from-literal=OIDC_CLIENT_ID=crossview-client \
   --namespace crossview
 ```
 
@@ -148,20 +204,16 @@ kubectl create configmap my-crossview-config \
 helm install crossview crossview/crossview \
   --namespace crossview \
   --create-namespace \
-  --set config.existingConfigMap=my-crossview-config \
+  --set config.ref=my-crossview-config \
   --set secrets.dbPassword=your-db-password \
   --set secrets.sessionSecret=$(openssl rand -base64 32)
 ```
 
-**Configuration Priority:**
-1. **Existing ConfigMap** (if `config.existingConfigMap` is set) - Mounts as file at `/app/config/config.yaml`, application reads from it
-2. **Environment Variables** (if no existing ConfigMap) - Chart creates ConfigMap with env vars, application reads from env vars
-3. **Defaults** - Application falls back to default values
-
-**Note:** 
-- When using `config.existingConfigMap`, the ConfigMap must contain a `config.yaml` key with your full configuration
-- The application automatically handles priority: env vars > config file > defaults
-- If no `config.existingConfigMap` is set, the chart creates a ConfigMap with environment variables (NODE_ENV, PORT, DB_HOST, etc.)
+**Notes:**
+- When using `config.ref`, the ConfigMap must contain environment variables (DB_HOST, DB_PORT, etc.)
+- The application reads configuration from environment variables (not from a file)
+- Database password and session secret are provided via Secrets and injected as environment variables
+- All configuration values use defaults from `values.yaml` if not provided in the config section
 
 ## Ingress Configuration
 

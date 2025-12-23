@@ -85,9 +85,9 @@ export const Header = ({ sidebarWidth }) => {
     >
       <HStack h="100%" justify="space-between" w="100%" spacing={6}>
         <HStack spacing={4} flex={1} align="center">
-          <Text fontSize="lg" fontWeight="semibold" color="gray.800" _dark={{ color: 'gray.100' }}>
-            Crossplane Dashboard
-          </Text>
+        <Text fontSize="lg" fontWeight="semibold" color="gray.800" _dark={{ color: 'gray.100' }}>
+          Crossplane Dashboard
+        </Text>
           {contextName && (
             <HStack spacing={2} align="center">
               <Box
@@ -121,7 +121,7 @@ export const Header = ({ sidebarWidth }) => {
             {colorMode === 'light' ? <FiMoon size={18} /> : <FiSun size={18} />}
           </IconButton>
 
-          <SearchBar />
+        <SearchBar />
 
           {user && (
             <Box position="relative" ref={userMenuRef}>
