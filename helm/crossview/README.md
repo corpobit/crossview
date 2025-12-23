@@ -25,7 +25,7 @@ Install directly from Docker Hub OCI registry. No repository setup needed!
 ```bash
 # Install from OCI registry
 helm install crossview oci://docker.io/corpobit/crossview-chart \
-  --version 2.9.0 \
+  --version 3.0.0 \
   --namespace crossview \
   --create-namespace \
   --set secrets.dbPassword=your-db-password \
@@ -53,8 +53,8 @@ helm install crossview crossview/crossview \
 helm install crossview crossview/crossview \
   --namespace crossview \
   --create-namespace \
-  --set image.tag=2.9.0 \
-  --set app.replicas=3 \
+  --set image.tag=3.0.0 \
+  --set app.replicas=1 \
   --set secrets.dbPassword=your-db-password \
   --set secrets.sessionSecret=$(openssl rand -base64 32) \
   --set ingress.enabled=true \
@@ -80,7 +80,7 @@ The following table lists the configurable parameters and their default values:
 | `image.repository` | Docker image repository | `corpobit/crossview` |
 | `image.tag` | Docker image tag | `latest` |
 | `image.pullPolicy` | Image pull policy | `Always` |
-| `app.replicas` | Number of replicas | `3` |
+| `app.replicas` | Number of replicas | `1` |
 | `app.port` | Application port | `3001` |
 | `service.type` | Service type | `LoadBalancer` |
 | `service.port` | Service port | `80` |
@@ -110,7 +110,7 @@ The following table lists the configurable parameters and their default values:
 ```bash
 helm upgrade crossview crossview/crossview \
   --namespace crossview \
-  --set image.tag=2.9.0 \
+  --set image.tag=3.0.0 \
   --set secrets.dbPassword=your-db-password \
   --set secrets.sessionSecret=your-session-secret
 ```
