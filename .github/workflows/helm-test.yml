@@ -69,8 +69,14 @@ jobs:
 
       - name: Run Chart Testing (ct)
         run: |
-          ct lint --all --config ct.yaml || {
+          set -x
+          ct lint --all --config ct.yaml --debug 2>&1 || {
             echo "❌ Chart testing failed"
+            echo "Running helm lint manually to see actual error..."
+            cd helm/crossview
+            helm lint . --debug
+            echo "Checking if yamllint is the issue..."
+            which yamllint || echo "yamllint not found"
             exit 1
           }
 
