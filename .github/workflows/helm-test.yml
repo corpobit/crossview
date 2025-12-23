@@ -5,12 +5,16 @@ on:
     paths:
       - 'helm/**'
       - '.github/workflows/helm-test.yml'
+      - 'ct.yaml'
+      - 'lintconf.yaml'
   push:
     branches:
       - main
     paths:
       - 'helm/**'
       - '.github/workflows/helm-test.yml'
+      - 'ct.yaml'
+      - 'lintconf.yaml'
   workflow_dispatch:
 
 jobs:
