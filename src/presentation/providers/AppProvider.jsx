@@ -132,7 +132,7 @@ export const AppProvider = ({ children }) => {
           if (lastUsedContext && contextNames.includes(lastUsedContext)) {
             contextToSet = lastUsedContext;
           } else {
-            const current = await kubernetesRepository.getCurrentContext();
+          const current = await kubernetesRepository.getCurrentContext();
             if (current && contextNames.includes(current)) {
               contextToSet = current;
             } else {
@@ -151,7 +151,7 @@ export const AppProvider = ({ children }) => {
               const isValid = await kubernetesRepository.isConnected(contextToSet);
               if (isValid) {
                 await kubernetesRepository.setContext(contextToSet);
-                setSelectedContext(contextToSet);
+          setSelectedContext(contextToSet);
                 localStorage.setItem('lastUsedContext', contextToSet);
                 setWorkingContexts(prev => {
                   const updated = prev.includes(contextToSet) ? prev : [...prev, contextToSet];

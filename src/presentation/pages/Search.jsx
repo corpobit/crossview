@@ -420,19 +420,19 @@ export const Search = () => {
     },
   ];
 
-  return (
+    return (
     <>
       {!query ? (
-        <Box
-          display="flex"
-          flexDirection="column"
-          minH="calc(100vh - 164px)"
-          justifyContent="center"
-          alignItems="center"
-          w="100%"
+      <Box
+        display="flex"
+        flexDirection="column"
+        minH="calc(100vh - 164px)"
+        justifyContent="center"
+        alignItems="center"
+        w="100%"
           animation="fadeIn 0.3s ease-in"
           px={6}
-        >
+      >
         <VStack spacing={10} align="center" w="100%" maxW="1000px" mx="auto">
           <VStack spacing={4} align="center">
             <Text
@@ -640,10 +640,10 @@ export const Search = () => {
           </Box>
         </VStack>
 
-         <Box
-           w="100%"
+        <Box
+          w="100%"
            maxW="1000px"
-           mx="auto"
+          mx="auto"
            mt={16}
          >
            <VStack spacing={8} align="stretch">
@@ -670,13 +670,13 @@ export const Search = () => {
                <Box
                  p={6}
                  borderRadius="lg"
-                 border="1px solid"
-                 borderColor="gray.200"
-                 bg="white"
-                 _dark={{ 
-                   borderColor: 'gray.700',
-                   bg: 'gray.800'
-                 }}
+          border="1px solid"
+          borderColor="gray.200"
+          bg="white"
+          _dark={{ 
+            borderColor: 'gray.700',
+            bg: 'gray.800'
+          }}
                  transition="all 0.2s"
                  w="100%"
                  _hover={{
@@ -688,7 +688,7 @@ export const Search = () => {
                      boxShadow: 'lg',
                    }
                  }}
-               >
+        >
                  <VStack spacing={4} align="start">
                    <Box
                      p={3}
@@ -700,23 +700,23 @@ export const Search = () => {
                      <FiTag size={22} />
                    </Box>
                    <VStack spacing={2} align="start">
-                     <Text
+            <Text
                        fontSize="md"
-                       fontWeight="semibold"
-                       color="gray.900"
+              fontWeight="semibold"
+              color="gray.900"
                        _dark={{ color: 'gray.100' }}
-                     >
+            >
                        By Name
-                     </Text>
-                     <Text
-                       fontSize="sm"
+            </Text>
+                <Text 
+                  fontSize="sm" 
                        color="gray.600"
-                       _dark={{ color: 'gray.300' }}
+                  _dark={{ color: 'gray.300' }}
                        lineHeight="1.6"
-                     >
+                >
                        Search resources by their exact or partial name
-                     </Text>
-                   </VStack>
+                </Text>
+              </VStack>
                  </VStack>
                </Box>
 
@@ -760,15 +760,15 @@ export const Search = () => {
                      >
                        By Kind
                      </Text>
-                     <Text
-                       fontSize="sm"
+                <Text 
+                  fontSize="sm" 
                        color="gray.600"
-                       _dark={{ color: 'gray.300' }}
+                  _dark={{ color: 'gray.300' }}
                        lineHeight="1.6"
-                     >
+                >
                        Filter by resource type like XRD, Composition, or Provider
-                     </Text>
-                   </VStack>
+                </Text>
+              </VStack>
                  </VStack>
                </Box>
 
@@ -812,15 +812,15 @@ export const Search = () => {
                      >
                        By Namespace
                      </Text>
-                     <Text
-                       fontSize="sm"
+                <Text 
+                  fontSize="sm" 
                        color="gray.600"
-                       _dark={{ color: 'gray.300' }}
+                  _dark={{ color: 'gray.300' }}
                        lineHeight="1.6"
-                     >
+                >
                        Find resources within specific namespaces
-                     </Text>
-                   </VStack>
+                </Text>
+              </VStack>
                  </VStack>
                </Box>
 
@@ -864,23 +864,23 @@ export const Search = () => {
                      >
                        By Labels
                      </Text>
-                     <Text
-                       fontSize="sm"
+                <Text 
+                  fontSize="sm" 
                        color="gray.600"
-                       _dark={{ color: 'gray.300' }}
+                  _dark={{ color: 'gray.300' }}
                        lineHeight="1.6"
-                     >
+                >
                        Search using label selectors and key-value pairs
-                     </Text>
-                   </VStack>
-                 </VStack>
-               </Box>
-             </Box>
+                </Text>
+              </VStack>
+          </VStack>
+        </Box>
+      </Box>
            </VStack>
          </Box>
       </Box>
       ) : (
-        <Box
+    <Box
       display="flex"
       flexDirection="column"
       position="relative"
@@ -893,8 +893,8 @@ export const Search = () => {
             <VStack align="start" spacing={3} flex={1}>
               <HStack spacing={4} align="center" flexWrap="wrap">
                 <Text fontSize="2xl" fontWeight="bold" color="gray.900" _dark={{ color: 'white' }}>
-                  Search Results
-                </Text>
+                Search Results
+              </Text>
                 <Badge 
                   colorScheme="blue" 
                   fontSize="sm" 
@@ -903,13 +903,13 @@ export const Search = () => {
                   borderRadius="full"
                   fontWeight="semibold"
                 >
-                  {filteredResults.length} result{filteredResults.length !== 1 ? 's' : ''}
-                </Badge>
-              </HStack>
+                {filteredResults.length} result{filteredResults.length !== 1 ? 's' : ''}
+              </Badge>
+            </HStack>
               <HStack spacing={2} align="center">
                 <Text fontSize="sm" color="gray.500" _dark={{ color: 'gray.400' }} fontWeight="medium">
                   Query:
-                </Text>
+            </Text>
                 <Text 
                   fontSize="sm" 
                   color="gray.700" 
@@ -923,36 +923,36 @@ export const Search = () => {
                   &quot;{query}&quot;
                 </Text>
               </HStack>
-            </VStack>
-            <Button
-              leftIcon={<FiBookmark />}
-              size="md"
-              variant="outline"
-              onClick={onOpen}
-              colorScheme="blue"
+          </VStack>
+          <Button
+            leftIcon={<FiBookmark />}
+            size="md"
+            variant="outline"
+            onClick={onOpen}
+            colorScheme="blue"
               borderRadius="lg"
               fontWeight="medium"
-            >
-              Save Search
-            </Button>
-          </HStack>
-        </Box>
+          >
+            Save Search
+          </Button>
+        </HStack>
+      </Box>
 
-        {query && (
-          <>
+      {query && (
+        <>
             <Box>
-              <QuickFilters 
-                onQuickFilter={(id) => setQuickFilter(quickFilter === id ? null : id)}
-                activeFilter={quickFilter}
-              />
-            </Box>
+            <QuickFilters 
+              onQuickFilter={(id) => setQuickFilter(quickFilter === id ? null : id)}
+              activeFilter={quickFilter}
+            />
+          </Box>
 
-            <Box
-              display="flex"
-              flexDirection="column"
+          <Box
+            display="flex"
+            flexDirection="column"
               gap={6}
               w="100%"
-            >
+          >
             {loading ? (
               <Box 
                 display="flex" 
@@ -1016,7 +1016,7 @@ export const Search = () => {
             )}
           </Box>
         </>
-        )}
+      )}
       </VStack>
       </Box>
       )}
@@ -1030,28 +1030,28 @@ export const Search = () => {
         cancelLabel="Cancel"
         confirmColorScheme="blue"
         colorMode={colorMode}
-        maxW="500px"
+            maxW="500px"
         isConfirmDisabled={!searchName.trim()}
       >
-        <VStack spacing={4} align="stretch">
-          <Box>
+            <VStack spacing={4} align="stretch">
+              <Box>
             <Text fontSize="sm" fontWeight="semibold" mb={2} color={getTextColor(colorMode, 'primary')}>
               Search Name
             </Text>
-            <Input
-              placeholder="My saved search"
-              value={searchName}
-              onChange={(e) => setSearchName(e.target.value)}
+                <Input
+                  placeholder="My saved search"
+                  value={searchName}
+                  onChange={(e) => setSearchName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !searchName.trim() ? null : handleSaveSearch()}
-            />
-          </Box>
-          <Box>
+                />
+              </Box>
+              <Box>
             <Text fontSize="sm" fontWeight="semibold" mb={2} color={getTextColor(colorMode, 'primary')}>
               Query
             </Text>
             <Text fontSize="sm" color={getTextColor(colorMode, 'secondary')}>{query}</Text>
-          </Box>
-        </VStack>
+              </Box>
+            </VStack>
       </Dialog>
 
       <Dialog

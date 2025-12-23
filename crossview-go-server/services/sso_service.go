@@ -34,7 +34,7 @@ func NewSSOService(logger lib.Logger, env lib.Env, db lib.Database) SSOServiceIn
 
 func (s SSOService) GetSSOStatus() lib.SSOConfig {
 	if s.ssoConfig.Enabled {
-		return s.ssoConfig
+	return s.ssoConfig
 	}
 	return lib.SSOConfig{Enabled: false}
 }

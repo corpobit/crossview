@@ -53,14 +53,6 @@ spec:
               done
               echo "Database is ready and accepting connections!"
           env:
-{{- if .Values.config.existingConfigMap }}
-            - name: DB_PORT
-              value: {{ .Values.env.DB_PORT | default "5432" | quote }}
-            - name: DB_NAME
-              value: {{ .Values.env.DB_NAME | default "crossview" | quote }}
-            - name: DB_USER
-              value: {{ .Values.env.DB_USER | default "postgres" | quote }}
-{{- else }}
             - name: DB_PORT
               valueFrom:
                 configMapKeyRef:
@@ -76,7 +68,6 @@ spec:
                 configMapKeyRef:
                   name: {{ include "crossview.configMapName" . }}
                   key: DB_USER
-{{- end }}
             {{- if .Values.secrets.existingSecret }}
             - name: DB_PASS
               valueFrom:
@@ -108,20 +99,6 @@ spec:
               containerPort: {{ .Values.app.port }}
               protocol: TCP
           env:
-{{- if .Values.config.existingConfigMap }}
-            - name: CONFIG_PATH
-              value: /app/config/config.yaml
-{{- else }}
-            - name: NODE_ENV
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "crossview.configMapName" . }}
-                  key: NODE_ENV
-            - name: PORT
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "crossview.configMapName" . }}
-                  key: PORT
             - name: DB_HOST
               valueFrom:
                 configMapKeyRef:
@@ -142,7 +119,136 @@ spec:
                 configMapKeyRef:
                   name: {{ include "crossview.configMapName" . }}
                   key: DB_USER
-{{- end }}
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: PORT
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: LOG_LEVEL
+            - name: CORS_ORIGIN
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: CORS_ORIGIN
+            - name: SSO_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: SSO_ENABLED
+            - name: OIDC_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: OIDC_ENABLED
+            - name: OIDC_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: OIDC_ISSUER
+            - name: OIDC_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: OIDC_CLIENT_ID
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: OIDC_CLIENT_SECRET
+            - name: OIDC_AUTHORIZATION_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: OIDC_AUTHORIZATION_URL
+            - name: OIDC_TOKEN_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: OIDC_TOKEN_URL
+            - name: OIDC_USERINFO_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: OIDC_USERINFO_URL
+            - name: OIDC_CALLBACK_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: OIDC_CALLBACK_URL
+            - name: OIDC_SCOPE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: OIDC_SCOPE
+            - name: OIDC_USERNAME_ATTRIBUTE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: OIDC_USERNAME_ATTRIBUTE
+            - name: OIDC_EMAIL_ATTRIBUTE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: OIDC_EMAIL_ATTRIBUTE
+            - name: OIDC_FIRSTNAME_ATTRIBUTE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: OIDC_FIRSTNAME_ATTRIBUTE
+            - name: OIDC_LASTNAME_ATTRIBUTE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: OIDC_LASTNAME_ATTRIBUTE
+            - name: SAML_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: SAML_ENABLED
+            - name: SAML_ENTRY_POINT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: SAML_ENTRY_POINT
+            - name: SAML_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: SAML_ISSUER
+            - name: SAML_CERT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: SAML_CERT
+            - name: SAML_CALLBACK_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: SAML_CALLBACK_URL
+            - name: SAML_USERNAME_ATTRIBUTE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: SAML_USERNAME_ATTRIBUTE
+            - name: SAML_EMAIL_ATTRIBUTE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: SAML_EMAIL_ATTRIBUTE
+            - name: SAML_FIRSTNAME_ATTRIBUTE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: SAML_FIRSTNAME_ATTRIBUTE
+            - name: SAML_LASTNAME_ATTRIBUTE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: SAML_LASTNAME_ATTRIBUTE
             {{- if .Values.secrets.existingSecret }}
             - name: DB_PASS
               valueFrom:
@@ -182,19 +288,9 @@ spec:
           volumeMounts:
             - name: logs
               mountPath: /app/logs
-{{- if .Values.config.existingConfigMap }}
-            - name: config
-              mountPath: /app/config
-              readOnly: true
-{{- end }}
       volumes:
         - name: logs
           emptyDir: {}
-{{- if .Values.config.existingConfigMap }}
-        - name: config
-          configMap:
-            name: {{ include "crossview.configMapName" . }}
-{{- end }}
       {{- with .Values.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}

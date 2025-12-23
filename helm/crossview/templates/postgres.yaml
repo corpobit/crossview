@@ -42,23 +42,10 @@ spec:
             - name: postgres
               containerPort: 5432
           env:
-{{- if .Values.config.existingConfigMap }}
             - name: POSTGRES_DB
-              value: {{ .Values.env.DB_NAME | default "crossview" | quote }}
+              value: {{ .Values.config.database.database | quote }}
             - name: POSTGRES_USER
-              value: {{ .Values.env.DB_USER | default "postgres" | quote }}
-{{- else }}
-            - name: POSTGRES_DB
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "crossview.configMapName" . }}
-                  key: DB_NAME
-            - name: POSTGRES_USER
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "crossview.configMapName" . }}
-                  key: DB_USER
-{{- end }}
+              value: {{ .Values.config.database.username | quote }}
             {{- if .Values.secrets.existingSecret }}
             - name: POSTGRES_PASSWORD
               valueFrom:
@@ -91,7 +78,7 @@ spec:
               command:
                 - /bin/sh
                 - -c
-                - pg_isready -U "{{ .Values.env.DB_USER | default "postgres" }}"
+                - pg_isready -U "{{ .Values.config.database.username }}"
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
@@ -101,7 +88,7 @@ spec:
               command:
                 - /bin/sh
                 - -c
-                - pg_isready -U "{{ .Values.env.DB_USER | default "postgres" }}"
+                - pg_isready -U "{{ .Values.config.database.username }}"
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 3
