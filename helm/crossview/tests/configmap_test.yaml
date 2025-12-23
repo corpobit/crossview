@@ -1,0 +1,150 @@
+suite: test configmap generation
+templates:
+  - configmap.yaml
+tests:
+  - it: should create ConfigMap when config.ref is not set
+    set:
+      secrets:
+        dbPassword: test-password
+        sessionSecret: test-secret
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ConfigMap
+      - isAPIVersion:
+          of: v1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-crossview-config
+      - exists:
+          path: data.DB_HOST
+      - exists:
+          path: data.DB_PORT
+      - exists:
+          path: data.OIDC_ISSUER
+      - exists:
+          path: data.SAML_ENABLED
+
+  - it: should not create ConfigMap when config.ref is set
+    set:
+      config:
+        ref: existing-configmap
+      secrets:
+        dbPassword: test-password
+        sessionSecret: test-secret
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should use default database host when not provided
+    set:
+      config:
+        database:
+          host: ""
+      secrets:
+        dbPassword: test-password
+        sessionSecret: test-secret
+    asserts:
+      - equal:
+          path: data.DB_HOST
+          value: RELEASE-NAME-crossview-postgres
+
+  - it: should use provided database host
+    set:
+      config:
+        database:
+          host: custom-postgres
+      secrets:
+        dbPassword: test-password
+        sessionSecret: test-secret
+    asserts:
+      - equal:
+          path: data.DB_HOST
+          value: custom-postgres
+
+  - it: should use default values when config values are not provided
+    set:
+      secrets:
+        dbPassword: test-password
+        sessionSecret: test-secret
+    asserts:
+      - equal:
+          path: data.DB_PORT
+          value: "5432"
+      - equal:
+          path: data.DB_NAME
+          value: "crossview"
+      - equal:
+          path: data.DB_USER
+          value: "postgres"
+      - equal:
+          path: data.PORT
+          value: "3001"
+      - equal:
+          path: data.LOG_LEVEL
+          value: "info"
+      - equal:
+          path: data.SSO_ENABLED
+          value: "false"
+      - equal:
+          path: data.OIDC_ENABLED
+          value: "false"
+      - equal:
+          path: data.SAML_ENABLED
+          value: "false"
+
+  - it: should use custom config values when provided
+    set:
+      config:
+        database:
+          port: 5433
+          database: mydb
+          username: myuser
+        server:
+          port: 3002
+          log:
+            level: debug
+          cors:
+            origin: http://example.com
+        sso:
+          enabled: true
+          oidc:
+            enabled: true
+            issuer: https://auth.example.com
+            clientId: my-client
+      secrets:
+        dbPassword: test-password
+        sessionSecret: test-secret
+    asserts:
+      - equal:
+          path: data.DB_PORT
+          value: "5433"
+      - equal:
+          path: data.DB_NAME
+          value: "mydb"
+      - equal:
+          path: data.DB_USER
+          value: "myuser"
+      - equal:
+          path: data.PORT
+          value: "3002"
+      - equal:
+          path: data.LOG_LEVEL
+          value: "debug"
+      - equal:
+          path: data.CORS_ORIGIN
+          value: "http://example.com"
+      - equal:
+          path: data.SSO_ENABLED
+          value: "true"
+      - equal:
+          path: data.OIDC_ENABLED
+          value: "true"
+      - equal:
+          path: data.OIDC_ISSUER
+          value: "https://auth.example.com"
+      - equal:
+          path: data.OIDC_CLIENT_ID
+          value: "my-client"
+

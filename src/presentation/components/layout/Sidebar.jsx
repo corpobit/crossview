@@ -517,7 +517,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
                 <Text as="span" fontWeight="semibold" color="gray.700" _dark={{ color: 'gray.300' }}>
                   Corpobit
                 </Text>
-              </Text>
+                </Text>
               <Box
                 as="a"
                 href="https://github.com/corpobit/crossview"

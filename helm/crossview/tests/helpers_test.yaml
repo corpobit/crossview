@@ -1,0 +1,47 @@
+suite: test helper functions
+templates:
+  - configmap.yaml
+  - deployment.yaml
+tests:
+  - it: should generate correct ConfigMap name when config.ref is not set
+    set:
+      secrets:
+        dbPassword: test-password
+        sessionSecret: test-secret
+    template: configmap.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-crossview-config
+
+  - it: should use config.ref as ConfigMap name when set
+    set:
+      config:
+        ref: my-custom-configmap
+      secrets:
+        dbPassword: test-password
+        sessionSecret: test-secret
+    template: deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DB_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: my-custom-configmap
+                key: DB_HOST
+
+  - it: should use Release.Namespace when available
+    set:
+      secrets:
+        dbPassword: test-password
+        sessionSecret: test-secret
+    release:
+      namespace: my-namespace
+    template: configmap.yaml
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: my-namespace
+

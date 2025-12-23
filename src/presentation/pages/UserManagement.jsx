@@ -93,7 +93,7 @@ export const UserManagement = () => {
 
   const handleSubmit = async (e) => {
     if (e) {
-      e.preventDefault();
+    e.preventDefault();
     }
     setFormError('');
     setSubmitting(true);
@@ -290,90 +290,90 @@ export const UserManagement = () => {
         cancelLabel="Cancel"
         confirmColorScheme="blue"
         colorMode={colorMode}
-        maxW="500px"
+            maxW="500px"
         isConfirmDisabled={submitting}
-      >
+          >
         <Box as="form" onSubmit={handleSubmit}>
-          {formError && (
-            <Box
-              p={3}
-              mb={4}
-              bg="red.50"
-              _dark={{ bg: 'red.900', borderColor: 'red.700', color: 'red.100' }}
-              border="1px"
-              borderColor="red.200"
-              borderRadius="md"
-              color="red.800"
-            >
-              <Text fontSize="sm">{formError}</Text>
-            </Box>
-          )}
-
-          <VStack spacing={4} align="stretch">
-            <Box>
-              <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'primary')}>
-                Username
-              </Text>
-              <Input
-                type="text"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                required
-              />
-            </Box>
-
-            <Box>
-              <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'primary')}>
-                Email
-              </Text>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-              />
-            </Box>
-
-            <Box>
-              <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'primary')}>
-                Role
-              </Text>
-              <Dropdown
-                value={formData.role}
-                onChange={(value) => setFormData({ ...formData, role: value })}
-                options={[
-                  { value: 'user', label: 'User' },
-                  { value: 'admin', label: 'Admin' },
-                ]}
-              />
-            </Box>
-
-            <Box>
-              <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'primary')}>
-                Password {editingUser && '(leave blank to keep current)'}
-              </Text>
-              <Input
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required={!editingUser}
-              />
-            </Box>
-
-            {formData.password && (
-              <Box>
-                <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'primary')}>
-                  Confirm Password
-                </Text>
-                <Input
-                  type="password"
-                  value={formData.passwordConfirmation}
-                  onChange={(e) => setFormData({ ...formData, passwordConfirmation: e.target.value })}
-                  required={!!formData.password}
-                />
+            {formError && (
+              <Box
+                p={3}
+                mb={4}
+                bg="red.50"
+                _dark={{ bg: 'red.900', borderColor: 'red.700', color: 'red.100' }}
+                border="1px"
+                borderColor="red.200"
+                borderRadius="md"
+                color="red.800"
+              >
+                <Text fontSize="sm">{formError}</Text>
               </Box>
             )}
-          </VStack>
+
+              <VStack spacing={4} align="stretch">
+                <Box>
+              <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'primary')}>
+                    Username
+                  </Text>
+                  <Input
+                    type="text"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    required
+                  />
+                </Box>
+
+                <Box>
+              <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'primary')}>
+                    Email
+                  </Text>
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                  />
+                </Box>
+
+                <Box>
+              <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'primary')}>
+                    Role
+                  </Text>
+                  <Dropdown
+                    value={formData.role}
+                    onChange={(value) => setFormData({ ...formData, role: value })}
+                    options={[
+                      { value: 'user', label: 'User' },
+                      { value: 'admin', label: 'Admin' },
+                    ]}
+                  />
+                </Box>
+
+                <Box>
+              <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'primary')}>
+                    Password {editingUser && '(leave blank to keep current)'}
+                  </Text>
+                  <Input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required={!editingUser}
+                  />
+                </Box>
+
+                {formData.password && (
+                  <Box>
+                <Text fontSize="sm" fontWeight="500" mb={2} color={getTextColor(colorMode, 'primary')}>
+                      Confirm Password
+                    </Text>
+                    <Input
+                      type="password"
+                      value={formData.passwordConfirmation}
+                      onChange={(e) => setFormData({ ...formData, passwordConfirmation: e.target.value })}
+                      required={!!formData.password}
+                    />
+                  </Box>
+                )}
+              </VStack>
         </Box>
       </Dialog>
     </Box>
