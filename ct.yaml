@@ -1,16 +1,13 @@
 chart-dirs:
   - helm
-validate-maintainers: false
-check-version-increment: false
-all:
-  build-helm-deps: true
-  validate-schema: true
-  validate-maintainers: false
-  check-version-increment: false
 target-branch: main
 remote: origin
 chart-repos:
   - crossview=https://corpobit.github.io/crossview
+validate-maintainers: false
+check-version-increment: false
+build-helm-deps: true
+validate-schema: true
 lint:
   maintainers: false
   validate-maintainers: false
@@ -23,4 +20,3 @@ lint:
           level: warning
   helm:
     extra-args: --strict
-
