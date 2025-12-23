@@ -5,7 +5,7 @@ validate-maintainers: false
 check-version-increment: false
 build-helm-deps: false
 validate-schema: false
+lint-conf: lintconf.yaml
 lint:
   maintainers: false
   validate-maintainers: false
-  yamllint: false
