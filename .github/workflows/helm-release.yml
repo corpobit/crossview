@@ -12,8 +12,40 @@ permissions:
   contents: write
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: '3.13.0'
+
+      - name: Install Helm unittest plugin
+        run: |
+          helm plugin install https://github.com/quintush/helm-unittest.git || true
+
+      - name: Run Helm Tests
+        run: |
+          cd helm/crossview
+          helm lint .
+          helm template test . \
+            --set secrets.dbPassword=test-password \
+            --set secrets.sessionSecret=test-secret > /dev/null
+          helm template test . \
+            --set config.ref=existing-configmap \
+            --set secrets.dbPassword=test-password \
+            --set secrets.sessionSecret=test-secret > /dev/null
+          helm unittest . || {
+            echo "❌ Unit tests failed"
+            exit 1
+          }
+
   release:
     runs-on: ubuntu-latest
+    needs: test
     
     steps:
       - name: Checkout code

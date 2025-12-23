@@ -139,24 +139,69 @@ database:
         - ALL
 
 # Configuration
+# If config.ref is set, the chart will use an existing ConfigMap (must contain 'config.yaml' key)
+# If config.ref is not set, the chart will generate config.yaml from the config section below
 config:
   # Reference to an existing ConfigMap (if set, ConfigMap creation is skipped)
   # The existing ConfigMap should contain a 'config.yaml' key with the full configuration file
-  # The application will read database, server, and SSO settings from this file
-  # If not set, the chart will create a ConfigMap with environment variables
-  # Priority: existingConfigMap (as file) > env vars from chart ConfigMap > defaults
-  existingConfigMap: ""  # Set to your ConfigMap name, e.g., "my-crossview-config"
-
-# Environment variables (only used if config.existingConfigMap is not set)
-env:
-  NODE_ENV: "production"
-  PORT: "3001"
-  # DB_HOST will be automatically set to the postgres service name based on release name
-  # If you need to override, set it explicitly (e.g., for external database)
-  DB_HOST: ""  # Empty means use template: {{ include "crossview.fullname" . }}-postgres
-  DB_PORT: "5432"
-  DB_NAME: "crossview"
-  DB_USER: "postgres"
+  ref: ""  # Set to your ConfigMap name, e.g., "my-crossview-config"
+  
+  # Configuration structure (matches config.yaml.example)
+  # Only used if config.ref is not set
+  database:
+    host: ""  # Empty means auto-detect: {{ include "crossview.fullname" . }}-postgres
+    port: 5432
+    database: crossview
+    username: postgres
+    # password is set from secrets.dbPassword
+  
+  server:
+    port: 3001
+    log:
+      level: info  # Options: debug, info, warn, error, fatal, panic
+    cors:
+      origin: http://localhost:5173
+      credentials: true
+    session:
+      # secret is set from secrets.sessionSecret
+      cookie:
+        secure: false
+        httpOnly: true
+        maxAge: 86400000  # 24 hours in milliseconds
+  
+  sso:
+    enabled: false
+    oidc:
+      enabled: false
+      issuer: http://localhost:8080/realms/crossview
+      clientId: crossview-client
+      clientSecret: ""
+      authorizationURL: ""
+      tokenURL: ""
+      userInfoURL: ""
+      callbackURL: http://localhost:3001/api/auth/oidc/callback
+      scope: openid profile email
+      usernameAttribute: preferred_username
+      emailAttribute: email
+      firstNameAttribute: given_name
+      lastNameAttribute: family_name
+    saml:
+      enabled: false
+      entryPoint: http://localhost:8080/realms/crossview/protocol/saml
+      issuer: crossview
+      cert: null
+      callbackURL: http://localhost:3001/api/auth/saml/callback
+      usernameAttribute: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name
+      emailAttribute: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress
+      firstNameAttribute: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname
+      lastNameAttribute: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname
+  
+  vite:
+    server:
+      proxy:
+        api:
+          target: http://localhost:3001
+          changeOrigin: true
 
 # Secrets (should be set via --set or secrets file)
 secrets:

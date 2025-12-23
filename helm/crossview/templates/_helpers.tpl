@@ -51,10 +51,12 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Get namespace - defaults to "default" if global.namespace is empty
+Get namespace - uses Release.Namespace (where Helm installs) or falls back to global.namespace or default
 */}}
 {{- define "crossview.namespace" -}}
-{{- if .Values.global.namespace }}
+{{- if .Release.Namespace }}
+{{- .Release.Namespace }}
+{{- else if .Values.global.namespace }}
 {{- .Values.global.namespace }}
 {{- else }}
 {{- "default" }}
@@ -65,8 +67,8 @@ Get namespace - defaults to "default" if global.namespace is empty
 Get ConfigMap name - uses existing ConfigMap if specified, otherwise generates one
 */}}
 {{- define "crossview.configMapName" -}}
-{{- if .Values.config.existingConfigMap }}
-{{- .Values.config.existingConfigMap }}
+{{- if .Values.config.ref }}
+{{- .Values.config.ref }}
 {{- else }}
 {{- printf "%s-config" (include "crossview.fullname" .) }}
 {{- end }}

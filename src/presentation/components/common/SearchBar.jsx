@@ -47,24 +47,24 @@ export const SearchBar = () => {
 
   if (isOnSearchPage && hasQuery) {
     return (
-      <Box
-        as="button"
-        onClick={handleCloseClick}
-        p={2}
-        borderRadius="md"
-        bg="transparent"
-        color="stone.700"
-        _dark={{ color: 'stone.300' }}
-        _hover={{ bg: 'stone.100', _dark: { bg: 'stone.700' } }}
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-        cursor="pointer"
-        aria-label="Close search"
-        transition="all 0.2s"
-      >
-        <FiX size={20} />
-      </Box>
+        <Box
+          as="button"
+          onClick={handleCloseClick}
+          p={2}
+          borderRadius="md"
+          bg="transparent"
+          color="stone.700"
+          _dark={{ color: 'stone.300' }}
+          _hover={{ bg: 'stone.100', _dark: { bg: 'stone.700' } }}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          cursor="pointer"
+          aria-label="Close search"
+          transition="all 0.2s"
+        >
+          <FiX size={20} />
+        </Box>
     );
   }
 

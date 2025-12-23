@@ -1,0 +1,144 @@
+suite: test deployment configuration
+templates:
+  - deployment.yaml
+tests:
+  - it: should inject environment variables from ConfigMap
+    set:
+      secrets:
+        dbPassword: test-password
+        sessionSecret: test-secret
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Deployment
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DB_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: RELEASE-NAME-crossview-config
+                key: DB_HOST
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OIDC_ISSUER
+            valueFrom:
+              configMapKeyRef:
+                name: RELEASE-NAME-crossview-config
+                key: OIDC_ISSUER
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SAML_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: RELEASE-NAME-crossview-config
+                key: SAML_ENABLED
+
+  - it: should use existing ConfigMap when config.ref is set
+    set:
+      config:
+        ref: existing-configmap
+      secrets:
+        dbPassword: test-password
+        sessionSecret: test-secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DB_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: existing-configmap
+                key: DB_HOST
+
+  - it: should inject secrets from chart-created secret
+    set:
+      secrets:
+        dbPassword: my-db-password
+        sessionSecret: my-session-secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DB_PASS
+            valueFrom:
+              secretKeyRef:
+                name: RELEASE-NAME-crossview-secrets
+                key: db-password
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SESSION_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: RELEASE-NAME-crossview-secrets
+                key: session-secret
+
+  - it: should inject secrets from existing secret
+    set:
+      secrets:
+        existingSecret: my-existing-secret
+        existingSecretKeys:
+          dbPassword: db-password-key
+          sessionSecret: session-secret-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DB_PASS
+            valueFrom:
+              secretKeyRef:
+                name: my-existing-secret
+                key: db-password-key
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SESSION_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: my-existing-secret
+                key: session-secret-key
+
+  - it: should not mount config volume (no file mounting)
+    set:
+      secrets:
+        dbPassword: test-password
+        sessionSecret: test-secret
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts[?(@.name == 'config')]
+      - notExists:
+          path: spec.template.spec.volumes[?(@.name == 'config')]
+
+  - it: should set correct replica count
+    set:
+      app:
+        replicas: 5
+      secrets:
+        dbPassword: test-password
+        sessionSecret: test-secret
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 5
+
+  - it: should use init container with ConfigMap env vars
+    set:
+      secrets:
+        dbPassword: test-password
+        sessionSecret: test-secret
+    asserts:
+      - exists:
+          path: spec.template.spec.initContainers
+      - contains:
+          path: spec.template.spec.initContainers[0].env
+          content:
+            name: DB_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: RELEASE-NAME-crossview-config
+                key: DB_PORT
+
