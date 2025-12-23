@@ -1,5 +1,5 @@
 chart-dirs:
-  - helm/crossview
+  - helm
 validate-maintainers: false
 check-version-increment: false
 all:
