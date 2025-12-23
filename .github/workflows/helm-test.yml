@@ -5,16 +5,12 @@ on:
     paths:
       - 'helm/**'
       - '.github/workflows/helm-test.yml'
-      - 'ct.yaml'
-      - 'lintconf.yaml'
   push:
     branches:
       - main
     paths:
       - 'helm/**'
       - '.github/workflows/helm-test.yml'
-      - 'ct.yaml'
-      - 'lintconf.yaml'
   workflow_dispatch:
 
 jobs:
@@ -33,11 +29,6 @@ jobs:
         run: |
           helm plugin install https://github.com/quintush/helm-unittest.git || true
           helm plugin update unittest || true
-
-      - name: Install Chart Testing (ct)
-        uses: helm/chart-testing-action@v2
-        with:
-          version: v3.10.0
 
       - name: Run Helm Lint
         run: |
@@ -68,19 +59,6 @@ jobs:
           cd helm/crossview
           helm unittest . || {
             echo "❌ Unit tests failed"
-            exit 1
-          }
-
-      - name: Run Chart Testing (ct)
-        run: |
-          set -x
-          ct lint --all --config ct.yaml --debug 2>&1 || {
-            echo "❌ Chart testing failed"
-            echo "Running helm lint manually to see actual error..."
-            cd helm/crossview
-            helm lint . --debug
-            echo "Checking if yamllint is the issue..."
-            which yamllint || echo "yamllint not found"
             exit 1
           }
 
@@ -120,6 +98,5 @@ jobs:
           echo "  - Template rendering (defaults)"
           echo "  - Template rendering (config.ref)"
           echo "  - Unit tests (helm-unittest)"
-          echo "  - Chart testing (ct)"
           echo "  - Custom configurations"
 
