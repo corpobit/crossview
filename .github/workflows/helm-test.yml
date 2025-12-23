@@ -69,7 +69,7 @@ jobs:
 
       - name: Run Chart Testing (ct)
         run: |
-          ct lint --charts crossview || {
+          ct lint --charts crossview --config ct.yaml || {
             echo "❌ Chart testing failed"
             exit 1
           }

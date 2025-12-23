@@ -57,12 +57,16 @@ fi
 
 if command -v ct &> /dev/null; then
     echo "4. Running Chart Testing (ct)..."
-    cd "$(dirname "$CHART_DIR")"
-    ct lint --charts crossview || {
-        echo "❌ Chart testing failed"
-        exit 1
-    }
-    echo "✅ Chart testing passed"
+    cd "$(dirname "$(dirname "$CHART_DIR")")"
+    if [ -f ct.yaml ]; then
+        ct lint --charts crossview --config ct.yaml || {
+            echo "❌ Chart testing failed"
+            exit 1
+        }
+        echo "✅ Chart testing passed"
+    else
+        echo "⚠️  ct.yaml not found, skipping chart testing"
+    fi
     echo ""
 else
     echo "⚠️  ct (chart-testing) not installed, skipping chart testing"
