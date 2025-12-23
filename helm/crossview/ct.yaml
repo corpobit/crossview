@@ -1,14 +1,12 @@
 chart-dirs:
-  - helm/crossview
+  - helm
 validate-maintainers: false
 check-version-increment: false
 all:
   build-helm-deps: true
-  lint-conf: lintconf.yaml
   validate-schema: true
   validate-maintainers: false
   check-version-increment: false
-  test-values-schema: true
 target-branch: main
 remote: origin
 chart-repos:
