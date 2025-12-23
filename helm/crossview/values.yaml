@@ -20,7 +20,7 @@ image:
 app:
   name: crossview
   port: 3001
-  replicas: 3
+  replicas: 1
   extraEnv: []
   securityContext:
     runAsNonRoot: true
