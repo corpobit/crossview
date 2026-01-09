@@ -18,6 +18,7 @@ spec:
       name: http
   selector:
     {{- include "crossview.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: app
   {{- if and (ne .Values.service.type "ExternalName") .Values.service.sessionAffinity }}
   sessionAffinity: {{ .Values.service.sessionAffinity }}
   {{- if and (eq .Values.service.sessionAffinity "ClientIP") .Values.service.sessionAffinityTimeout }}

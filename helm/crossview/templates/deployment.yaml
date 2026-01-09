@@ -17,6 +17,7 @@ spec:
   selector:
     matchLabels:
       {{- include "crossview.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: app
   template:
     metadata:
       annotations:
@@ -25,6 +26,7 @@ spec:
         {{- end }}
       labels:
         {{- include "crossview.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: app
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
