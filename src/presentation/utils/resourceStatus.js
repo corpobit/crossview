@@ -155,3 +155,57 @@ export const getOfferedStatus = (conditions) => {
   };
 };
 
+export const getStatusForFilter = (conditions, kind) => {
+  if (!conditions || conditions.length === 0) return 'Unknown';
+  
+  if (kind === 'Provider') {
+    const healthyCondition = conditions.find(c => c.type === 'Healthy');
+    if (healthyCondition?.status === 'True') return 'Ready';
+    if (healthyCondition?.status === 'False') return 'Not Ready';
+    const installedCondition = conditions.find(c => c.type === 'Installed');
+    if (installedCondition?.status === 'True') return 'Ready';
+    return 'Pending';
+  }
+  
+  if (kind === 'CompositeResourceDefinition') {
+    const establishedCondition = conditions.find(c => c.type === 'Established');
+    const offeredCondition = conditions.find(c => c.type === 'Offered');
+    if (establishedCondition && offeredCondition) {
+      if (establishedCondition.status === 'True' && offeredCondition.status === 'True') return 'Ready';
+      if (establishedCondition.status === 'False' || offeredCondition.status === 'False') return 'Not Ready';
+      return 'Pending';
+    }
+    if (establishedCondition) {
+      return establishedCondition.status === 'True' ? 'Ready' : 'Not Ready';
+    }
+    if (offeredCondition) {
+      return offeredCondition.status === 'True' ? 'Ready' : 'Not Ready';
+    }
+    return 'Pending';
+  }
+  
+  const syncedCondition = conditions.find(c => c.type === 'Synced');
+  const readyCondition = conditions.find(c => c.type === 'Ready');
+  
+  if (syncedCondition && readyCondition) {
+    if (syncedCondition.status === 'True' && readyCondition.status === 'True') return 'Ready';
+    if (syncedCondition.status === 'False' || readyCondition.status === 'False') return 'Not Ready';
+    return 'Pending';
+  }
+  
+  if (syncedCondition) {
+    return syncedCondition.status === 'True' ? 'Ready' : 'Not Ready';
+  }
+  
+  if (readyCondition) {
+    return readyCondition.status === 'True' ? 'Ready' : 'Not Ready';
+  }
+  
+  const trueCondition = conditions.find(c => c.status === 'True');
+  const falseCondition = conditions.find(c => c.status === 'False');
+  if (trueCondition) return 'Ready';
+  if (falseCondition) return 'Not Ready';
+  
+  return 'Pending';
+};
+

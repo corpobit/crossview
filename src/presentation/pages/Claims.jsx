@@ -10,7 +10,7 @@ import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
 import { Dropdown } from '../components/common/Dropdown.jsx';
-import { getStatusColor, getStatusText, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
+import { getStatusColor, getStatusText, getStatusForFilter, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
 
 export const Claims = () => {
   const location = useLocation();
@@ -103,8 +103,25 @@ export const Claims = () => {
       
       if (statusFilter !== 'all') {
         filtered = filtered.filter(c => {
-          const statusText = getStatusText(c.conditions);
-          return statusText === statusFilter;
+          const syncedStatus = getSyncedStatus(c.conditions);
+          const readyStatus = getReadyStatus(c.conditions);
+          const responsiveStatus = getResponsiveStatus(c.conditions);
+          
+          if (statusFilter === 'Ready') {
+            if (readyStatus?.text === 'Ready') return true;
+            if (syncedStatus?.text === 'Synced' && readyStatus === null) return true;
+            if (responsiveStatus?.text === 'Responsive' && readyStatus === null && syncedStatus === null) return true;
+            return getStatusForFilter(c.conditions, c.kind) === 'Ready';
+          }
+          
+          if (statusFilter === 'Not Ready') {
+            if (readyStatus?.text === 'Not Ready') return true;
+            if (syncedStatus?.text === 'Not Synced') return true;
+            if (responsiveStatus?.text === 'Not Responsive') return true;
+            return getStatusForFilter(c.conditions, c.kind) === 'Not Ready';
+          }
+          
+          return getStatusForFilter(c.conditions, c.kind) === statusFilter;
         });
       }
       
