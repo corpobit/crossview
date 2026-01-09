@@ -394,9 +394,21 @@ export const Search = () => {
           return (
             <HStack spacing={2}>
               {statusBadges.map((status, idx) => (
-                <Badge key={idx} colorScheme={status.color} fontSize="xs">
+                <Box
+                  key={idx}
+                  as="span"
+                  display="inline-block"
+                  px={2}
+                  py={1}
+                  borderRadius="md"
+                  fontSize="xs"
+                  fontWeight="semibold"
+                  bg={`${status.color}.100`}
+                  _dark={{ bg: `${status.color}.800`, color: `${status.color}.100` }}
+                  color={`${status.color}.800`}
+                >
                   {status.text}
-                </Badge>
+                </Box>
               ))}
             </HStack>
           );
@@ -404,9 +416,20 @@ export const Search = () => {
         
         const statusColor = getStatusColor(row.conditions, row.kind);
         return (
-          <Badge colorScheme={statusColor} fontSize="xs">
+          <Box
+            as="span"
+            display="inline-block"
+            px={2}
+            py={1}
+            borderRadius="md"
+            fontSize="xs"
+            fontWeight="semibold"
+            bg={`${statusColor}.100`}
+            _dark={{ bg: `${statusColor}.800`, color: `${statusColor}.100` }}
+            color={`${statusColor}.800`}
+          >
             {statusText}
-          </Badge>
+          </Box>
         );
       },
     },
@@ -494,9 +517,15 @@ export const Search = () => {
               border="2px solid"
               borderColor="gray.200"
               bg="white"
+              color="gray.900"
               _dark={{
                 borderColor: 'gray.700',
-                bg: 'gray.800'
+                bg: 'gray.800',
+                color: 'gray.100'
+              }}
+              _placeholder={{
+                color: 'gray.500',
+                _dark: { color: 'gray.400' }
               }}
               _hover={{
                 borderColor: 'gray.300',
@@ -1042,7 +1071,12 @@ export const Search = () => {
                   placeholder="My saved search"
                   value={searchName}
                   onChange={(e) => setSearchName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !searchName.trim() ? null : handleSaveSearch()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && searchName.trim()) {
+                      e.preventDefault();
+                      handleSaveSearch();
+                    }
+                  }}
                 />
               </Box>
               <Box>
