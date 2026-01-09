@@ -10,7 +10,7 @@ import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
 import { Dropdown } from '../components/common/Dropdown.jsx';
-import { getStatusColor, getStatusText, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
+import { getStatusColor, getStatusText, getStatusForFilter, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
 
 export const CompositeResources = () => {
   const { kubernetesRepository, selectedContext } = useAppContext();
@@ -99,8 +99,25 @@ export const CompositeResources = () => {
       
       if (statusFilter !== 'all') {
         filtered = filtered.filter(r => {
-          const statusText = getStatusText(r.conditions);
-          return statusText === statusFilter;
+          const syncedStatus = getSyncedStatus(r.conditions);
+          const readyStatus = getReadyStatus(r.conditions);
+          const responsiveStatus = getResponsiveStatus(r.conditions);
+          
+          if (statusFilter === 'Ready') {
+            if (readyStatus?.text === 'Ready') return true;
+            if (syncedStatus?.text === 'Synced' && readyStatus === null) return true;
+            if (responsiveStatus?.text === 'Responsive' && readyStatus === null && syncedStatus === null) return true;
+            return getStatusForFilter(r.conditions, r.kind) === 'Ready';
+          }
+          
+          if (statusFilter === 'Not Ready') {
+            if (readyStatus?.text === 'Not Ready') return true;
+            if (syncedStatus?.text === 'Not Synced') return true;
+            if (responsiveStatus?.text === 'Not Responsive') return true;
+            return getStatusForFilter(r.conditions, r.kind) === 'Not Ready';
+          }
+          
+          return getStatusForFilter(r.conditions, r.kind) === statusFilter;
         });
       }
       

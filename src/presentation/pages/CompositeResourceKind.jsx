@@ -13,7 +13,7 @@ import { Dropdown } from '../components/common/Dropdown.jsx';
 import { GetCompositeResourcesUseCase } from '../../domain/usecases/GetCompositeResourcesUseCase.js';
 import { GetCompositionsUseCase } from '../../domain/usecases/GetCompositionsUseCase.js';
 import { GetCompositeResourceDefinitionsUseCase } from '../../domain/usecases/GetCompositeResourceDefinitionsUseCase.js';
-import { getStatusColor, getStatusText, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
+import { getStatusColor, getStatusText, getStatusForFilter, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
 
 export const CompositeResourceKind = () => {
   const { kind } = useParams();
@@ -81,8 +81,25 @@ export const CompositeResourceKind = () => {
     // Only apply status filter if the resource type has status (not for Composition or CompositeResourceDefinition)
     if (statusFilter !== 'all' && kind !== 'Composition' && kind !== 'CompositeResourceDefinition') {
       filtered = filtered.filter(r => {
-        const statusText = getStatusText(r.conditions);
-        return statusText === statusFilter;
+        const syncedStatus = getSyncedStatus(r.conditions);
+        const readyStatus = getReadyStatus(r.conditions);
+        const responsiveStatus = getResponsiveStatus(r.conditions);
+        
+        if (statusFilter === 'Ready') {
+          if (readyStatus?.text === 'Ready') return true;
+          if (syncedStatus?.text === 'Synced' && readyStatus === null) return true;
+          if (responsiveStatus?.text === 'Responsive' && readyStatus === null && syncedStatus === null) return true;
+          return getStatusForFilter(r.conditions, r.kind) === 'Ready';
+        }
+        
+        if (statusFilter === 'Not Ready') {
+          if (readyStatus?.text === 'Not Ready') return true;
+          if (syncedStatus?.text === 'Not Synced') return true;
+          if (responsiveStatus?.text === 'Not Responsive') return true;
+          return getStatusForFilter(r.conditions, r.kind) === 'Not Ready';
+        }
+        
+        return getStatusForFilter(r.conditions, r.kind) === statusFilter;
       });
     }
     
