@@ -164,8 +164,10 @@ For more details, see:
 ### Build the Docker Image
 
 ```bash
-docker build -t crossview:latest .
+docker build -t ghcr.io/corpobit/crossview:latest .
 ```
+
+Images are automatically published to both GHCR (default) and Docker Hub (fallback) on each release.
 
 ### Run with Environment Variables (Recommended)
 
@@ -181,7 +183,7 @@ docker run -p 3001:3001 \
   -e KUBECONFIG=/app/.kube/config \
   -e SESSION_SECRET=your-secret-key-here \
   -v ~/.kube/config:/app/.kube/config:ro \
-  crossview:latest
+  ghcr.io/corpobit/crossview:latest
 ```
 
 ### Run with Config File
@@ -193,7 +195,7 @@ docker run -p 3001:3001 \
   -v $(pwd)/config/config.yaml:/app/config/config.yaml:ro \
   -e KUBECONFIG=/app/.kube/config \
   -v ~/.kube/config:/app/.kube/config:ro \
-  crossview:latest
+  ghcr.io/corpobit/crossview:latest
 ```
 
 ### Run with Docker Compose

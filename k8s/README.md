@@ -20,12 +20,14 @@ openssl rand -base64 32
 kubectl apply -f secret.yaml
 ```
 
-### 2. Update Docker Image
+### 2. Update Docker Image (Optional)
 
-Edit `deployment.yaml` and replace `YOUR_DOCKERHUB_USERNAME` with your actual Docker Hub username:
+The default image uses GHCR: `ghcr.io/corpobit/crossview:latest`
+
+To use Docker Hub instead, edit `deployment.yaml`:
 
 ```yaml
-image: your-dockerhub-username/crossview:latest
+image: corpobit/crossview:latest
 ```
 
 ### 3. Deploy Everything
@@ -213,8 +215,11 @@ kubectl auth can-i get pods --as=system:serviceaccount:crossview:crossview-sa -n
 ## Updating the Application
 
 ```bash
-# Update the image
-kubectl set image deployment/crossview crossview=your-dockerhub-username/crossview:v0.1.0 -n crossview
+# Update the image (GHCR - default)
+kubectl set image deployment/crossview crossview=ghcr.io/corpobit/crossview:v0.1.0 -n crossview
+
+# Or use Docker Hub (fallback)
+kubectl set image deployment/crossview crossview=corpobit/crossview:v0.1.0 -n crossview
 
 # Or edit the deployment
 kubectl edit deployment crossview -n crossview

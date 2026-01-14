@@ -214,6 +214,13 @@ jobs:
         with:
           platforms: ${{ matrix.platform }}
 
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -240,13 +247,14 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: true
           tags: |
+            ghcr.io/${{ github.repository_owner }}/crossview:${{ steps.vars.outputs.tag }}-${{ steps.vars.outputs.platform_tag }}
             ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.vars.outputs.tag }}-${{ steps.vars.outputs.platform_tag }}
           build-args: |
             TARGETPLATFORM=${{ matrix.platform }}
             TARGETARCH=${{ steps.vars.outputs.arch }}
             TARGETOS=linux
-          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crossview:buildcache-${{ steps.vars.outputs.platform_tag }}
-          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crossview:buildcache-${{ steps.vars.outputs.platform_tag }},mode=max
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/crossview:buildcache-${{ steps.vars.outputs.platform_tag }}
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/crossview:buildcache-${{ steps.vars.outputs.platform_tag }},mode=max
           outputs: type=image,push=true
 
   create-multi-arch-manifest:
@@ -265,13 +273,32 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Create and push multi-arch manifest
+      - name: Create and push multi-arch manifest to GHCR
+        run: |
+          docker buildx imagetools create --tag ghcr.io/${{ github.repository_owner }}/crossview:${{ steps.version.outputs.tag }} \
+            ghcr.io/${{ github.repository_owner }}/crossview:${{ steps.version.outputs.tag }}-linux-amd64 \
+            ghcr.io/${{ github.repository_owner }}/crossview:${{ steps.version.outputs.tag }}-linux-arm64
+          
+          docker buildx imagetools create --tag ghcr.io/${{ github.repository_owner }}/crossview:latest \
+            ghcr.io/${{ github.repository_owner }}/crossview:${{ steps.version.outputs.tag }}-linux-amd64 \
+            ghcr.io/${{ github.repository_owner }}/crossview:${{ steps.version.outputs.tag }}-linux-arm64
+          
+          echo "Multi-arch manifest created for GHCR: ${{ steps.version.outputs.tag }} and latest"
+
+      - name: Create and push multi-arch manifest to Docker Hub
         run: |
           docker buildx imagetools create --tag ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }} \
             ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}-linux-amd64 \
@@ -281,7 +308,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}-linux-amd64 \
             ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}-linux-arm64
           
-          echo "Multi-arch manifest created for ${{ steps.version.outputs.tag }} and latest"
+          echo "Multi-arch manifest created for Docker Hub: ${{ steps.version.outputs.tag }} and latest"
 
   create-release:
     needs: [check-version-bump, build-and-release, create-multi-arch-manifest]
@@ -312,12 +339,21 @@ jobs:
             
             ## Changes
             - Built from commit ${{ github.sha }}
-            - Docker image: ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}
+            - Docker image (GHCR): ghcr.io/${{ github.repository_owner }}/crossview:${{ steps.version.outputs.tag }}
+            - Docker image (Docker Hub): ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}
             - Helm chart version: ${{ steps.version.outputs.version }}
             
             ## Installation Options
             
-            ### OCI Registry (Recommended)
+            ### OCI Registry (Recommended - GHCR)
+            ```bash
+            helm install crossview oci://ghcr.io/${{ github.repository_owner }}/crossview-chart \
+              --version ${{ steps.version.outputs.tag }} \
+              --namespace crossview \
+              --create-namespace
+            ```
+            
+            ### OCI Registry (Docker Hub - Fallback)
             ```bash
             helm install crossview oci://docker.io/${{ secrets.DOCKERHUB_USERNAME }}/crossview-chart \
               --version ${{ steps.version.outputs.tag }} \
@@ -384,6 +420,48 @@ jobs:
             "$CHART_NAME" "$CHART_VERSION" "$CHART_DESC" > ./charts/helm-config.json
           
           cat ./charts/helm-config.json
+
+      - name: Login to GHCR with ORAS
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | oras login ghcr.io \
+            -u "${{ github.actor }}" \
+            --password-stdin
+
+      - name: Push Helm chart to GHCR OCI registry using ORAS
+        run: |
+          CHART_VERSION="${{ steps.version.outputs.version }}"
+          OCI_REGISTRY="ghcr.io"
+          OCI_REPO="${{ github.repository_owner }}/crossview-chart"
+          
+          if [ -z "$CHART_FILE" ]; then
+            CHART_FILE=$(ls ./charts/*.tgz | head -1)
+          fi
+          
+          if [ ! -f "$CHART_FILE" ]; then
+            echo "Error: Chart file not found: $CHART_FILE"
+            echo "Available files in ./charts/:"
+            ls -la ./charts/ || echo "charts/ directory does not exist"
+            exit 1
+          fi
+          
+          echo "Pushing Helm chart to OCI registry: oci://$OCI_REGISTRY/$OCI_REPO"
+          echo "Chart version: $CHART_VERSION"
+          echo "Chart file: $CHART_FILE"
+          
+          oras push $OCI_REGISTRY/$OCI_REPO:$CHART_VERSION \
+            --artifact-type application/vnd.cncf.helm.chart.v1.tar+gzip \
+            --config ./charts/helm-config.json:application/vnd.cncf.helm.config.v1+json \
+            $CHART_FILE:application/tar+gzip || {
+            echo "First push attempt failed, retrying..."
+            sleep 5
+            oras push $OCI_REGISTRY/$OCI_REPO:$CHART_VERSION \
+              --artifact-type application/vnd.cncf.helm.chart.v1.tar+gzip \
+              --config ./charts/helm-config.json:application/vnd.cncf.helm.config.v1+json \
+              $CHART_FILE:application/tar+gzip
+          }
+          
+          echo "Chart pushed successfully to GHCR OCI registry"
+          echo "Users can install with: helm install crossview oci://$OCI_REGISTRY/$OCI_REPO --version ${{ steps.version.outputs.tag }}"
 
       - name: Login to Docker Hub with ORAS
         run: |
@@ -603,7 +681,7 @@ jobs:
                 <p class="tagline">Official Helm repository for Crossview – Crossplane visualization platform</p>
               </header>
               <h2>Install from OCI Registry (Recommended)</h2>
-              <pre><code id="oci-install">helm install crossview oci://docker.io/corpobit/crossview-chart \
+              <pre><code id="oci-install">helm install crossview oci://ghcr.io/corpobit/crossview-chart \
           --namespace crossview \
           --create-namespace</code>
                 <button class="copy" onclick="copy(this)">Copy</button>
