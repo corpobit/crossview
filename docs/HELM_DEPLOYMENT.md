@@ -13,8 +13,20 @@ Deploy Crossview using Helm for the easiest and most flexible installation.
 ### Option 1: Install from OCI Registry (Recommended)
 
 ```bash
-# Install directly from Docker Hub OCI registry (no repo add needed)
-helm install crossview oci://corpobit/crossview-chart \
+# Install directly from GHCR OCI registry (recommended - no repo add needed)
+helm install crossview oci://ghcr.io/corpobit/crossview-chart \
+  --version v1.6.0 \
+  --namespace crossview \
+  --create-namespace \
+  --set secrets.dbPassword=your-secure-password \
+  --set secrets.sessionSecret=$(openssl rand -base64 32)
+```
+
+Alternatively, install from Docker Hub OCI registry (fallback):
+
+```bash
+# Install directly from Docker Hub OCI registry
+helm install crossview oci://docker.io/corpobit/crossview-chart \
   --version v1.6.0 \
   --namespace crossview \
   --create-namespace \
@@ -107,7 +119,7 @@ helm install crossview crossview/crossview \
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `image.repository` | Docker image repository | `corpobit/crossview` |
+| `image.repository` | Docker image repository | `ghcr.io/corpobit/crossview` |
 | `image.tag` | Docker image tag | `latest` |
 | `app.replicas` | Number of replicas | `3` |
 | `service.type` | Service type | `LoadBalancer` |
@@ -201,7 +213,7 @@ Or upgrade from OCI registry:
 
 ```bash
 # Upgrade from OCI registry (no repo update needed)
-helm upgrade crossview oci://corpobit/crossview-chart \
+helm upgrade crossview oci://ghcr.io/corpobit/crossview-chart \
   --version v1.6.0 \
   --namespace crossview \
   --set image.tag=v1.6.0 \

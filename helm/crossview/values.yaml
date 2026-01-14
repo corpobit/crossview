@@ -8,10 +8,11 @@ global:
 
 # Image configuration
 image:
-  repository: corpobit/crossview
+  repository: ghcr.io/corpobit/crossview
   pullPolicy: Always
   # Overrides the image tag. Default is "latest" to always use the latest released image.
   # To pin to a specific version, set this to the version tag (e.g., "v2.1.0")
+  # Alternative: Use Docker Hub by setting repository to "corpobit/crossview"
   tag: ""
   # Platform override for multi-arch support (e.g., "linux/amd64" for ARM64 hosts)
   platform: ""

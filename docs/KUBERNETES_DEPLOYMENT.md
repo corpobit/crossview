@@ -31,7 +31,8 @@ kubectl create secret generic crossview-secrets \
 
 Edit `k8s/configmap.yaml` and `k8s/deployment.yaml` with your settings:
 
-- Update Docker image in `deployment.yaml`
+- Docker image defaults to `ghcr.io/corpobit/crossview:latest` (GHCR - recommended)
+- To use Docker Hub instead, change to `corpobit/crossview:latest` in `deployment.yaml`
 - Adjust resource limits if needed
 - Configure database settings in `configmap.yaml`
 
@@ -70,8 +71,8 @@ cp k8s/secret.yaml.example k8s/secret.yaml
 # Edit k8s/secret.yaml with your values
 kubectl apply -f k8s/secret.yaml
 
-# 2. Update deployment.yaml with your Docker Hub username
-# Edit k8s/deployment.yaml and replace YOUR_DOCKERHUB_USERNAME
+# 2. (Optional) Update deployment.yaml if you want to use Docker Hub instead of GHCR
+# Default image is ghcr.io/corpobit/crossview:latest (GHCR - recommended)
 
 # 3. Deploy everything
 kubectl apply -f k8s/
@@ -100,7 +101,7 @@ spec:
       serviceAccountName: crossview-sa
       containers:
       - name: crossview
-        image: your-dockerhub-username/crossview:latest
+        image: ghcr.io/corpobit/crossview:latest
         ports:
         - containerPort: 3001
         env:
