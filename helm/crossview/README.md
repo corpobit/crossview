@@ -20,10 +20,22 @@ This Helm chart deploys Crossview, a Crossplane resource visualization and manag
 
 ### Option 1: Install from OCI Registry (Recommended)
 
-Install directly from Docker Hub OCI registry. No repository setup needed!
+Install directly from GHCR OCI registry. No repository setup needed!
 
 ```bash
-# Install from OCI registry
+# Install from GHCR OCI registry (recommended)
+helm install crossview oci://ghcr.io/corpobit/crossview-chart \
+  --version 3.0.0 \
+  --namespace crossview \
+  --create-namespace \
+  --set secrets.dbPassword=your-db-password \
+  --set secrets.sessionSecret=$(openssl rand -base64 32)
+```
+
+Alternatively, install from Docker Hub OCI registry (fallback):
+
+```bash
+# Install from Docker Hub OCI registry
 helm install crossview oci://docker.io/corpobit/crossview-chart \
   --version 3.0.0 \
   --namespace crossview \
@@ -77,7 +89,7 @@ The following table lists the configurable parameters and their default values:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `image.repository` | Docker image repository | `corpobit/crossview` |
+| `image.repository` | Docker image repository | `ghcr.io/corpobit/crossview` |
 | `image.tag` | Docker image tag | `latest` |
 | `image.pullPolicy` | Image pull policy | `Always` |
 | `app.replicas` | Number of replicas | `1` |
