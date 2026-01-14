@@ -66,7 +66,7 @@ docker run -p 3001:3001 \
   -e DB_PASSWORD=your-password \
   -e SESSION_SECRET=$(openssl rand -base64 32) \
   -v ~/.kube/config:/app/.kube/config:ro \
-  corpobit/crossview:latest
+  ghcr.io/corpobit/crossview:latest
 ```
 
 ## First Steps After Installation

@@ -18,7 +18,7 @@ maintainers:
 annotations:
   artifacthub.io/images: |
     - name: crossview
-      image: corpobit/crossview:latest
+      image: ghcr.io/corpobit/crossview:latest
     - name: postgres
       image: postgres:latest
 dependencies: []
