@@ -7,9 +7,10 @@ import {
 import { FiAlertCircle } from 'react-icons/fi';
 import { useAppContext } from '../../providers/AppProvider.jsx';
 import { Dropdown } from '../common/Dropdown.jsx';
+import { getBackgroundColor, getTextColor } from '../../utils/theme.js';
 
 export const ContextSelector = () => {
-  const { contexts, selectedContext, setSelectedContext, contextErrors } = useAppContext();
+  const { contexts, selectedContext, setSelectedContext, contextErrors, colorMode } = useAppContext();
 
   const handleSelect = async (contextName) => {
     await setSelectedContext(contextName);
@@ -21,12 +22,12 @@ export const ContextSelector = () => {
         px={3}
         py={2}
         borderRadius="md"
-        bg="gray.100"
-        _dark={{ bg: 'gray.700' }}
+        bg={getBackgroundColor(colorMode, 'secondary')}
+        _dark={{ bg: getBackgroundColor('dark', 'tertiary') }}
         fontSize="sm"
         w="100%"
       >
-        <Text color="gray.600" _dark={{ color: 'gray.400' }}>No contexts available</Text>
+        <Text color={getTextColor(colorMode, 'secondary')} _dark={{ color: getTextColor('dark', 'tertiary') }}>No contexts available</Text>
       </Box>
     );
   }
