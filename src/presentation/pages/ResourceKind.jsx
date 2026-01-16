@@ -1,9 +1,8 @@
 import {
   Box,
   Text,
-  HStack,
 } from '@chakra-ui/react';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
@@ -11,7 +10,7 @@ import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
 import { Dropdown } from '../components/common/Dropdown.jsx';
 import { GetResourcesUseCase } from '../../domain/usecases/GetResourcesUseCase.js';
-import { getStatusColor, getStatusText, getStatusForFilter, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
+import { getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
 
 export const ResourceKind = () => {
   const { kind } = useParams();
@@ -23,7 +22,9 @@ export const ResourceKind = () => {
   const [error, setError] = useState(null);
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [syncedFilter, setSyncedFilter] = useState('all');
+  const [readyFilter, setReadyFilter] = useState('all');
+  const [responsiveFilter, setResponsiveFilter] = useState('all');
   const [useAutoHeight, setUseAutoHeight] = useState(false);
   const tableContainerRef = useRef(null);
 
@@ -62,32 +63,34 @@ export const ResourceKind = () => {
   useEffect(() => {
     let filtered = resources;
     
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(r => {
-        const syncedStatus = getSyncedStatus(r.conditions);
-        const readyStatus = getReadyStatus(r.conditions);
-        const responsiveStatus = getResponsiveStatus(r.conditions);
-        
-        if (statusFilter === 'Ready') {
-          if (readyStatus?.text === 'Ready') return true;
-          if (syncedStatus?.text === 'Synced' && readyStatus === null) return true;
-          if (responsiveStatus?.text === 'Responsive' && readyStatus === null && syncedStatus === null) return true;
-          return getStatusForFilter(r.conditions, r.kind) === 'Ready';
-        }
-        
-        if (statusFilter === 'Not Ready') {
-          if (readyStatus?.text === 'Not Ready') return true;
-          if (syncedStatus?.text === 'Not Synced') return true;
-          if (responsiveStatus?.text === 'Not Responsive') return true;
-          return getStatusForFilter(r.conditions, r.kind) === 'Not Ready';
-        }
-        
-        return getStatusForFilter(r.conditions, r.kind) === statusFilter;
-      });
-    }
+    filtered = filtered.filter(r => {
+      const syncedStatus = getSyncedStatus(r.conditions);
+      const readyStatus = getReadyStatus(r.conditions);
+      const responsiveStatus = getResponsiveStatus(r.conditions);
+      
+      if (syncedFilter !== 'all') {
+        if (syncedFilter === 'synced' && syncedStatus?.text !== 'Synced') return false;
+        if (syncedFilter === 'not-synced' && syncedStatus?.text !== 'Not Synced') return false;
+        if (syncedFilter === 'none' && syncedStatus !== null) return false;
+      }
+      
+      if (readyFilter !== 'all') {
+        if (readyFilter === 'ready' && readyStatus?.text !== 'Ready') return false;
+        if (readyFilter === 'not-ready' && readyStatus?.text !== 'Not Ready') return false;
+        if (readyFilter === 'none' && readyStatus !== null) return false;
+      }
+      
+      if (responsiveFilter !== 'all') {
+        if (responsiveFilter === 'responsive' && responsiveStatus?.text !== 'Responsive') return false;
+        if (responsiveFilter === 'not-responsive' && responsiveStatus?.text !== 'Not Responsive') return false;
+        if (responsiveFilter === 'none' && responsiveStatus !== null) return false;
+      }
+      
+      return true;
+    });
     
     setFilteredResources(filtered);
-  }, [resources, statusFilter]);
+  }, [resources, syncedFilter, readyFilter, responsiveFilter]);
 
   useEffect(() => {
     if (!selectedResource || !tableContainerRef.current) {
@@ -118,6 +121,112 @@ export const ResourceKind = () => {
     };
   }, [selectedResource, loading]);
 
+  const renderStatusBadge = (status) => {
+    if (!status) {
+      return (
+        <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.400' }}>
+          -
+        </Text>
+      );
+    }
+    return (
+      <Box
+        as="span"
+        display="inline-block"
+        px={2}
+        py={1}
+        borderRadius="md"
+        fontSize="xs"
+        fontWeight="semibold"
+        bg={`${status.color}.100`}
+        _dark={{ bg: `${status.color}.800`, color: `${status.color}.100` }}
+        color={`${status.color}.800`}
+      >
+        {status.text}
+      </Box>
+    );
+  };
+
+  const allColumns = [
+    {
+      header: 'Name',
+      accessor: 'name',
+      minWidth: '200px',
+    },
+    {
+      header: 'Kind',
+      accessor: 'kind',
+      minWidth: '200px',
+    },
+    {
+      header: 'Synced',
+      accessor: (row) => {
+        if (!row || !row.conditions) return '-';
+        const syncedStatus = getSyncedStatus(row.conditions);
+        return syncedStatus?.text || '-';
+      },
+      minWidth: '120px',
+      render: (row) => renderStatusBadge(row?.conditions ? getSyncedStatus(row.conditions) : null),
+      statusType: 'synced',
+    },
+    {
+      header: 'Ready',
+      accessor: (row) => {
+        if (!row || !row.conditions) return '-';
+        const readyStatus = getReadyStatus(row.conditions);
+        return readyStatus?.text || '-';
+      },
+      minWidth: '120px',
+      render: (row) => renderStatusBadge(row?.conditions ? getReadyStatus(row.conditions) : null),
+      statusType: 'ready',
+    },
+    {
+      header: 'Responsive',
+      accessor: (row) => {
+        if (!row || !row.conditions) return '-';
+        const responsiveStatus = getResponsiveStatus(row.conditions);
+        return responsiveStatus?.text || '-';
+      },
+      minWidth: '120px',
+      render: (row) => renderStatusBadge(row?.conditions ? getResponsiveStatus(row.conditions) : null),
+      statusType: 'responsive',
+    },
+    {
+      header: 'Created',
+      accessor: 'creationTimestamp',
+      minWidth: '150px',
+      render: (row) => row.creationTimestamp ? new Date(row.creationTimestamp).toLocaleString() : '-',
+    },
+  ];
+
+  const columns = useMemo(() => {
+    if (filteredResources.length === 0) {
+      return allColumns;
+    }
+
+    return allColumns.filter(column => {
+      if (!column.statusType) {
+        return true;
+      }
+
+      const hasData = filteredResources.some(row => {
+        if (!row || !row.conditions || !Array.isArray(row.conditions)) return false;
+        if (column.statusType === 'synced') {
+          return row.conditions.some(c => c.type === 'Synced');
+        }
+        if (column.statusType === 'ready') {
+          return row.conditions.some(c => c.type === 'Ready');
+        }
+        if (column.statusType === 'responsive') {
+          return row.conditions.some(c => c.type === 'Responsive');
+        }
+        return false;
+      });
+
+      return hasData;
+    });
+  }, [filteredResources]);
+
   if (loading) {
     return <LoadingSpinner message={`Loading ${kind}...`} />;
   }
@@ -141,7 +250,6 @@ export const ResourceKind = () => {
       </Box>
     );
   }
-
 
   const handleRowClick = (item) => {
     const clickedResource = {
@@ -186,80 +294,6 @@ export const ResourceKind = () => {
     setNavigationHistory([]);
   };
 
-  const columns = [
-    {
-      header: 'Name',
-      accessor: 'name',
-      minWidth: '200px',
-    },
-    {
-      header: 'Kind',
-      accessor: 'kind',
-      minWidth: '200px',
-    },
-    {
-      header: 'Status',
-      accessor: 'status',
-      minWidth: '160px',
-      render: (row) => {
-        const syncedStatus = getSyncedStatus(row.conditions);
-        const readyStatus = getReadyStatus(row.conditions);
-        const responsiveStatus = getResponsiveStatus(row.conditions);
-        const statusText = getStatusText(row.conditions, row.kind);
-        
-        const statusBadges = [syncedStatus, readyStatus, responsiveStatus].filter(Boolean);
-        
-        if (statusBadges.length > 0) {
-          return (
-            <HStack spacing={2}>
-              {statusBadges.map((status, idx) => (
-                <Box
-                  key={idx}
-                  as="span"
-                  display="inline-block"
-                  px={2}
-                  py={1}
-                  borderRadius="md"
-                  fontSize="xs"
-                  fontWeight="semibold"
-                  bg={`${status.color}.100`}
-                  _dark={{ bg: `${status.color}.800`, color: `${status.color}.100` }}
-                  color={`${status.color}.800`}
-                >
-                  {status.text}
-                </Box>
-              ))}
-            </HStack>
-          );
-        }
-        
-        const statusColor = getStatusColor(row.conditions, row.kind);
-        return (
-          <Box
-            as="span"
-            display="inline-block"
-            px={2}
-            py={1}
-            borderRadius="md"
-            fontSize="xs"
-            fontWeight="semibold"
-            bg={`${statusColor}.100`}
-            _dark={{ bg: `${statusColor}.800`, color: `${statusColor}.100` }}
-            color={`${statusColor}.800`}
-          >
-            {statusText}
-          </Box>
-        );
-      },
-    },
-    {
-      header: 'Created',
-      accessor: 'creationTimestamp',
-      minWidth: '150px',
-      render: (row) => row.creationTimestamp ? new Date(row.creationTimestamp).toLocaleString() : '-',
-    },
-  ];
-
   return (
     <Box
       display="flex"
@@ -289,23 +323,50 @@ export const ResourceKind = () => {
               itemsPerPage={20}
               onRowClick={handleRowClick}
               filters={
-                <Dropdown
-                  minW="150px"
-                  placeholder="All Statuses"
-                  value={statusFilter}
-                  onChange={setStatusFilter}
-                  options={[
-                    { value: 'all', label: 'All Statuses' },
-                    { value: 'Ready', label: 'Ready' },
-                    { value: 'Not Ready', label: 'Not Ready' },
-                    { value: 'Pending', label: 'Pending' },
-                    { value: 'Unknown', label: 'Unknown' },
-                    { value: 'Healthy', label: 'Healthy' },
-                    { value: 'Unhealthy', label: 'Unhealthy' },
-                    { value: 'Active', label: 'Active' },
-                    { value: 'Inactive', label: 'Inactive' }
-                  ]}
-                />
+                <>
+                  {columns.some(col => col.header === 'Synced') && (
+                    <Dropdown
+                      minW="140px"
+                      placeholder="All Synced"
+                      value={syncedFilter}
+                      onChange={setSyncedFilter}
+                      options={[
+                        { value: 'all', label: 'All Synced' },
+                        { value: 'synced', label: 'Synced' },
+                        { value: 'not-synced', label: 'Not Synced' },
+                        { value: 'none', label: 'No Synced Status' }
+                      ]}
+                    />
+                  )}
+                  {columns.some(col => col.header === 'Ready') && (
+                    <Dropdown
+                      minW="140px"
+                      placeholder="All Ready"
+                      value={readyFilter}
+                      onChange={setReadyFilter}
+                      options={[
+                        { value: 'all', label: 'All Ready' },
+                        { value: 'ready', label: 'Ready' },
+                        { value: 'not-ready', label: 'Not Ready' },
+                        { value: 'none', label: 'No Ready Status' }
+                      ]}
+                    />
+                  )}
+                  {columns.some(col => col.header === 'Responsive') && (
+                    <Dropdown
+                      minW="140px"
+                      placeholder="All Responsive"
+                      value={responsiveFilter}
+                      onChange={setResponsiveFilter}
+                      options={[
+                        { value: 'all', label: 'All Responsive' },
+                        { value: 'responsive', label: 'Responsive' },
+                        { value: 'not-responsive', label: 'Not Responsive' },
+                        { value: 'none', label: 'No Responsive Status' }
+                      ]}
+                    />
+                  )}
+                </>
               }
             />
         </Box>

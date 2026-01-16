@@ -36,7 +36,7 @@ export const Dropdown = ({
     }
   }, [isOpen]);
 
-  const bgColor = getBackgroundColor(colorMode, 'dropdown');
+  const bgColor = getBackgroundColor(colorMode, 'header');
   const borderColor = getBorderColor(colorMode);
   const strongBorderColor = getBorderColor(colorMode, 'strong');
   const hoverBgColor = getBackgroundColor(colorMode, 'primary');

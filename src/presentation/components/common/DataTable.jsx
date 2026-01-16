@@ -6,7 +6,8 @@ import {
 import { useState, useMemo, useEffect } from 'react';
 import { FiSearch, FiChevronUp, FiChevronDown } from 'react-icons/fi';
 import { Input } from './Input.jsx';
-import { colors, getBorderColor } from '../../utils/theme.js';
+import { colors, getBorderColor, getBackgroundColor, getTextColor, getAccentColor } from '../../utils/theme.js';
+import { useAppContext } from '../../providers/AppProvider.jsx';
 
 export const DataTable = ({ 
   data = [], 
@@ -19,7 +20,11 @@ export const DataTable = ({
   totalCount, // Total count for server-side pagination
   serverSidePagination = false, // Enable server-side pagination
   loading = false, // Loading state for server-side pagination
+  colorMode: propColorMode, // Color mode for theme (optional, will use context if not provided)
 }) => {
+  const appContext = useAppContext();
+  const contextColorMode = appContext?.colorMode;
+  const colorMode = propColorMode || contextColorMode || 'light';
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumn, setSortColumn] = useState(null);
@@ -61,11 +66,27 @@ export const DataTable = ({
     }
 
     if (sortColumn) {
-      const column = columns.find(col => col.accessor === sortColumn || col.header === sortColumn);
+      const column = columns.find(col => col.header === sortColumn);
       if (column) {
         result = [...result].sort((a, b) => {
-          let aValue = column.accessor ? column.accessor.split('.').reduce((obj, key) => obj?.[key], a) : a[sortColumn];
-          let bValue = column.accessor ? column.accessor.split('.').reduce((obj, key) => obj?.[key], b) : b[sortColumn];
+          let aValue, bValue;
+          
+          if (typeof column.accessor === 'function') {
+            try {
+              aValue = a ? column.accessor(a) : '';
+              bValue = b ? column.accessor(b) : '';
+            } catch (err) {
+              console.warn('Error in accessor function:', err);
+              aValue = '';
+              bValue = '';
+            }
+          } else if (typeof column.accessor === 'string') {
+            aValue = column.accessor.split('.').reduce((obj, key) => obj?.[key], a);
+            bValue = column.accessor.split('.').reduce((obj, key) => obj?.[key], b);
+          } else {
+            aValue = a[sortColumn];
+            bValue = b[sortColumn];
+          }
           
           if (aValue === null || aValue === undefined) aValue = '';
           if (bValue === null || bValue === undefined) bValue = '';
@@ -135,11 +156,11 @@ export const DataTable = ({
     setCurrentPage(page);
   };
 
-  const handleSort = (columnAccessor) => {
-    if (sortColumn === columnAccessor) {
+  const handleSort = (columnHeader) => {
+    if (sortColumn === columnHeader) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortColumn(columnAccessor);
+      setSortColumn(columnHeader);
       setSortDirection('asc');
     }
     setCurrentPage(1);
@@ -154,8 +175,8 @@ export const DataTable = ({
             left={3}
             top="50%"
             transform="translateY(-50%)"
-            color="gray.400"
-            _dark={{ color: 'gray.400' }}
+            color={getTextColor(colorMode, 'tertiary')}
+            _dark={{ color: getTextColor('dark', 'tertiary') }}
             pointerEvents="none"
             zIndex={1}
           >
@@ -178,7 +199,7 @@ export const DataTable = ({
             {filters}
           </HStack>
         )}
-        <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }} whiteSpace="nowrap" ml="auto">
+        <Text fontSize="sm" color={getTextColor(colorMode, 'secondary')} _dark={{ color: getTextColor('dark', 'tertiary') }} whiteSpace="nowrap" ml="auto">
           {isLoading || loading ? 'Loading...' : `${displayCount} result${displayCount !== 1 ? 's' : ''}`}
         </Text>
       </HStack>
@@ -187,8 +208,8 @@ export const DataTable = ({
         borderRadius="lg"
         border="1px solid"
         boxShadow="sm"
-        bg="white"
-        _dark={{ bg: 'gray.800' }}
+        bg={getBackgroundColor(colorMode, 'header')}
+        _dark={{ bg: getBackgroundColor('dark', 'header') }}
         overflow="hidden"
         display="flex"
         flexDirection="column"
@@ -204,8 +225,8 @@ export const DataTable = ({
           as="table" 
           w="100%" 
           style={{ borderCollapse: 'separate', borderSpacing: 0 }} 
-          bg="white" 
-          _dark={{ bg: 'gray.800' }}
+          bg={getBackgroundColor(colorMode, 'header')} 
+          _dark={{ bg: getBackgroundColor('dark', 'header') }}
           css={{
             '.dark & td, .dark & th': {
               color: 'white !important',
@@ -218,8 +239,7 @@ export const DataTable = ({
           <Box as="thead">
             <Box as="tr">
               {columns.map((column, index) => {
-                const columnAccessor = column.accessor || column.header;
-                const isSorted = sortColumn === columnAccessor;
+                const isSorted = sortColumn === column.header;
                 return (
                   <Box
                     key={index}
@@ -229,17 +249,17 @@ export const DataTable = ({
                     textAlign="left"
                     fontSize="xs"
                     fontWeight="700"
-                    color="gray.700"
+                    color={getTextColor(colorMode, 'primary')}
                     textTransform="uppercase"
                     letterSpacing="wider"
-                    bg="gray.50"
+                    bg={getBackgroundColor(colorMode, 'secondary')}
                     borderBottom="2px solid"
-                    _dark={{ color: 'gray.200', bg: 'gray.900' }}
+                    _dark={{ color: getTextColor('dark', 'primary'), bg: getBackgroundColor('dark', 'quaternary') }}
                     minW={column.minWidth || 'auto'}
                     cursor={column.accessor ? "pointer" : "default"}
                     userSelect="none"
-                    _hover={column.accessor ? { bg: 'gray.100', _dark: { bg: 'gray.800' } } : {}}
-                    onClick={() => column.accessor && handleSort(columnAccessor)}
+                    _hover={column.accessor ? { bg: getBackgroundColor(colorMode, 'tertiary'), _dark: { bg: getBackgroundColor('dark', 'secondary') } } : {}}
+                    onClick={() => column.accessor && handleSort(column.header)}
                     transition="all 0.2s ease"
                     position="sticky"
                     top={0}
@@ -268,7 +288,7 @@ export const DataTable = ({
                     <HStack spacing={2} align="center">
                       <Text>{column.header}</Text>
                       {isSorted && (
-                        <Box color="blue.600" _dark={{ color: 'blue.400' }}>
+                        <Box color={getAccentColor('blue', 'primary')} _dark={{ color: getAccentColor('blue', 'light') }}>
                           {sortDirection === 'asc' ? (
                             <FiChevronUp size={16} />
                           ) : (
@@ -282,18 +302,18 @@ export const DataTable = ({
               })}
             </Box>
           </Box>
-          <Box as="tbody" bg="white" _dark={{ bg: 'gray.800' }}>
+          <Box as="tbody" bg={getBackgroundColor(colorMode, 'header')} _dark={{ bg: getBackgroundColor('dark', 'header') }}>
             {(isLoading || loading) ? (
-              <Box as="tr" bg="white" _dark={{ bg: 'gray.800' }}>
+              <Box as="tr" bg={getBackgroundColor(colorMode, 'header')} _dark={{ bg: getBackgroundColor('dark', 'header') }}>
                 <Box
                   as="td"
                   colSpan={columns.length}
                   px={6}
                   py={12}
                   textAlign="center"
-                  color="gray.500"
-                  bg="white"
-                  _dark={{ color: 'gray.400', bg: 'gray.800' }}
+                  color={getTextColor(colorMode, 'tertiary')}
+                  bg={getBackgroundColor(colorMode, 'header')}
+                  _dark={{ color: getTextColor('dark', 'tertiary'), bg: getBackgroundColor('dark', 'header') }}
                   borderRadius="lg"
                   css={{
                     '.dark &': {
@@ -305,16 +325,16 @@ export const DataTable = ({
                 </Box>
               </Box>
             ) : paginatedData.length === 0 ? (
-              <Box as="tr" bg="white" _dark={{ bg: 'gray.800' }}>
+              <Box as="tr" bg={getBackgroundColor(colorMode, 'header')} _dark={{ bg: getBackgroundColor('dark', 'header') }}>
                 <Box
                   as="td"
                   colSpan={columns.length}
                   px={6}
                   py={12}
                   textAlign="center"
-                  color="gray.500"
-                  bg="white"
-                  _dark={{ color: 'gray.400', bg: 'gray.800' }}
+                  color={getTextColor(colorMode, 'tertiary')}
+                  bg={getBackgroundColor(colorMode, 'header')}
+                  _dark={{ color: getTextColor('dark', 'tertiary'), bg: getBackgroundColor('dark', 'header') }}
                   borderRadius="lg"
                   css={{
                     '.dark &': {
@@ -328,30 +348,34 @@ export const DataTable = ({
             ) : (
               paginatedData.map((row, rowIndex) => {
                 const isLastRow = rowIndex === paginatedData.length - 1;
+                const rowBg = getBackgroundColor(colorMode, 'header');
+                const rowHoverBg = getBackgroundColor(colorMode, 'secondary');
+                const darkRowBg = getBackgroundColor('dark', 'header');
+                const darkRowHoverBg = getBackgroundColor('dark', 'tertiary');
                 return (
                 <Box
                   key={rowIndex}
                   as="tr"
-                  bg="white"
-                  _dark={{ bg: 'gray.800' }}
+                  bg={rowBg}
+                  _dark={{ bg: darkRowBg }}
                   cursor={onRowClick ? 'pointer' : 'default'}
                   onClick={() => onRowClick && onRowClick(row)}
                     transition="all 0.2s ease"
                   css={{
                     '& td': {
-                      backgroundColor: 'white',
+                      backgroundColor: `${rowBg} !important`,
                     },
                     '.dark & td': {
-                      backgroundColor: 'var(--chakra-colors-gray-800) !important',
+                      backgroundColor: `${darkRowBg} !important`,
                     },
                     '&:hover td': {
-                      backgroundColor: 'var(--chakra-colors-gray-50)',
+                      backgroundColor: `${rowHoverBg} !important`,
                     },
                     '.dark &:hover td': {
-                      backgroundColor: 'var(--chakra-colors-gray-700) !important',
+                      backgroundColor: `${darkRowHoverBg} !important`,
                     }
                   }}
-                  _hover={{ bg: 'gray.50', _dark: { bg: 'gray.700' } }}
+                  _hover={{ bg: rowHoverBg, _dark: { bg: darkRowHoverBg } }}
                 >
                     {columns.map((column, colIndex) => {
                       return (
@@ -361,11 +385,11 @@ export const DataTable = ({
                           px={6}
                       py={4}
                       fontSize="sm"
-                      color="gray.900"
-                      bg="white"
+                      color={getTextColor(colorMode, 'primary')}
+                      bg={getBackgroundColor(colorMode, 'header')}
                           transition="all 0.2s ease"
                           borderBottom={isLastRow ? 'none' : '1px solid'}
-                          _dark={{ color: 'gray.100', bg: 'gray.800' }}
+                          _dark={{ color: getTextColor('dark', 'primary'), bg: getBackgroundColor('dark', 'header') }}
                           _first={{
                             borderBottomLeftRadius: isLastRow ? 'lg' : '0',
                           }}
@@ -377,7 +401,7 @@ export const DataTable = ({
                         '.dark &': {
                           borderColor: isLastRow ? 'transparent' : `${getBorderColor('dark')} !important`,
                           color: 'gray.100 !important',
-                          backgroundColor: 'var(--chakra-colors-gray-800) !important',
+                          backgroundColor: `${getBackgroundColor('dark', 'header')} !important`,
                         },
                         '.dark & *': {
                           color: 'gray.100 !important',
@@ -406,17 +430,17 @@ export const DataTable = ({
             px={4}
             py={2}
             borderRadius="lg"
-            bg={currentPage === 1 ? 'gray.100' : 'white'}
+            bg={currentPage === 1 ? getBackgroundColor(colorMode, 'secondary') : getBackgroundColor(colorMode, 'primary')}
             border="1px solid"
-            color={currentPage === 1 ? 'gray.400' : 'gray.700'}
+            color={currentPage === 1 ? getTextColor(colorMode, 'tertiary') : getTextColor(colorMode, 'primary')}
             _dark={{ 
-              bg: currentPage === 1 ? 'gray.700' : 'gray.800',
-              color: currentPage === 1 ? 'gray.500' : 'white'
+              bg: currentPage === 1 ? getBackgroundColor('dark', 'tertiary') : getBackgroundColor('dark', 'secondary'),
+              color: currentPage === 1 ? getTextColor('dark', 'tertiary') : getTextColor('dark', 'inverse')
             }}
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
             cursor={currentPage === 1 ? 'not-allowed' : 'pointer'}
-            _hover={currentPage === 1 ? {} : { bg: 'gray.50', _dark: { bg: 'gray.700', color: 'white' }, color: 'gray.900' }}
+            _hover={currentPage === 1 ? {} : { bg: getBackgroundColor(colorMode, 'secondary'), _dark: { bg: getBackgroundColor('dark', 'tertiary'), color: getTextColor('dark', 'inverse') }, color: getTextColor(colorMode, 'primary') }}
             transition="all 0.15s"
             fontSize="sm"
             fontWeight="500"
@@ -445,10 +469,12 @@ export const DataTable = ({
             .map((page, index, array) => {
               const prevPage = array[index - 1];
               const showEllipsis = prevPage && page - prevPage > 1;
+              const pageBorderColor = currentPage === page ? getAccentColor('blue', 'primary') : getBorderColor(colorMode);
+              const darkPageBorderColor = currentPage === page ? getAccentColor('blue', 'primary') : getBorderColor('dark');
               return (
                 <HStack key={page} spacing={1}>
                   {showEllipsis && (
-                    <Text px={2} color="gray.400" _dark={{ color: 'white' }}>
+                    <Text px={2} color={getTextColor(colorMode, 'tertiary')} _dark={{ color: getTextColor('dark', 'inverse') }}>
                       ...
                     </Text>
                   )}
@@ -458,12 +484,12 @@ export const DataTable = ({
                     py={2}
                     minW="44px"
                     borderRadius="lg"
-                    bg={currentPage === page ? 'blue.600' : 'white'}
+                    bg={currentPage === page ? getAccentColor('blue', 'primary') : getBackgroundColor(colorMode, 'primary')}
                     border="1px solid"
-                    color={currentPage === page ? 'white' : 'gray.700'}
+                    color={currentPage === page ? getTextColor(colorMode, 'inverse') : getTextColor(colorMode, 'primary')}
                     _dark={{ 
-                      bg: currentPage === page ? 'blue.600' : 'gray.800',
-                      color: 'white'
+                      bg: currentPage === page ? getAccentColor('blue', 'primary') : getBackgroundColor('dark', 'secondary'),
+                      color: getTextColor('dark', 'inverse')
                     }}
                     onClick={() => handlePageChange(page)}
                     cursor="pointer"
@@ -472,9 +498,9 @@ export const DataTable = ({
                     fontWeight={currentPage === page ? '600' : '500'}
                     fontSize="sm"
                     css={{
-                      borderColor: currentPage === page ? `${colors.accent.blue.secondary} !important` : `${getBorderColor('light')} !important`,
+                      borderColor: `${pageBorderColor} !important`,
                       '.dark &': {
-                        borderColor: currentPage === page ? `${colors.accent.blue.secondary} !important` : `${getBorderColor('dark')} !important`,
+                        borderColor: `${darkPageBorderColor} !important`,
                         backgroundColor: currentPage === page ? 'var(--chakra-colors-blue-600)' : 'var(--chakra-colors-gray-800)',
                         color: 'white',
                       },

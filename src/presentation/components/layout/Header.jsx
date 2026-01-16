@@ -10,7 +10,7 @@ import { FiUser, FiLogOut, FiSettings, FiMoon, FiSun, FiServer } from 'react-ico
 import { useNavigate } from 'react-router-dom';
 import { SearchBar } from '../common/SearchBar.jsx';
 import { Dialog } from '../common/Dialog.jsx';
-import { getBorderColor, getBackgroundColor, getTextColor } from '../../utils/theme.js';
+import { getBorderColor, getBackgroundColor, getTextColor, getStatusColor } from '../../utils/theme.js';
 import { useAppContext } from '../../providers/AppProvider.jsx';
 
 export const Header = ({ sidebarWidth }) => {
@@ -64,8 +64,8 @@ export const Header = ({ sidebarWidth }) => {
     <Box
       as="header"
       h="64px"
-      bg="white"
-      _dark={{ bg: 'gray.800' }}
+      bg={getBackgroundColor(colorMode, 'header')}
+      _dark={{ bg: getBackgroundColor('dark', 'header') }}
       borderBottom="1px solid"
       css={{
         borderColor: `${getBorderColor('light')} !important`,
@@ -85,7 +85,7 @@ export const Header = ({ sidebarWidth }) => {
     >
       <HStack h="100%" justify="space-between" w="100%" spacing={6}>
         <HStack spacing={4} flex={1} align="center">
-        <Text fontSize="lg" fontWeight="semibold" color="gray.800" _dark={{ color: 'gray.100' }}>
+        <Text fontSize="lg" fontWeight="semibold" color={getTextColor(colorMode, 'primary')} _dark={{ color: getTextColor('dark', 'primary') }}>
           Crossplane Dashboard
         </Text>
           {contextName && (
@@ -94,10 +94,10 @@ export const Header = ({ sidebarWidth }) => {
                 w="6px"
                 h="6px"
                 borderRadius="full"
-                bg={selectedContextError ? 'red.500' : 'green.500'}
-                _dark={{ bg: selectedContextError ? 'red.400' : 'green.400' }}
+                bg={selectedContextError ? getStatusColor('red') : getStatusColor('green')}
+                _dark={{ bg: selectedContextError ? getStatusColor('red') : getStatusColor('green') }}
               />
-              <Text fontSize="sm" color="gray.500" _dark={{ color: 'gray.400' }} fontWeight="medium">
+              <Text fontSize="sm" color={getTextColor(colorMode, 'tertiary')} _dark={{ color: getTextColor('dark', 'tertiary') }} fontWeight="medium">
                 {isInClusterMode ? 'In-Cluster' : contextName}
               </Text>
             </HStack>
@@ -110,11 +110,11 @@ export const Header = ({ sidebarWidth }) => {
             variant="ghost"
             size="sm"
             onClick={toggleColorMode}
-            color="gray.600"
-            _dark={{ color: 'gray.300' }}
+            color={getTextColor(colorMode, 'secondary')}
+            _dark={{ color: getTextColor('dark', 'secondary') }}
             _hover={{
-              bg: 'gray.100',
-              _dark: { bg: 'gray.700' }
+              bg: getBackgroundColor(colorMode, 'secondary'),
+              _dark: { bg: getBackgroundColor('dark', 'tertiary') }
             }}
             title={`Switch to ${colorMode === 'light' ? 'dark' : 'light'} mode`}
           >
@@ -198,8 +198,8 @@ export const Header = ({ sidebarWidth }) => {
                       display="flex"
                       alignItems="center"
                       gap={3}
-                      color="red.600"
-                      _dark={{ color: 'red.400' }}
+                      color={getStatusColor('red')}
+                      _dark={{ color: getStatusColor('red') }}
                       _hover={{ bg: hoverBg }}
                       transition="background-color 0.15s"
                     >
