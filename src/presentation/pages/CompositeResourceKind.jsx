@@ -3,7 +3,7 @@ import {
   Text,
   HStack,
 } from '@chakra-ui/react';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
@@ -13,7 +13,7 @@ import { Dropdown } from '../components/common/Dropdown.jsx';
 import { GetCompositeResourcesUseCase } from '../../domain/usecases/GetCompositeResourcesUseCase.js';
 import { GetCompositionsUseCase } from '../../domain/usecases/GetCompositionsUseCase.js';
 import { GetCompositeResourceDefinitionsUseCase } from '../../domain/usecases/GetCompositeResourceDefinitionsUseCase.js';
-import { getStatusColor, getStatusText, getStatusForFilter, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
+import { getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
 
 export const CompositeResourceKind = () => {
   const { kind } = useParams();
@@ -25,7 +25,9 @@ export const CompositeResourceKind = () => {
   const [error, setError] = useState(null);
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [syncedFilter, setSyncedFilter] = useState('all');
+  const [readyFilter, setReadyFilter] = useState('all');
+  const [responsiveFilter, setResponsiveFilter] = useState('all');
   const [useAutoHeight, setUseAutoHeight] = useState(false);
   const tableContainerRef = useRef(null);
 
@@ -78,33 +80,36 @@ export const CompositeResourceKind = () => {
   useEffect(() => {
     let filtered = resources;
     
-    // Only apply status filter if the resource type has status (not for Composition or CompositeResourceDefinition)
-    if (statusFilter !== 'all' && kind !== 'Composition' && kind !== 'CompositeResourceDefinition') {
+    if (kind !== 'Composition' && kind !== 'CompositeResourceDefinition') {
       filtered = filtered.filter(r => {
         const syncedStatus = getSyncedStatus(r.conditions);
         const readyStatus = getReadyStatus(r.conditions);
         const responsiveStatus = getResponsiveStatus(r.conditions);
         
-        if (statusFilter === 'Ready') {
-          if (readyStatus?.text === 'Ready') return true;
-          if (syncedStatus?.text === 'Synced' && readyStatus === null) return true;
-          if (responsiveStatus?.text === 'Responsive' && readyStatus === null && syncedStatus === null) return true;
-          return getStatusForFilter(r.conditions, r.kind) === 'Ready';
+        if (syncedFilter !== 'all') {
+          if (syncedFilter === 'synced' && syncedStatus?.text !== 'Synced') return false;
+          if (syncedFilter === 'not-synced' && syncedStatus?.text !== 'Not Synced') return false;
+          if (syncedFilter === 'none' && syncedStatus !== null) return false;
         }
         
-        if (statusFilter === 'Not Ready') {
-          if (readyStatus?.text === 'Not Ready') return true;
-          if (syncedStatus?.text === 'Not Synced') return true;
-          if (responsiveStatus?.text === 'Not Responsive') return true;
-          return getStatusForFilter(r.conditions, r.kind) === 'Not Ready';
+        if (readyFilter !== 'all') {
+          if (readyFilter === 'ready' && readyStatus?.text !== 'Ready') return false;
+          if (readyFilter === 'not-ready' && readyStatus?.text !== 'Not Ready') return false;
+          if (readyFilter === 'none' && readyStatus !== null) return false;
         }
         
-        return getStatusForFilter(r.conditions, r.kind) === statusFilter;
+        if (responsiveFilter !== 'all') {
+          if (responsiveFilter === 'responsive' && responsiveStatus?.text !== 'Responsive') return false;
+          if (responsiveFilter === 'not-responsive' && responsiveStatus?.text !== 'Not Responsive') return false;
+          if (responsiveFilter === 'none' && responsiveStatus !== null) return false;
+        }
+        
+        return true;
       });
     }
     
     setFilteredResources(filtered);
-  }, [resources, statusFilter, kind]);
+  }, [resources, syncedFilter, readyFilter, responsiveFilter, kind]);
 
   useEffect(() => {
     if (!selectedResource || !tableContainerRef.current) {
@@ -135,76 +140,69 @@ export const CompositeResourceKind = () => {
     };
   }, [selectedResource, loading]);
 
-  if (loading) {
-    return <LoadingSpinner message={`Loading ${kind}...`} />;
-  }
-
-  if (error) {
+  const renderStatusBadge = (status) => {
+    if (!status) {
+      return (
+        <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.400' }}>
+          -
+        </Text>
+      );
+    }
     return (
-      <Box>
-        <Text fontSize="2xl" fontWeight="bold" mb={6}>{kind}</Text>
-        <Box
-          p={6}
-          bg="red.50"
-          _dark={{ bg: 'red.900', borderColor: 'red.700', color: 'red.100' }}
-          border="1px"
-          borderColor="red.200"
-          borderRadius="md"
-          color="red.800"
-        >
-          <Text fontWeight="bold" mb={2}>Error loading {kind}</Text>
-          <Text>{error}</Text>
-        </Box>
+      <Box
+        as="span"
+        display="inline-block"
+        px={2}
+        py={1}
+        borderRadius="md"
+        fontSize="xs"
+        fontWeight="semibold"
+        bg={`${status.color}.100`}
+        _dark={{ bg: `${status.color}.800`, color: `${status.color}.100` }}
+        color={`${status.color}.800`}
+      >
+        {status.text}
       </Box>
     );
-  }
-
-
-  const handleRowClick = (item) => {
-    const clickedResource = {
-      apiVersion: item.apiVersion || 'apiextensions.crossplane.io/v1',
-      kind: item.kind || kind,
-      name: item.name,
-      namespace: item.namespace || null,
-    };
-
-    if (selectedResource && 
-        selectedResource.name === clickedResource.name &&
-        selectedResource.kind === clickedResource.kind &&
-        selectedResource.apiVersion === clickedResource.apiVersion &&
-        selectedResource.namespace === clickedResource.namespace) {
-      setSelectedResource(null);
-      setNavigationHistory([]);
-      return;
-    }
-
-    // Clear navigation history when opening from table (not from another resource)
-    setNavigationHistory([]);
-    setSelectedResource(clickedResource);
   };
 
-  const handleNavigate = (resource) => {
-    setNavigationHistory(prev => [...prev, selectedResource]);
-    setSelectedResource(resource);
-  };
+  const allStatusColumns = [
+    {
+      header: 'Synced',
+      accessor: (row) => {
+        if (!row || !row.conditions) return '-';
+        const syncedStatus = getSyncedStatus(row.conditions);
+        return syncedStatus?.text || '-';
+      },
+      minWidth: '120px',
+      render: (row) => renderStatusBadge(row?.conditions ? getSyncedStatus(row.conditions) : null),
+      statusType: 'synced',
+    },
+    {
+      header: 'Ready',
+      accessor: (row) => {
+        if (!row || !row.conditions) return '-';
+        const readyStatus = getReadyStatus(row.conditions);
+        return readyStatus?.text || '-';
+      },
+      minWidth: '120px',
+      render: (row) => renderStatusBadge(row?.conditions ? getReadyStatus(row.conditions) : null),
+      statusType: 'ready',
+    },
+    {
+      header: 'Responsive',
+      accessor: (row) => {
+        if (!row || !row.conditions) return '-';
+        const responsiveStatus = getResponsiveStatus(row.conditions);
+        return responsiveStatus?.text || '-';
+      },
+      minWidth: '120px',
+      render: (row) => renderStatusBadge(row?.conditions ? getResponsiveStatus(row.conditions) : null),
+      statusType: 'responsive',
+    },
+  ];
 
-  const handleBack = () => {
-    if (navigationHistory.length > 0) {
-      const previous = navigationHistory[navigationHistory.length - 1];
-      setNavigationHistory(prev => prev.slice(0, -1));
-      setSelectedResource(previous);
-    } else {
-      setSelectedResource(null);
-    }
-  };
-
-  const handleClose = () => {
-    setSelectedResource(null);
-    setNavigationHistory([]);
-  };
-
-  // Define columns based on kind
-  const getColumns = () => {
+  const columns = useMemo(() => {
     if (kind === 'Composition') {
       return [
         {
@@ -267,8 +265,7 @@ export const CompositeResourceKind = () => {
         },
       ];
     } else {
-      // For other composite resource kinds
-      return [
+      const allColumns = [
         {
           header: 'Name',
           accessor: 'name',
@@ -279,61 +276,7 @@ export const CompositeResourceKind = () => {
           accessor: 'kind',
           minWidth: '200px',
         },
-        {
-          header: 'Status',
-          accessor: 'status',
-          minWidth: '160px',
-          render: (row) => {
-            const syncedStatus = getSyncedStatus(row.conditions);
-            const readyStatus = getReadyStatus(row.conditions);
-            const responsiveStatus = getResponsiveStatus(row.conditions);
-            const statusText = getStatusText(row.conditions);
-            
-            const statusBadges = [syncedStatus, readyStatus, responsiveStatus].filter(Boolean);
-            
-            if (statusBadges.length > 0) {
-              return (
-                <HStack spacing={2}>
-                  {statusBadges.map((status, idx) => (
-                    <Box
-                      key={idx}
-                      as="span"
-                      display="inline-block"
-                      px={2}
-                      py={1}
-                      borderRadius="md"
-                      fontSize="xs"
-                      fontWeight="semibold"
-                      bg={`${status.color}.100`}
-                      _dark={{ bg: `${status.color}.800`, color: `${status.color}.100` }}
-                      color={`${status.color}.800`}
-                    >
-                      {status.text}
-                    </Box>
-                  ))}
-                </HStack>
-              );
-            }
-            
-            const statusColor = getStatusColor(row.conditions);
-            return (
-              <Box
-                as="span"
-                display="inline-block"
-                px={2}
-                py={1}
-                borderRadius="md"
-                fontSize="xs"
-                fontWeight="semibold"
-                bg={`${statusColor}.100`}
-                _dark={{ bg: `${statusColor}.800`, color: `${statusColor}.100` }}
-                color={`${statusColor}.800`}
-              >
-                {statusText}
-              </Box>
-            );
-          },
-        },
+        ...allStatusColumns,
         {
           header: 'Created',
           accessor: 'creationTimestamp',
@@ -341,7 +284,100 @@ export const CompositeResourceKind = () => {
           render: (row) => row.creationTimestamp ? new Date(row.creationTimestamp).toLocaleString() : '-',
         },
       ];
+
+      if (filteredResources.length === 0) {
+        return allColumns;
+      }
+
+      return allColumns.filter(column => {
+        if (!column.statusType) {
+          return true;
+        }
+
+        const hasData = filteredResources.some(row => {
+          if (!row || !row.conditions || !Array.isArray(row.conditions)) return false;
+          if (column.statusType === 'synced') {
+            return row.conditions.some(c => c.type === 'Synced');
+          }
+          if (column.statusType === 'ready') {
+            return row.conditions.some(c => c.type === 'Ready');
+          }
+          if (column.statusType === 'responsive') {
+            return row.conditions.some(c => c.type === 'Responsive');
+          }
+          return false;
+        });
+
+        return hasData;
+      });
     }
+  }, [kind, filteredResources]);
+
+  if (loading) {
+    return <LoadingSpinner message={`Loading ${kind}...`} />;
+  }
+
+  if (error) {
+    return (
+      <Box>
+        <Text fontSize="2xl" fontWeight="bold" mb={6}>{kind}</Text>
+        <Box
+          p={6}
+          bg="red.50"
+          _dark={{ bg: 'red.900', borderColor: 'red.700', color: 'red.100' }}
+          border="1px"
+          borderColor="red.200"
+          borderRadius="md"
+          color="red.800"
+        >
+          <Text fontWeight="bold" mb={2}>Error loading {kind}</Text>
+          <Text>{error}</Text>
+        </Box>
+      </Box>
+    );
+  }
+
+  const handleRowClick = (item) => {
+    const clickedResource = {
+      apiVersion: item.apiVersion || 'apiextensions.crossplane.io/v1',
+      kind: item.kind || kind,
+      name: item.name,
+      namespace: item.namespace || null,
+    };
+
+    if (selectedResource && 
+        selectedResource.name === clickedResource.name &&
+        selectedResource.kind === clickedResource.kind &&
+        selectedResource.apiVersion === clickedResource.apiVersion &&
+        selectedResource.namespace === clickedResource.namespace) {
+      setSelectedResource(null);
+      setNavigationHistory([]);
+      return;
+    }
+
+    // Clear navigation history when opening from table (not from another resource)
+    setNavigationHistory([]);
+    setSelectedResource(clickedResource);
+  };
+
+  const handleNavigate = (resource) => {
+    setNavigationHistory(prev => [...prev, selectedResource]);
+    setSelectedResource(resource);
+  };
+
+  const handleBack = () => {
+    if (navigationHistory.length > 0) {
+      const previous = navigationHistory[navigationHistory.length - 1];
+      setNavigationHistory(prev => prev.slice(0, -1));
+      setSelectedResource(previous);
+    } else {
+      setSelectedResource(null);
+    }
+  };
+
+  const handleClose = () => {
+    setSelectedResource(null);
+    setNavigationHistory([]);
   };
 
   return (
@@ -368,25 +404,56 @@ export const CompositeResourceKind = () => {
         >
           <DataTable
               data={filteredResources}
-              columns={getColumns()}
+              columns={columns}
               searchableFields={['name']}
               itemsPerPage={20}
               onRowClick={handleRowClick}
               filters={
                 kind !== 'Composition' && kind !== 'CompositeResourceDefinition' ? (
-                  <Dropdown
-                    minW="150px"
-                    placeholder="All Statuses"
-                    value={statusFilter}
-                    onChange={setStatusFilter}
-                    options={[
-                      { value: 'all', label: 'All Statuses' },
-                      { value: 'Ready', label: 'Ready' },
-                      { value: 'Not Ready', label: 'Not Ready' },
-                      { value: 'Pending', label: 'Pending' },
-                      { value: 'Unknown', label: 'Unknown' }
-                    ]}
-                  />
+                  <>
+                    {columns.some(col => col.header === 'Synced') && (
+                      <Dropdown
+                        minW="140px"
+                        placeholder="All Synced"
+                        value={syncedFilter}
+                        onChange={setSyncedFilter}
+                        options={[
+                          { value: 'all', label: 'All Synced' },
+                          { value: 'synced', label: 'Synced' },
+                          { value: 'not-synced', label: 'Not Synced' },
+                          { value: 'none', label: 'No Synced Status' }
+                        ]}
+                      />
+                    )}
+                    {columns.some(col => col.header === 'Ready') && (
+                      <Dropdown
+                        minW="140px"
+                        placeholder="All Ready"
+                        value={readyFilter}
+                        onChange={setReadyFilter}
+                        options={[
+                          { value: 'all', label: 'All Ready' },
+                          { value: 'ready', label: 'Ready' },
+                          { value: 'not-ready', label: 'Not Ready' },
+                          { value: 'none', label: 'No Ready Status' }
+                        ]}
+                      />
+                    )}
+                    {columns.some(col => col.header === 'Responsive') && (
+                      <Dropdown
+                        minW="140px"
+                        placeholder="All Responsive"
+                        value={responsiveFilter}
+                        onChange={setResponsiveFilter}
+                        options={[
+                          { value: 'all', label: 'All Responsive' },
+                          { value: 'responsive', label: 'Responsive' },
+                          { value: 'not-responsive', label: 'Not Responsive' },
+                          { value: 'none', label: 'No Responsive Status' }
+                        ]}
+                      />
+                    )}
+                  </>
                 ) : undefined
               }
             />

@@ -9,7 +9,7 @@ import {
   IconButton,
   SimpleGrid,
 } from '@chakra-ui/react';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { Dialog } from '../components/common/Dialog.jsx';
@@ -20,7 +20,7 @@ import { QuickFilters } from '../components/common/QuickFilters.jsx';
 import { Input } from '../components/common/Input.jsx';
 import { SearchResourcesUseCase } from '../../domain/usecases/SearchResourcesUseCase.js';
 import { FiX, FiBookmark, FiSearch, FiTrash2, FiTag, FiLayers, FiFolder, FiHash } from 'react-icons/fi';
-import { getStatusColor, getStatusText, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
+import { getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
 
 export const Search = () => {
   const { kubernetesRepository, selectedContext, saveSearch, savedSearches, deleteSearch, colorMode } = useAppContext();
@@ -339,7 +339,7 @@ export const Search = () => {
     }
   }, [showSuggestions]);
 
-  const columns = [
+  const allColumns = [
     {
       header: 'Name',
       accessor: 'name',
@@ -379,42 +379,29 @@ export const Search = () => {
       ),
     },
     {
-      header: 'Status',
-      accessor: 'status',
-      minWidth: '160px',
-      render: (row) => {
+      header: 'Synced',
+      accessor: (row) => {
+        if (!row || !row.conditions) return '-';
         const syncedStatus = getSyncedStatus(row.conditions);
-        const readyStatus = getReadyStatus(row.conditions);
-        const responsiveStatus = getResponsiveStatus(row.conditions);
-        const statusText = getStatusText(row.conditions, row.kind);
-        
-        const statusBadges = [syncedStatus, readyStatus, responsiveStatus].filter(Boolean);
-        
-        if (statusBadges.length > 0) {
+        return syncedStatus?.text || '-';
+      },
+      minWidth: '120px',
+      render: (row) => {
+        if (!row || !row.conditions) {
           return (
-            <HStack spacing={2}>
-              {statusBadges.map((status, idx) => (
-                <Box
-                  key={idx}
-                  as="span"
-                  display="inline-block"
-                  px={2}
-                  py={1}
-                  borderRadius="md"
-                  fontSize="xs"
-                  fontWeight="semibold"
-                  bg={`${status.color}.100`}
-                  _dark={{ bg: `${status.color}.800`, color: `${status.color}.100` }}
-                  color={`${status.color}.800`}
-                >
-                  {status.text}
-                </Box>
-              ))}
-            </HStack>
+            <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.400' }}>
+              -
+            </Text>
           );
         }
-        
-        const statusColor = getStatusColor(row.conditions, row.kind);
+        const syncedStatus = getSyncedStatus(row.conditions);
+        if (!syncedStatus) {
+          return (
+            <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.400' }}>
+              -
+            </Text>
+          );
+        }
         return (
           <Box
             as="span"
@@ -424,14 +411,101 @@ export const Search = () => {
             borderRadius="md"
             fontSize="xs"
             fontWeight="semibold"
-            bg={`${statusColor}.100`}
-            _dark={{ bg: `${statusColor}.800`, color: `${statusColor}.100` }}
-            color={`${statusColor}.800`}
+            bg={`${syncedStatus.color}.100`}
+            _dark={{ bg: `${syncedStatus.color}.800`, color: `${syncedStatus.color}.100` }}
+            color={`${syncedStatus.color}.800`}
           >
-            {statusText}
+            {syncedStatus.text}
           </Box>
         );
       },
+      statusType: 'synced',
+    },
+    {
+      header: 'Ready',
+      accessor: (row) => {
+        if (!row || !row.conditions) return '-';
+        const readyStatus = getReadyStatus(row.conditions);
+        return readyStatus?.text || '-';
+      },
+      minWidth: '120px',
+      render: (row) => {
+        if (!row || !row.conditions) {
+          return (
+            <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.400' }}>
+              -
+            </Text>
+          );
+        }
+        const readyStatus = getReadyStatus(row.conditions);
+        if (!readyStatus) {
+          return (
+            <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.400' }}>
+              -
+            </Text>
+          );
+        }
+        return (
+          <Box
+            as="span"
+            display="inline-block"
+            px={2}
+            py={1}
+            borderRadius="md"
+            fontSize="xs"
+            fontWeight="semibold"
+            bg={`${readyStatus.color}.100`}
+            _dark={{ bg: `${readyStatus.color}.800`, color: `${readyStatus.color}.100` }}
+            color={`${readyStatus.color}.800`}
+          >
+            {readyStatus.text}
+          </Box>
+        );
+      },
+      statusType: 'ready',
+    },
+    {
+      header: 'Responsive',
+      accessor: (row) => {
+        if (!row || !row.conditions) return '-';
+        const responsiveStatus = getResponsiveStatus(row.conditions);
+        return responsiveStatus?.text || '-';
+      },
+      minWidth: '120px',
+      render: (row) => {
+        if (!row || !row.conditions) {
+          return (
+            <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.400' }}>
+              -
+            </Text>
+          );
+        }
+        const responsiveStatus = getResponsiveStatus(row.conditions);
+        if (!responsiveStatus) {
+          return (
+            <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.400' }}>
+              -
+            </Text>
+          );
+        }
+        return (
+          <Box
+            as="span"
+            display="inline-block"
+            px={2}
+            py={1}
+            borderRadius="md"
+            fontSize="xs"
+            fontWeight="semibold"
+            bg={`${responsiveStatus.color}.100`}
+            _dark={{ bg: `${responsiveStatus.color}.800`, color: `${responsiveStatus.color}.100` }}
+            color={`${responsiveStatus.color}.800`}
+          >
+            {responsiveStatus.text}
+          </Box>
+        );
+      },
+      statusType: 'responsive',
     },
     {
       header: 'Created',
@@ -442,6 +516,34 @@ export const Search = () => {
         : '-',
     },
   ];
+
+  const columns = useMemo(() => {
+    if (filteredResults.length === 0) {
+      return allColumns;
+    }
+
+    return allColumns.filter(column => {
+      if (!column.statusType) {
+        return true;
+      }
+
+      const hasData = filteredResults.some(row => {
+        if (!row || !row.conditions || !Array.isArray(row.conditions)) return false;
+        if (column.statusType === 'synced') {
+          return row.conditions.some(c => c.type === 'Synced');
+        }
+        if (column.statusType === 'ready') {
+          return row.conditions.some(c => c.type === 'Ready');
+        }
+        if (column.statusType === 'responsive') {
+          return row.conditions.some(c => c.type === 'Responsive');
+        }
+        return false;
+      });
+
+      return hasData;
+    });
+  }, [filteredResults]);
 
     return (
     <>

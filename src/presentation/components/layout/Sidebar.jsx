@@ -10,7 +10,7 @@ import { FiChevronLeft, FiChevronRight, FiChevronDown, FiChevronUp, FiLayout, Fi
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../../providers/AppProvider.jsx';
-import { colors, getBorderColor, getTextColor } from '../../utils/theme.js';
+import { colors, getBorderColor, getTextColor, getBackgroundColor, getSidebarColor, getAccentColor } from '../../utils/theme.js';
 
 export const Sidebar = ({ onToggle, onResize }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -207,8 +207,8 @@ export const Sidebar = ({ onToggle, onResize }) => {
       as="aside"
       w={`${currentWidth}px`}
       h="100vh"
-      bg="white"
-      _dark={{ bg: 'gray.800' }}
+      bg={getBackgroundColor(colorMode, 'header')}
+      _dark={{ bg: getBackgroundColor('dark', 'header') }}
       borderRight="1px solid"
       css={{
         borderColor: `${getBorderColor('light')} !important`,
@@ -263,7 +263,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
                   w="auto"
                   _dark={{ filter: 'brightness(0) invert(1)' }}
                 />
-                <Text fontSize="xl" fontWeight="bold" color="black" _dark={{ color: 'white' }}>
+                <Text fontSize="xl" fontWeight="bold" color={getTextColor(colorMode, 'inverse')} _dark={{ color: getTextColor('dark', 'inverse') }}>
                 Crossview
               </Text>
               </HStack>
@@ -287,15 +287,15 @@ export const Sidebar = ({ onToggle, onResize }) => {
                 minH="40px"
                 aria-label="Toggle context sidebar"
                 transition="all 0.2s"
-                color="gray.600"
-                _dark={{ color: 'gray.300' }}
+                color={getTextColor(colorMode, 'secondary')}
+                _dark={{ color: getTextColor('dark', 'secondary') }}
                 _hover={{ 
-                  bg: 'gray.100', 
+                  bg: getBackgroundColor(colorMode, 'secondary'), 
                   _dark: { 
-                    bg: 'gray.800',
-                    color: 'gray.200'
+                    bg: getBackgroundColor('dark', 'secondary'),
+                    color: getTextColor('dark', 'primary')
                   },
-                  color: 'gray.700'
+                  color: getTextColor(colorMode, 'primary')
                 }}
                 title="Toggle context sidebar"
               >
@@ -338,7 +338,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
         <Box flex={1} overflowY="auto" p={2}>
           {!isCollapsed && (
             <VStack spacing={1} align="stretch">
-              <Text fontSize="xs" fontWeight="semibold" color="gray.500" px={3} py={2}>
+              <Text fontSize="xs" fontWeight="semibold" color={getTextColor(colorMode, 'tertiary')} px={3} py={2}>
                 MENU
               </Text>
               {menuItems.map((item) => {
@@ -358,9 +358,9 @@ export const Sidebar = ({ onToggle, onResize }) => {
                       py={2}
                       borderRadius="md"
                       textAlign="left"
-                      bg={isActive ? colors.sidebar.light.activeBg : 'transparent'}
-                      _dark={{ bg: isActive ? 'gray.800' : 'transparent' }}
-                      _hover={{ bg: isActive ? colors.sidebar.light.hoverBg : 'gray.100', _dark: { bg: isActive ? 'gray.800' : 'gray.800' } }}
+                      bg={isActive ? getSidebarColor(colorMode, 'activeBg') : 'transparent'}
+                      _dark={{ bg: isActive ? getBackgroundColor('dark', 'secondary') : 'transparent' }}
+                      _hover={{ bg: isActive ? getSidebarColor(colorMode, 'hoverBg') : getBackgroundColor(colorMode, 'secondary'), _dark: { bg: isActive ? getBackgroundColor('dark', 'secondary') : getBackgroundColor('dark', 'secondary') } }}
                       onClick={() => {
                         if (hasSubMenu) {
                           toggleMenu(item.id);
@@ -385,8 +385,8 @@ export const Sidebar = ({ onToggle, onResize }) => {
                         <Text
                           fontSize="sm"
                           fontWeight={isActive ? 'semibold' : 'normal'}
-                          color={isActive ? colors.accent.blue.darker : 'gray.700'}
-                          _dark={{ color: isActive ? colors.sidebar.dark.activeText : 'gray.300' }}
+                          color={isActive ? getAccentColor('blue', 'darker') : getTextColor(colorMode, 'primary')}
+                          _dark={{ color: isActive ? getSidebarColor('dark', 'activeText') : getTextColor('dark', 'primary') }}
                         >
                           {item.label}
                         </Text>
@@ -403,20 +403,20 @@ export const Sidebar = ({ onToggle, onResize }) => {
                               w="12px"
                               h="12px"
                               border="2px solid"
-                              borderColor="gray.300"
-                              borderTopColor="blue.500"
+                              borderColor={getBorderColor(colorMode, 'gray')}
+                              borderTopColor={getAccentColor('blue', 'primary')}
                               borderRadius="50%"
                               style={{
                                 animation: 'spin 1s linear infinite',
                               }}
                             />
-                            <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.400' }}>
+                            <Text fontSize="xs" color={getTextColor(colorMode, 'tertiary')} _dark={{ color: getTextColor('dark', 'tertiary') }}>
                               Loading...
                             </Text>
                           </Box>
                         ) : subMenuItems.length === 0 ? (
                           <Box px={3} py={2}>
-                            <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.400' }}>
+                            <Text fontSize="xs" color={getTextColor(colorMode, 'tertiary')} _dark={{ color: getTextColor('dark', 'tertiary') }}>
                               No items
                             </Text>
                           </Box>
@@ -441,8 +441,8 @@ export const Sidebar = ({ onToggle, onResize }) => {
                                 <Text
                                   fontSize="sm"
                                   fontWeight={isSubActive ? 'semibold' : 'normal'}
-                                  color={isSubActive ? colors.accent.blue.darker : 'gray.600'}
-                                  _dark={{ color: isSubActive ? colors.sidebar.dark.activeText : 'gray.400' }}
+                                  color={isSubActive ? getAccentColor('blue', 'darker') : getTextColor(colorMode, 'secondary')}
+                                  _dark={{ color: isSubActive ? getSidebarColor('dark', 'activeText') : getTextColor('dark', 'tertiary') }}
                                 >
                                   {subItem.label}
                                 </Text>
@@ -473,9 +473,9 @@ export const Sidebar = ({ onToggle, onResize }) => {
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
-                    bg={isActive ? colors.sidebar.light.hoverBg : 'transparent'}
-                    _dark={{ bg: isActive ? 'gray.800' : 'transparent' }}
-                    _hover={{ bg: isActive ? 'blue.200' : 'gray.100', _dark: { bg: isActive ? 'gray.800' : 'gray.700' } }}
+                    bg={isActive ? getSidebarColor(colorMode, 'hoverBg') : 'transparent'}
+                    _dark={{ bg: isActive ? getBackgroundColor('dark', 'secondary') : 'transparent' }}
+                    _hover={{ bg: isActive ? getAccentColor('blue', 'light') : getBackgroundColor(colorMode, 'secondary'), _dark: { bg: isActive ? getBackgroundColor('dark', 'secondary') : getBackgroundColor('dark', 'tertiary') } }}
                     aria-label={item.label}
                     transition="all 0.2s"
                   >
@@ -508,13 +508,13 @@ export const Sidebar = ({ onToggle, onResize }) => {
             <VStack spacing={3} align="stretch">
               <Text
                 fontSize="xs"
-                color="gray.500"
-                _dark={{ color: 'gray.400' }}
+                color={getTextColor(colorMode, 'tertiary')}
+                _dark={{ color: getTextColor('dark', 'tertiary') }}
                 lineHeight="1.5"
                 textAlign="center"
               >
                 Open-source project maintained by{' '}
-                <Text as="span" fontWeight="semibold" color="gray.700" _dark={{ color: 'gray.300' }}>
+                <Text as="span" fontWeight="semibold" color={getTextColor(colorMode, 'primary')} _dark={{ color: getTextColor('dark', 'primary') }}>
                   Corpobit
                 </Text>
                 </Text>
@@ -531,11 +531,11 @@ export const Sidebar = ({ onToggle, onResize }) => {
                 py={2}
                 borderRadius="md"
                 bg="transparent"
-                _hover={{ bg: 'gray.100', _dark: { bg: 'gray.700' } }}
+                _hover={{ bg: getBackgroundColor(colorMode, 'secondary'), _dark: { bg: getBackgroundColor('dark', 'tertiary') } }}
                 transition="all 0.2s"
                 textDecoration="none"
-                color="gray.700"
-                _dark={{ color: 'gray.300' }}
+                color={getTextColor(colorMode, 'primary')}
+                _dark={{ color: getTextColor('dark', 'primary') }}
               >
                 <HStack spacing={2}>
                   <FiGithub size={18} style={{ color: 'inherit' }} />

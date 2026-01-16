@@ -3,14 +3,14 @@ import {
   Text,
   HStack,
 } from '@chakra-ui/react';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { DataTable } from '../components/common/DataTable.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
 import { Dropdown } from '../components/common/Dropdown.jsx';
-import { getStatusColor, getStatusText, getStatusForFilter, getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
+import { getSyncedStatus, getReadyStatus, getResponsiveStatus } from '../utils/resourceStatus.js';
 
 export const CompositeResources = () => {
   const { kubernetesRepository, selectedContext } = useAppContext();
@@ -20,7 +20,9 @@ export const CompositeResources = () => {
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
   const [kindFilter, setKindFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [syncedFilter, setSyncedFilter] = useState('all');
+  const [readyFilter, setReadyFilter] = useState('all');
+  const [responsiveFilter, setResponsiveFilter] = useState('all');
   const [compositionFilter, setCompositionFilter] = useState('all');
   const [filterOptions, setFilterOptions] = useState({ kinds: [], compositions: [] });
   const [useAutoHeight, setUseAutoHeight] = useState(false);
@@ -78,7 +80,7 @@ export const CompositeResources = () => {
       setError(null);
       const contextName = typeof selectedContext === 'string' ? selectedContext : selectedContext.name || selectedContext;
       const continueToken = continueTokensRef.current[page - 1] || null;
-      const hasFilters = kindFilter !== 'all' || statusFilter !== 'all' || compositionFilter !== 'all';
+      const hasFilters = kindFilter !== 'all' || syncedFilter !== 'all' || readyFilter !== 'all' || responsiveFilter !== 'all' || compositionFilter !== 'all';
       const fetchLimit = hasFilters ? pageSize * 2 : pageSize;
       const { GetCompositeResourcesUseCase } = await import('../../domain/usecases/GetCompositeResourcesUseCase.js');
       const useCase = new GetCompositeResourcesUseCase(kubernetesRepository);
@@ -97,29 +99,31 @@ export const CompositeResources = () => {
         filtered = filtered.filter(r => r.kind === kindFilter);
       }
       
-      if (statusFilter !== 'all') {
-        filtered = filtered.filter(r => {
-          const syncedStatus = getSyncedStatus(r.conditions);
-          const readyStatus = getReadyStatus(r.conditions);
-          const responsiveStatus = getResponsiveStatus(r.conditions);
-          
-          if (statusFilter === 'Ready') {
-            if (readyStatus?.text === 'Ready') return true;
-            if (syncedStatus?.text === 'Synced' && readyStatus === null) return true;
-            if (responsiveStatus?.text === 'Responsive' && readyStatus === null && syncedStatus === null) return true;
-            return getStatusForFilter(r.conditions, r.kind) === 'Ready';
-          }
-          
-          if (statusFilter === 'Not Ready') {
-            if (readyStatus?.text === 'Not Ready') return true;
-            if (syncedStatus?.text === 'Not Synced') return true;
-            if (responsiveStatus?.text === 'Not Responsive') return true;
-            return getStatusForFilter(r.conditions, r.kind) === 'Not Ready';
-          }
-          
-          return getStatusForFilter(r.conditions, r.kind) === statusFilter;
-        });
-      }
+      filtered = filtered.filter(r => {
+        const syncedStatus = getSyncedStatus(r.conditions);
+        const readyStatus = getReadyStatus(r.conditions);
+        const responsiveStatus = getResponsiveStatus(r.conditions);
+        
+        if (syncedFilter !== 'all') {
+          if (syncedFilter === 'synced' && syncedStatus?.text !== 'Synced') return false;
+          if (syncedFilter === 'not-synced' && syncedStatus?.text !== 'Not Synced') return false;
+          if (syncedFilter === 'none' && syncedStatus !== null) return false;
+        }
+        
+        if (readyFilter !== 'all') {
+          if (readyFilter === 'ready' && readyStatus?.text !== 'Ready') return false;
+          if (readyFilter === 'not-ready' && readyStatus?.text !== 'Not Ready') return false;
+          if (readyFilter === 'none' && readyStatus !== null) return false;
+        }
+        
+        if (responsiveFilter !== 'all') {
+          if (responsiveFilter === 'responsive' && responsiveStatus?.text !== 'Responsive') return false;
+          if (responsiveFilter === 'not-responsive' && responsiveStatus?.text !== 'Not Responsive') return false;
+          if (responsiveFilter === 'none' && responsiveStatus !== null) return false;
+        }
+        
+        return true;
+      });
       
       if (compositionFilter !== 'all') {
         filtered = filtered.filter(r => (r.compositionRef?.name || '') === compositionFilter);
@@ -136,11 +140,11 @@ export const CompositeResources = () => {
       setError(err.message);
       return { items: [], totalCount: 0 };
     }
-  }, [selectedContext, kubernetesRepository, kindFilter, statusFilter, compositionFilter]);
+  }, [selectedContext, kubernetesRepository, kindFilter, syncedFilter, readyFilter, responsiveFilter, compositionFilter]);
 
   useEffect(() => {
     continueTokensRef.current = [null];
-  }, [selectedContext, kindFilter, statusFilter, compositionFilter]);
+  }, [selectedContext, kindFilter, syncedFilter, readyFilter, responsiveFilter, compositionFilter]);
 
   useEffect(() => {
     if (!selectedResource || !tableContainerRef.current) {
@@ -195,8 +199,33 @@ export const CompositeResources = () => {
     );
   }
 
+  const renderStatusBadge = (status) => {
+    if (!status) {
+      return (
+        <Text fontSize="xs" color="gray.500" _dark={{ color: 'gray.400' }}>
+          -
+        </Text>
+      );
+    }
+    return (
+      <Box
+        as="span"
+        display="inline-block"
+        px={2}
+        py={1}
+        borderRadius="md"
+        fontSize="xs"
+        fontWeight="semibold"
+        bg={`${status.color}.100`}
+        _dark={{ bg: `${status.color}.800`, color: `${status.color}.100` }}
+        color={`${status.color}.800`}
+      >
+        {status.text}
+      </Box>
+    );
+  };
 
-  const columns = [
+  const allColumns = [
     {
       header: 'Name',
       accessor: 'name',
@@ -208,59 +237,37 @@ export const CompositeResources = () => {
       minWidth: '200px',
     },
     {
-      header: 'Status',
-      accessor: 'status',
-      minWidth: '160px',
-      render: (row) => {
+      header: 'Synced',
+      accessor: (row) => {
+        if (!row || !row.conditions) return '-';
         const syncedStatus = getSyncedStatus(row.conditions);
-        const readyStatus = getReadyStatus(row.conditions);
-        const responsiveStatus = getResponsiveStatus(row.conditions);
-        const statusText = getStatusText(row.conditions);
-        
-        const statusBadges = [syncedStatus, readyStatus, responsiveStatus].filter(Boolean);
-        
-        if (statusBadges.length > 0) {
-          return (
-            <HStack spacing={2}>
-              {statusBadges.map((status, idx) => (
-                <Box
-                  key={idx}
-                  as="span"
-                  display="inline-block"
-                  px={2}
-                  py={1}
-                  borderRadius="md"
-                  fontSize="xs"
-                  fontWeight="semibold"
-                  bg={`${status.color}.100`}
-                  _dark={{ bg: `${status.color}.800`, color: `${status.color}.100` }}
-                  color={`${status.color}.800`}
-                >
-                  {status.text}
-                </Box>
-              ))}
-            </HStack>
-          );
-        }
-        
-        const statusColor = getStatusColor(row.conditions);
-        return (
-          <Box
-            as="span"
-            display="inline-block"
-            px={2}
-            py={1}
-            borderRadius="md"
-            fontSize="xs"
-            fontWeight="semibold"
-            bg={`${statusColor}.100`}
-            _dark={{ bg: `${statusColor}.800`, color: `${statusColor}.100` }}
-            color={`${statusColor}.800`}
-          >
-            {statusText}
-          </Box>
-        );
+        return syncedStatus?.text || '-';
       },
+      minWidth: '120px',
+      render: (row) => renderStatusBadge(row?.conditions ? getSyncedStatus(row.conditions) : null),
+      statusType: 'synced',
+    },
+    {
+      header: 'Ready',
+      accessor: (row) => {
+        if (!row || !row.conditions) return '-';
+        const readyStatus = getReadyStatus(row.conditions);
+        return readyStatus?.text || '-';
+      },
+      minWidth: '120px',
+      render: (row) => renderStatusBadge(row?.conditions ? getReadyStatus(row.conditions) : null),
+      statusType: 'ready',
+    },
+    {
+      header: 'Responsive',
+      accessor: (row) => {
+        if (!row || !row.conditions) return '-';
+        const responsiveStatus = getResponsiveStatus(row.conditions);
+        return responsiveStatus?.text || '-';
+      },
+      minWidth: '120px',
+      render: (row) => renderStatusBadge(row?.conditions ? getResponsiveStatus(row.conditions) : null),
+      statusType: 'responsive',
     },
     {
       header: 'Composition',
@@ -292,6 +299,8 @@ export const CompositeResources = () => {
       render: (row) => row.creationTimestamp ? new Date(row.creationTimestamp).toLocaleString() : '-',
     },
   ];
+
+  const columns = allColumns;
 
   const handleRowClick = (item) => {
     const clickedResource = {
@@ -386,16 +395,39 @@ export const CompositeResources = () => {
                     ]}
                   />
                   <Dropdown
-                    minW="150px"
-                    placeholder="All Statuses"
-                    value={statusFilter}
-                    onChange={setStatusFilter}
+                    minW="140px"
+                    placeholder="All Synced"
+                    value={syncedFilter}
+                    onChange={setSyncedFilter}
                     options={[
-                      { value: 'all', label: 'All Statuses' },
-                      { value: 'Ready', label: 'Ready' },
-                      { value: 'Not Ready', label: 'Not Ready' },
-                      { value: 'Pending', label: 'Pending' },
-                      { value: 'Unknown', label: 'Unknown' }
+                      { value: 'all', label: 'All Synced' },
+                      { value: 'synced', label: 'Synced' },
+                      { value: 'not-synced', label: 'Not Synced' },
+                      { value: 'none', label: 'No Synced Status' }
+                    ]}
+                  />
+                  <Dropdown
+                    minW="140px"
+                    placeholder="All Ready"
+                    value={readyFilter}
+                    onChange={setReadyFilter}
+                    options={[
+                      { value: 'all', label: 'All Ready' },
+                      { value: 'ready', label: 'Ready' },
+                      { value: 'not-ready', label: 'Not Ready' },
+                      { value: 'none', label: 'No Ready Status' }
+                    ]}
+                  />
+                  <Dropdown
+                    minW="140px"
+                    placeholder="All Responsive"
+                    value={responsiveFilter}
+                    onChange={setResponsiveFilter}
+                    options={[
+                      { value: 'all', label: 'All Responsive' },
+                      { value: 'responsive', label: 'Responsive' },
+                      { value: 'not-responsive', label: 'Not Responsive' },
+                      { value: 'none', label: 'No Responsive Status' }
                     ]}
                   />
                   <Dropdown

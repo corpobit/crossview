@@ -7,6 +7,7 @@ import { lazy, Suspense, useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../providers/AppProvider.jsx';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
+import { getBackgroundColor, getTextColor, getBorderColor, getStatusColor, getAccentColor } from '../utils/theme.js';
 
 const ProvidersStatusWidget = lazy(() => import('../components/widgets/ProvidersStatusWidget.jsx').then(module => ({ default: module.ProvidersStatusWidget })));
 const FunctionsCountWidget = lazy(() => import('../components/widgets/FunctionsCountWidget.jsx').then(module => ({ default: module.FunctionsCountWidget })));
@@ -21,30 +22,33 @@ const RecentActivityWidget = lazy(() => import('../components/widgets/RecentActi
 
 // Loading fallback component for each widget
 // eslint-disable-next-line react/prop-types
-const WidgetSuspense = ({ children }) => (
-  <Suspense fallback={
-    <Box 
-      p={6} 
-      bg="white" 
-      _dark={{ bg: 'gray.800', borderColor: 'gray.700' }} 
-      border="1px solid" 
-      borderColor="gray.200"
-      borderRadius="md" 
-      display="flex" 
-      justifyContent="center" 
-      alignItems="center" 
-      minH="150px"
-    >
-      <Text fontSize="sm" color="gray.500">Loading...</Text>
-    </Box>
-  }>
-    {children}
-  </Suspense>
-);
+const WidgetSuspense = ({ children }) => {
+  const { colorMode } = useAppContext();
+  return (
+    <Suspense fallback={
+      <Box 
+        p={6} 
+        bg={getBackgroundColor(colorMode, 'header')} 
+        _dark={{ bg: getBackgroundColor('dark', 'header'), borderColor: getBorderColor('dark', 'gray') }} 
+        border="1px solid" 
+        borderColor={getBorderColor(colorMode, 'gray')}
+        borderRadius="md" 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        minH="150px"
+      >
+        <Text fontSize="sm" color={getTextColor(colorMode, 'tertiary')}>Loading...</Text>
+      </Box>
+    }>
+      {children}
+    </Suspense>
+  );
+};
 
 export const Dashboard = () => {
   const location = useLocation();
-  const { selectedContext } = useAppContext();
+  const { selectedContext, colorMode } = useAppContext();
   const [selectedResource, setSelectedResource] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
 
@@ -97,7 +101,7 @@ export const Dashboard = () => {
         <Text fontSize="2xl" fontWeight="bold" mb={6}>
           Dashboard
         </Text>
-        <Box p={6} bg="yellow.50" _dark={{ bg: 'yellow.900', color: 'yellow.100' }} borderRadius="md" color="yellow.800">
+        <Box p={6} bg={getAccentColor('yellow', 'light')} _dark={{ bg: getAccentColor('yellow', 'primary'), color: getTextColor('dark', 'inverse') }} borderRadius="md" color={getTextColor(colorMode, 'primary')}>
           <Text>Please select a Kubernetes context to view the dashboard.</Text>
         </Box>
       </Box>
@@ -107,10 +111,10 @@ export const Dashboard = () => {
   return (
     <Box position="relative" pb={8}>
       <Box mb={4}>
-        <Text fontSize="3xl" fontWeight="semibold" color="gray.900" _dark={{ color: 'gray.100' }} mb={2}>
+        <Text fontSize="3xl" fontWeight="semibold" color={getTextColor(colorMode, 'primary')} _dark={{ color: getTextColor('dark', 'primary') }} mb={2}>
           Dashboard
         </Text>
-        <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
+        <Text fontSize="sm" color={getTextColor(colorMode, 'secondary')} _dark={{ color: getTextColor('dark', 'tertiary') }}>
           Overview of your Crossplane resources and cluster status
         </Text>
       </Box>
