@@ -12,15 +12,19 @@ export const colors = {
       secondary: '#f8f9fa',
       tertiary: '#f1f3f4',
       dropdown: '#F7FAFC',
+      sidebar: '#FAFBFC',
+      header: '#FFFFFF',
     },
     dark: {
       html: '#18181B',
       primary: '#131315',
-      secondary: '#242424',
+      secondary: '#1A1A1D',
       tertiary: '#2d2d2d',
       quaternary: '#353535',
       quinary: '#000000',
       dropdown: '#27272A',
+      sidebar: '#1A1A1D',
+      header: '#1F1F23',
     },
   },
 
@@ -221,3 +225,45 @@ export const getTextColor = (colorMode, variant = 'primary') => {
   return getColor(colorMode, 'text', variant);
 };
 
+/**
+ * Helper function to get sidebar color
+ * @param {string} colorMode - 'light' or 'dark'
+ * @param {string} variant - 'activeBg', 'activeText', 'inactiveText', 'hoverBg'
+ * @returns {string} Sidebar color value
+ */
+export const getSidebarColor = (colorMode, variant) => {
+  return getColor(colorMode, 'sidebar', variant);
+};
+
+/**
+ * Helper function to get interactive color
+ * @param {string} colorMode - 'light' or 'dark'
+ * @param {string} variant - 'active', 'inactive', 'hover.background', 'hover.border'
+ * @returns {string} Interactive color value
+ */
+export const getInteractiveColor = (colorMode, variant) => {
+  if (variant.includes('.')) {
+    const [category, subVariant] = variant.split('.');
+    return colors.interactive[colorMode === 'dark' ? 'dark' : 'light']?.[category]?.[subVariant];
+  }
+  return getColor(colorMode, 'interactive', variant);
+};
+
+/**
+ * Helper function to get accent color
+ * @param {string} colorName - 'cyan', 'coral', 'yellow', 'blue', 'red', 'purple'
+ * @param {string} variant - 'primary', 'light', 'medium', 'dark', 'darker'
+ * @returns {string} Accent color value
+ */
+export const getAccentColor = (colorName, variant = 'primary') => {
+  return colors.accent[colorName]?.[variant] || colors.accent[colorName]?.primary;
+};
+
+/**
+ * Helper function to get status color
+ * @param {string} statusName - 'green', 'red', 'yellow', 'gray', 'cyan', 'coral'
+ * @returns {string} Status color value
+ */
+export const getStatusColor = (statusName) => {
+  return colors.status[statusName] || colors.status.gray;
+};

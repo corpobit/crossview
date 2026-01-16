@@ -8,7 +8,7 @@ import {
 import { FiAlertCircle, FiPlus } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../providers/AppProvider.jsx';
-import { getBorderColor, getBackgroundColor } from '../../utils/theme.js';
+import { getBorderColor, getBackgroundColor, getTextColor, getAccentColor, getStatusColor } from '../../utils/theme.js';
 
 export const ContextSidebar = () => {
   const { contexts, selectedContext, setSelectedContext, contextErrors, colorMode, isInClusterMode } = useAppContext();
@@ -56,19 +56,19 @@ export const ContextSidebar = () => {
               display="flex"
               alignItems="center"
               justifyContent="center"
-              bg="gray.100"
-              _dark={{ bg: 'gray.700', borderColor: 'gray.600' }}
+              bg={getBackgroundColor(colorMode, 'secondary')}
+              _dark={{ bg: getBackgroundColor('dark', 'tertiary'), borderColor: getBorderColor('dark', 'gray') }}
               border="2px dashed"
-              borderColor="gray.300"
+              borderColor={getBorderColor(colorMode, 'gray')}
               cursor="pointer"
               _hover={{
-                bg: 'gray.200',
-                borderColor: 'blue.400',
-                _dark: { bg: 'gray.600', borderColor: 'blue.500' }
+                bg: getBackgroundColor(colorMode, 'tertiary'),
+                borderColor: getAccentColor('blue', 'light'),
+                _dark: { bg: getBackgroundColor('dark', 'tertiary'), borderColor: getAccentColor('blue', 'primary') }
               }}
               transition="all 0.2s"
             >
-              <Icon as={FiPlus} boxSize={5} color="gray.500" _dark={{ color: 'gray.400' }} />
+              <Icon as={FiPlus} boxSize={5} color={getTextColor(colorMode, 'tertiary')} _dark={{ color: getTextColor('dark', 'tertiary') }} />
             </Box>
           </VStack>
         ) : (
@@ -88,12 +88,12 @@ export const ContextSidebar = () => {
                   display="flex"
                   alignItems="center"
                   justifyContent="center"
-                  bg={isSelected ? 'blue.500' : 'gray.200'}
-                  _dark={{ bg: isSelected ? 'blue.600' : 'gray.700', color: isSelected ? 'white' : 'gray.300' }}
-                  color={isSelected ? 'white' : 'gray.700'}
+                  bg={isSelected ? getAccentColor('blue', 'primary') : getBackgroundColor(colorMode, 'tertiary')}
+                  _dark={{ bg: isSelected ? getAccentColor('blue', 'medium') : getBackgroundColor('dark', 'tertiary'), color: isSelected ? getTextColor('dark', 'inverse') : getTextColor('dark', 'primary') }}
+                  color={isSelected ? getTextColor(colorMode, 'inverse') : getTextColor(colorMode, 'primary')}
                   _hover={{
-                    bg: isSelected ? 'blue.600' : 'gray.300',
-                    _dark: { bg: isSelected ? 'blue.700' : 'gray.600' }
+                    bg: isSelected ? getAccentColor('blue', 'medium') : getBackgroundColor(colorMode, 'tertiary'),
+                    _dark: { bg: isSelected ? getAccentColor('blue', 'dark') : getBackgroundColor('dark', 'tertiary') }
                   }}
                   position="relative"
                   transition="all 0.2s"
@@ -111,12 +111,12 @@ export const ContextSidebar = () => {
                       w="12px"
                       h="12px"
                       borderRadius="full"
-                      bg="red.500"
+                      bg={getStatusColor('red')}
                       display="flex"
                       alignItems="center"
                       justifyContent="center"
                     >
-                      <Icon as={FiAlertCircle} boxSize={6} color="white" />
+                      <Icon as={FiAlertCircle} boxSize={6} color={getTextColor(colorMode, 'inverse')} />
                     </Box>
                   )}
                 </Box>
@@ -133,13 +133,13 @@ export const ContextSidebar = () => {
               justifyContent="center"
               bg="transparent"
               border="2px dashed"
-              borderColor="gray.300"
-              color="gray.500"
-              _dark={{ borderColor: 'gray.600', color: 'gray.400' }}
+              borderColor={getBorderColor(colorMode, 'gray')}
+              color={getTextColor(colorMode, 'tertiary')}
+              _dark={{ borderColor: getBorderColor('dark', 'gray'), color: getTextColor('dark', 'tertiary') }}
               _hover={{
-                borderColor: 'blue.400',
-                color: 'blue.500',
-                _dark: { borderColor: 'blue.500', color: 'blue.400' }
+                borderColor: getAccentColor('blue', 'light'),
+                color: getAccentColor('blue', 'primary'),
+                _dark: { borderColor: getAccentColor('blue', 'primary'), color: getAccentColor('blue', 'light') }
               }}
               transition="all 0.2s"
               h="44px"
