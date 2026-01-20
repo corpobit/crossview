@@ -523,15 +523,77 @@
     },
     "secrets": {
       "type": "object",
-      "description": "Secret values (should be set via --set or secrets file)",
+      "description": "Secret values (should be set via --set or secrets file). Can be string (creates secret) or object with secretKeyRef/configMapKeyRef (references existing secret/configmap)",
       "properties": {
         "dbPassword": {
-          "type": "string",
-          "description": "Database password"
+          "description": "Database password - string value or object with secretKeyRef/configMapKeyRef",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "secretKeyRef": {
+                  "type": "object",
+                  "properties": {
+                    "name": {"type": "string"},
+                    "key": {"type": "string"}
+                  },
+                  "required": ["name", "key"]
+                },
+                "configMapKeyRef": {
+                  "type": "object",
+                  "properties": {
+                    "name": {"type": "string"},
+                    "key": {"type": "string"}
+                  },
+                  "required": ["name", "key"]
+                }
+              }
+            }
+          ]
         },
         "sessionSecret": {
+          "description": "Session secret for authentication - string value or object with secretKeyRef/configMapKeyRef",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "secretKeyRef": {
+                  "type": "object",
+                  "properties": {
+                    "name": {"type": "string"},
+                    "key": {"type": "string"}
+                  },
+                  "required": ["name", "key"]
+                },
+                "configMapKeyRef": {
+                  "type": "object",
+                  "properties": {
+                    "name": {"type": "string"},
+                    "key": {"type": "string"}
+                  },
+                  "required": ["name", "key"]
+                }
+              }
+            }
+          ]
+        },
+        "existingSecret": {
           "type": "string",
-          "description": "Session secret for authentication"
+          "description": "DEPRECATED: Reference existing secret name (if set, secret creation is skipped)"
+        },
+        "existingSecretKeys": {
+          "type": "object",
+          "description": "DEPRECATED: Keys in existing secret",
+          "properties": {
+            "dbPassword": {"type": "string"},
+            "sessionSecret": {"type": "string"}
+          }
         }
       }
     },
