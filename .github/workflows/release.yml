@@ -177,7 +177,8 @@ jobs:
       - name: Update Helm Chart.yaml
         run: |
           sed -i "s/^version:.*/version: ${{ steps.version.outputs.version }}/" helm/crossview/Chart.yaml
-          sed -i "s/^appVersion:.*/appVersion: \"${{ steps.version.outputs.version }}\"/" helm/crossview/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"${{ steps.version.outputs.tag }}\"/" helm/crossview/Chart.yaml
+          sed -i "s|ghcr.io/corpobit/crossview:[0-9]\+\.[0-9]\+\.[0-9]\+|ghcr.io/corpobit/crossview:${{ steps.version.outputs.tag }}|" helm/crossview/Chart.yaml
           echo "Updated Chart.yaml:"
           cat helm/crossview/Chart.yaml
 
@@ -197,11 +198,21 @@ jobs:
           sed -i "s/v1\.[0-9]\+\.[0-9]\+/v${{ steps.version.outputs.version }}/g" helm/crossview/README.md || true
           echo "Updated helm/crossview/README.md"
 
-      - name: Update version files (no commit)
+      - name: Commit version updates
         run: |
-          echo "Version files updated locally for release ${{ steps.version.outputs.version }}"
-          echo "Note: Version files are not committed back to main due to branch protection"
-          echo "The release will proceed with the calculated version: ${{ steps.version.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json helm/crossview/Chart.yaml
+          if git diff --staged --quiet; then
+            echo "No version changes to commit"
+          else
+            git commit -m "Bump version to ${{ steps.version.outputs.version }}"
+            git push origin HEAD:${{ github.ref_name }} || {
+              echo "Failed to push version update. This may be due to branch protection."
+              echo "The release will proceed, but Chart.yaml in the repo may be out of sync."
+              echo "Consider manually updating Chart.yaml or adjusting branch protection rules."
+            }
+          fi
 
   build-docker-images:
     needs: [check-version-bump, build-and-release]
@@ -303,11 +314,7 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/crossview:${{ steps.version.outputs.tag }}-linux-amd64 \
             ghcr.io/${{ github.repository_owner }}/crossview:${{ steps.version.outputs.tag }}-linux-arm64
           
-          docker buildx imagetools create --tag ghcr.io/${{ github.repository_owner }}/crossview:latest \
-            ghcr.io/${{ github.repository_owner }}/crossview:${{ steps.version.outputs.tag }}-linux-amd64 \
-            ghcr.io/${{ github.repository_owner }}/crossview:${{ steps.version.outputs.tag }}-linux-arm64
-          
-          echo "Multi-arch manifest created for GHCR: ${{ steps.version.outputs.tag }} and latest"
+          echo "Multi-arch manifest created for GHCR: ${{ steps.version.outputs.tag }}"
 
       - name: Create and push multi-arch manifest to Docker Hub
         run: |
@@ -315,11 +322,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}-linux-amd64 \
             ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}-linux-arm64
           
-          docker buildx imagetools create --tag ${{ secrets.DOCKERHUB_USERNAME }}/crossview:latest \
-            ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}-linux-amd64 \
-            ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}-linux-arm64
-          
-          echo "Multi-arch manifest created for Docker Hub: ${{ steps.version.outputs.tag }} and latest"
+          echo "Multi-arch manifest created for Docker Hub: ${{ steps.version.outputs.tag }}"
 
   create-release:
     needs: [check-version-bump, build-and-release, create-multi-arch-manifest]
@@ -393,9 +396,11 @@ jobs:
       - name: Update Helm Chart.yaml with version
         run: |
           CHART_VERSION="${{ steps.version.outputs.version }}"
+          CHART_TAG="${{ steps.version.outputs.tag }}"
           sed -i "s/^version:.*/version: $CHART_VERSION/" helm/crossview/Chart.yaml
-          sed -i "s/^appVersion:.*/appVersion: \"$CHART_VERSION\"/" helm/crossview/Chart.yaml
-          echo "Updated Chart.yaml to version $CHART_VERSION:"
+          sed -i "s/^appVersion:.*/appVersion: \"$CHART_TAG\"/" helm/crossview/Chart.yaml
+          sed -i "s|ghcr.io/corpobit/crossview:v[0-9]\+\.[0-9]\+\.[0-9]\+|ghcr.io/corpobit/crossview:$CHART_TAG|" helm/crossview/Chart.yaml
+          echo "Updated Chart.yaml to version $CHART_VERSION (appVersion: $CHART_TAG):"
           cat helm/crossview/Chart.yaml
 
       - name: Package Helm chart
