@@ -74,3 +74,31 @@ Get ConfigMap name - uses existing ConfigMap if specified, otherwise generates o
 {{- end }}
 {{- end }}
 
+{{/*
+Generate valueFrom for a secret/configmap reference
+Accepts: secret value (string or object), secret name (for created secrets), secret key (for created secrets)
+Returns: valueFrom structure or empty
+*/}}
+{{- define "crossview.secretValueFrom" -}}
+{{- $secret := .secret }}
+{{- $secretName := .secretName }}
+{{- $secretKey := .secretKey }}
+{{- if kindIs "map" $secret }}
+  {{- if hasKey $secret "secretKeyRef" }}
+valueFrom:
+  secretKeyRef:
+    name: {{ $secret.secretKeyRef.name }}
+    key: {{ $secret.secretKeyRef.key }}
+  {{- else if hasKey $secret "configMapKeyRef" }}
+valueFrom:
+  configMapKeyRef:
+    name: {{ $secret.configMapKeyRef.name }}
+    key: {{ $secret.configMapKeyRef.key }}
+  {{- end }}
+{{- else if $secret }}
+valueFrom:
+  secretKeyRef:
+    name: {{ $secretName }}
+    key: {{ $secretKey }}
+{{- end }}
+{{- end }}
