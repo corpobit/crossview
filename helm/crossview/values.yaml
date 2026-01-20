@@ -10,8 +10,8 @@ global:
 image:
   repository: ghcr.io/corpobit/crossview
   pullPolicy: Always
-  # Overrides the image tag. Default is "latest" to always use the latest released image.
-  # To pin to a specific version, set this to the version tag (e.g., "v2.1.0")
+  # Overrides the image tag. If empty, uses Chart.AppVersion (e.g., "1.5.0").
+  # To pin to a specific version, set this to the version tag (e.g., "1.5.0" or "v1.5.0")
   # Alternative: Use Docker Hub by setting repository to "corpobit/crossview"
   tag: ""
   # Platform override for multi-arch support (e.g., "linux/amd64" for ARM64 hosts)
