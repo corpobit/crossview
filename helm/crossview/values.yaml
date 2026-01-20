@@ -205,13 +205,17 @@ config:
           changeOrigin: true
 
 # Secrets (should be set via --set or secrets file)
+# Each secret can be:
+#   - A string: Direct value (creates a secret)
+#   - An object with secretKeyRef: Reference to existing secret
+#   - An object with configMapKeyRef: Reference to existing configmap
 secrets:
-  dbPassword: ""  # Set via --set secrets.dbPassword=your-password
-  sessionSecret: ""  # Set via --set secrets.sessionSecret=your-secret
-  existingSecret: ""  # Reference existing secret name (if set, secret creation is skipped)
+  dbPassword: ""  # String value OR object: {secretKeyRef: {name: "my-secret", key: "password"}} OR {configMapKeyRef: {name: "my-config", key: "password"}}
+  sessionSecret: ""  # String value OR object: {secretKeyRef: {name: "my-secret", key: "session"}} OR {configMapKeyRef: {name: "my-config", key: "session"}}
+  existingSecret: ""  # DEPRECATED: Use dbPassword/sessionSecret as objects instead
   existingSecretKeys:
-    dbPassword: "db-password"  # Key in existing secret for DB password
-    sessionSecret: "session-secret"  # Key in existing secret for session secret
+    dbPassword: "db-password"  # DEPRECATED: Use dbPassword as object instead
+    sessionSecret: "session-secret"  # DEPRECATED: Use sessionSecret as object instead
 
 # Service Account
 serviceAccount:
