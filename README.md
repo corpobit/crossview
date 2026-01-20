@@ -12,9 +12,9 @@
 
 ![Crossview Dashboard](public/images/dashboard.png)
 
-<video src="public/images/demo-video.mov" controls width="100%">
-  Your browser does not support the video tag.
-</video>
+### Demo Video
+
+📹 [Watch Demo Video](https://github.com/corpobit/crossview/raw/main/public/images/demo-video.mov)
 
 ## Features
 
