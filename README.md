@@ -12,6 +12,10 @@
 
 ![Crossview Dashboard](public/images/dashboard.png)
 
+<video src="public/images/demo-video.mov" controls width="100%">
+  Your browser does not support the video tag.
+</video>
+
 ## Features
 
 - **Real-Time Resource Watching**: Monitor any Kubernetes resource in real-time with event-driven updates using Kubernetes Informers
