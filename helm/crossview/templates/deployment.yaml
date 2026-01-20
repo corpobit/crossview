@@ -70,18 +70,17 @@ spec:
                 configMapKeyRef:
                   name: {{ include "crossview.configMapName" . }}
                   key: DB_USER
-            {{- if .Values.secrets.existingSecret }}
+            {{- $dbPasswordValueFrom := include "crossview.secretValueFrom" (dict "secret" .Values.secrets.dbPassword "secretName" (printf "%s-secrets" (include "crossview.fullname" .)) "secretKey" "db-password") }}
+            {{- if or .Values.secrets.existingSecret (and .Values.secrets.dbPassword (ne $dbPasswordValueFrom "")) }}
             - name: DB_PASS
+              {{- if .Values.secrets.existingSecret }}
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.secrets.existingSecret }}
                   key: {{ .Values.secrets.existingSecretKeys.dbPassword }}
-            {{- else if .Values.secrets.dbPassword }}
-            - name: DB_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "crossview.fullname" . }}-secrets
-                  key: db-password
+              {{- else if (ne $dbPasswordValueFrom "") }}
+              {{- $dbPasswordValueFrom | nindent 14 }}
+              {{- end }}
             {{- end }}
       {{- end }}
       containers:
@@ -251,28 +250,29 @@ spec:
                 configMapKeyRef:
                   name: {{ include "crossview.configMapName" . }}
                   key: SAML_LASTNAME_ATTRIBUTE
-            {{- if .Values.secrets.existingSecret }}
+            {{- $dbPasswordValueFrom := include "crossview.secretValueFrom" (dict "secret" .Values.secrets.dbPassword "secretName" (printf "%s-secrets" (include "crossview.fullname" .)) "secretKey" "db-password") }}
+            {{- $sessionSecretValueFrom := include "crossview.secretValueFrom" (dict "secret" .Values.secrets.sessionSecret "secretName" (printf "%s-secrets" (include "crossview.fullname" .)) "secretKey" "session-secret") }}
+            {{- if or .Values.secrets.existingSecret (and .Values.secrets.dbPassword (ne $dbPasswordValueFrom "")) }}
             - name: DB_PASS
+              {{- if .Values.secrets.existingSecret }}
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.secrets.existingSecret }}
                   key: {{ .Values.secrets.existingSecretKeys.dbPassword }}
+              {{- else if (ne $dbPasswordValueFrom "") }}
+              {{- $dbPasswordValueFrom | nindent 14 }}
+              {{- end }}
+            {{- end }}
+            {{- if or .Values.secrets.existingSecret (and .Values.secrets.sessionSecret (ne $sessionSecretValueFrom "")) }}
             - name: SESSION_SECRET
+              {{- if .Values.secrets.existingSecret }}
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.secrets.existingSecret }}
                   key: {{ .Values.secrets.existingSecretKeys.sessionSecret }}
-            {{- else if and .Values.secrets.dbPassword .Values.secrets.sessionSecret }}
-            - name: DB_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "crossview.fullname" . }}-secrets
-                  key: db-password
-            - name: SESSION_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "crossview.fullname" . }}-secrets
-                  key: session-secret
+              {{- else if (ne $sessionSecretValueFrom "") }}
+              {{- $sessionSecretValueFrom | nindent 14 }}
+              {{- end }}
             {{- end }}
             {{- with .Values.app.extraEnv }}
             {{- toYaml . | nindent 12 }}
