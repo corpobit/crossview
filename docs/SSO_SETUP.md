@@ -125,9 +125,30 @@ If you want to use Keycloak, see `keycloak/README.md` for Keycloak-specific setu
 
 When a user logs in via SSO for the first time:
 - A user account is **automatically created** in Crossview
-- The **first SSO user becomes an admin**
-- Subsequent SSO users are created as regular users
+- The **first SSO user becomes an admin** (if no users exist)
+- **Users with email addresses in the `SSO_INITIAL_ADMIN_USER_EMAILS` list** are created as admin users
+- **Other SSO users** are created as regular users
 - User attributes (email, name) are synced from the SSO provider
+
+### Admin User Configuration
+
+You can explicitly specify a list of email addresses that should automatically receive the **admin role** when logging in via SSO. This is useful for:
+1. Ensuring specific users always have admin access.
+2. Promoting existing users to admin.
+
+Add the following environment variable to your `docker-compose.yml` or `.env` file:
+
+```yaml
+SSO_INITIAL_ADMIN_USER_EMAILS=admin@example.com,internal-audit@example.com
+```
+
+Or in `config/config.yaml`:
+
+```yaml
+sso:
+  enabled: true
+  initialAdminUserEmails: admin@example.com,internal-audit@example.com
+```
 
 ## Troubleshooting
 

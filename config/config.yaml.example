@@ -28,6 +28,7 @@ server:
 # SSO Configuration (optional)
 sso:
   enabled: false
+  initAdminUserEmails: user1@example.com,user2@example.com
   # OpenID Connect (OIDC) Configuration
   oidc:
     enabled: false

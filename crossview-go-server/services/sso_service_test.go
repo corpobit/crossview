@@ -10,6 +10,7 @@ import (
 
 	"crossview-go-server/lib"
 	"crossview-go-server/models"
+
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -85,8 +86,8 @@ func TestSSOService_InitiateOIDC_WithIssuer(t *testing.T) {
 		if r.URL.Path == "/.well-known/openid-configuration" {
 			discovery := map[string]string{
 				"authorization_endpoint": authEndpoint,
-				"token_endpoint":          "http://test-auth.example.com/token",
-				"userinfo_endpoint":       "http://test-auth.example.com/userinfo",
+				"token_endpoint":         "http://test-auth.example.com/token",
+				"userinfo_endpoint":      "http://test-auth.example.com/userinfo",
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(discovery)
@@ -208,33 +209,33 @@ func TestSSOService_HandleOIDCCallback_NotEnabled(t *testing.T) {
 func TestSSOService_HandleOIDCCallback_Success(t *testing.T) {
 	tokenServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		
+
 		if r.Method != "POST" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			json.NewEncoder(w).Encode(map[string]string{"error": "method_not_allowed"})
 			return
 		}
-		
+
 		if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
 			r.ParseMultipartForm(10 << 20)
 		} else {
 			r.ParseForm()
 		}
-		
+
 		grantType := r.FormValue("grant_type")
 		if grantType != "authorization_code" {
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(map[string]string{"error": "invalid_grant"})
 			return
 		}
-		
+
 		code := r.FormValue("code")
 		if code == "" {
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(map[string]string{"error": "invalid_request", "error_description": "code is required"})
 			return
 		}
-		
+
 		tokenResponse := map[string]string{
 			"access_token": "test-access-token",
 		}
@@ -292,6 +293,64 @@ func TestSSOService_HandleOIDCCallback_Success(t *testing.T) {
 
 	if user.Email != "test@example.com" {
 		t.Errorf("Expected email 'test@example.com', got '%s'", user.Email)
+	}
+}
+
+func TestSSOService_HandleOIDCCallback_AdminUser(t *testing.T) {
+	tokenServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tokenResponse := map[string]string{
+			"access_token": "test-admin-access-token",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(tokenResponse)
+	}))
+	defer tokenServer.Close()
+
+	userInfoServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userInfo := map[string]interface{}{
+			"sub":                "admin-123",
+			"preferred_username": "adminuser",
+			"email":              "admin@example.com",
+			"given_name":         "Admin",
+			"family_name":        "User",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(userInfo)
+	}))
+	defer userInfoServer.Close()
+
+	db := setupTestDB(t)
+	logger := setupTestLogger()
+	env := setupTestEnv()
+
+	service := SSOService{
+		logger: logger,
+		env:    env,
+		ssoConfig: lib.SSOConfig{
+			Enabled:                true,
+			InitialAdminUserEmails: []string{"admin@example.com"},
+			OIDC: lib.OIDCConfig{
+				Enabled:     true,
+				ClientId:    "test-client",
+				CallbackURL: "http://localhost:3001/api/auth/oidc/callback",
+				TokenURL:    tokenServer.URL,
+				UserInfoURL: userInfoServer.URL,
+			},
+		},
+		userRepo: models.NewUserRepository(db),
+	}
+
+	user, err := service.HandleOIDCCallback(context.Background(), "test-code", "test-state", "")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	if user == nil {
+		t.Fatal("Expected user to be created")
+	}
+
+	if user.Role != "admin" {
+		t.Errorf("Expected role 'admin', got '%s'", user.Role)
 	}
 }
 
@@ -473,7 +532,7 @@ func TestSSOService_InitiateSAML_NoEntryPoint(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error when entry point is not configured")
 	}
-	
+
 	if err.Error() != "SAML entry point not configured" {
 		t.Errorf("Expected error message 'SAML entry point not configured', got '%s'", err.Error())
 	}
@@ -502,7 +561,6 @@ func TestSSOService_HandleSAMLCallback_NotEnabled(t *testing.T) {
 	}
 }
 
-
 func TestSSOService_HandleSAMLCallback_NotImplemented(t *testing.T) {
 	db := setupTestDB(t)
 	logger := setupTestLogger()
@@ -522,4 +580,3 @@ func TestSSOService_HandleSAMLCallback_NotImplemented(t *testing.T) {
 		t.Error("Expected error for not implemented SAML callback")
 	}
 }
-
