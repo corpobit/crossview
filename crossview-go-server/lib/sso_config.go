@@ -3,14 +3,16 @@ package lib
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/viper"
 )
 
 type SSOConfig struct {
-	Enabled bool
-	OIDC    OIDCConfig
-	SAML    SAMLConfig
+	Enabled                bool
+	InitialAdminUserEmails []string
+	OIDC                   OIDCConfig
+	SAML                   SAMLConfig
 }
 
 type OIDCConfig struct {
@@ -50,13 +52,30 @@ func GetSSOConfig(env Env) SSOConfig {
 			ssoEnabled = "false"
 		}
 	}
-	
+
 	enabled := ssoEnabled == "true"
-	
+	initialAdminUserEmailString := getEnvOrDefault("SSO_INITIAL_ADMIN_USER_EMAILS", "")
+	if initialAdminUserEmailString == "" {
+		if viper.IsSet("sso.initAdminUserEmails") {
+			initialAdminUserEmailString = fmt.Sprintf("%v", viper.Get("sso.initAdminUserEmails"))
+		} else {
+			initialAdminUserEmailString = ""
+		}
+	}
+
+	initialAdminUserEmails := []string{}
+	for _, email := range strings.Split(initialAdminUserEmailString, ",") {
+		trimmed := strings.TrimSpace(email)
+		if trimmed != "" {
+			initialAdminUserEmails = append(initialAdminUserEmails, trimmed)
+		}
+	}
+
 	return SSOConfig{
-		Enabled: enabled,
-		OIDC:    getOIDCConfig(env),
-		SAML:    getSAMLConfig(env),
+		Enabled:                enabled,
+		InitialAdminUserEmails: initialAdminUserEmails,
+		OIDC:                   getOIDCConfig(env),
+		SAML:                   getSAMLConfig(env),
 	}
 }
 
@@ -69,7 +88,7 @@ func getOIDCConfig(env Env) OIDCConfig {
 			oidcEnabled = "false"
 		}
 	}
-	
+
 	return OIDCConfig{
 		Enabled:            oidcEnabled == "true",
 		Issuer:             getEnvOrDefault("OIDC_ISSUER", getConfigValue("sso.oidc.issuer", "", "http://localhost:8080/realms/crossview")),
@@ -96,7 +115,7 @@ func getSAMLConfig(env Env) SAMLConfig {
 			samlEnabled = "false"
 		}
 	}
-	
+
 	cert := getEnvOrDefault("SAML_CERT", getConfigValue("sso.saml.cert", "", ""))
 	if cert != "" {
 		if _, err := os.Stat(cert); err == nil {
@@ -105,7 +124,7 @@ func getSAMLConfig(env Env) SAMLConfig {
 			}
 		}
 	}
-	
+
 	return SAMLConfig{
 		Enabled:            samlEnabled == "true",
 		EntryPoint:         getEnvOrDefault("SAML_ENTRY_POINT", getConfigValue("sso.saml.entryPoint", "", "http://localhost:8080/realms/crossview/protocol/saml")),
@@ -118,4 +137,3 @@ func getSAMLConfig(env Env) SAMLConfig {
 		LastNameAttribute:  getEnvOrDefault("SAML_LASTNAME_ATTRIBUTE", getConfigValue("sso.saml.lastNameAttribute", "", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname")),
 	}
 }
-
