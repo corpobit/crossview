@@ -132,9 +132,7 @@ When a user logs in via SSO for the first time:
 
 ### Admin User Configuration
 
-You can explicitly specify a list of email addresses that should automatically receive the **admin role** when logging in via SSO. This is useful for:
-1. Ensuring specific users always have admin access.
-2. Promoting existing users to admin.
+You can explicitly specify a list of email addresses that should automatically receive the **admin role** when logging in via SSO. This is useful for ensuring specific users always have admin access during sign up.
 
 Add the following environment variable to your `docker-compose.yml` or `.env` file:
 
