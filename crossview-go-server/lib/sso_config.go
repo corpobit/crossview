@@ -27,6 +27,7 @@ type OIDCConfig struct {
 	EmailAttribute     string
 	FirstNameAttribute string
 	LastNameAttribute  string
+	RoleAttributePath  string
 }
 
 type SAMLConfig struct {
@@ -50,9 +51,9 @@ func GetSSOConfig(env Env) SSOConfig {
 			ssoEnabled = "false"
 		}
 	}
-	
+
 	enabled := ssoEnabled == "true"
-	
+
 	return SSOConfig{
 		Enabled: enabled,
 		OIDC:    getOIDCConfig(env),
@@ -69,7 +70,7 @@ func getOIDCConfig(env Env) OIDCConfig {
 			oidcEnabled = "false"
 		}
 	}
-	
+
 	return OIDCConfig{
 		Enabled:            oidcEnabled == "true",
 		Issuer:             getEnvOrDefault("OIDC_ISSUER", getConfigValue("sso.oidc.issuer", "", "http://localhost:8080/realms/crossview")),
@@ -84,6 +85,7 @@ func getOIDCConfig(env Env) OIDCConfig {
 		EmailAttribute:     getEnvOrDefault("OIDC_EMAIL_ATTRIBUTE", getConfigValue("sso.oidc.emailAttribute", "", "email")),
 		FirstNameAttribute: getEnvOrDefault("OIDC_FIRSTNAME_ATTRIBUTE", getConfigValue("sso.oidc.firstNameAttribute", "", "given_name")),
 		LastNameAttribute:  getEnvOrDefault("OIDC_LASTNAME_ATTRIBUTE", getConfigValue("sso.oidc.lastNameAttribute", "", "family_name")),
+		RoleAttributePath:  getEnvOrDefault("OIDC_ROLE_ATTRIBUTE_PATH", getConfigValue("sso.oidc.roleAttributePath", "", "")),
 	}
 }
 
@@ -96,7 +98,7 @@ func getSAMLConfig(env Env) SAMLConfig {
 			samlEnabled = "false"
 		}
 	}
-	
+
 	cert := getEnvOrDefault("SAML_CERT", getConfigValue("sso.saml.cert", "", ""))
 	if cert != "" {
 		if _, err := os.Stat(cert); err == nil {
@@ -105,7 +107,7 @@ func getSAMLConfig(env Env) SAMLConfig {
 			}
 		}
 	}
-	
+
 	return SAMLConfig{
 		Enabled:            samlEnabled == "true",
 		EntryPoint:         getEnvOrDefault("SAML_ENTRY_POINT", getConfigValue("sso.saml.entryPoint", "", "http://localhost:8080/realms/crossview/protocol/saml")),
@@ -118,4 +120,3 @@ func getSAMLConfig(env Env) SAMLConfig {
 		LastNameAttribute:  getEnvOrDefault("SAML_LASTNAME_ATTRIBUTE", getConfigValue("sso.saml.lastNameAttribute", "", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname")),
 	}
 }
-
