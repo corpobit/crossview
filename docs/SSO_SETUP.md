@@ -36,16 +36,41 @@ sso:
     emailAttribute: email
     firstNameAttribute: given_name
     lastNameAttribute: family_name
+    
+    # Optional: Role Mapping (JMESPath)
+    # Allows mapping SSO provider roles/claims to Crossview roles ('admin' or 'user')
+    # Example 1: Check for a specific email
+    # roleAttributePath: email == 'admin@example.com' && 'admin' || 'user'
+    # Example 2: Check for a specific group/role claim
+    # roleAttributePath: contains(roles, 'admin-group') && 'admin' || 'user'
+    roleAttributePath: "" 
 ```
 
 ### OIDC Provider Setup
 
 1. **Create an OIDC client** in your provider
 2. **Set the redirect URI** to: `http://localhost:3001/api/auth/oidc/callback`
-3. **Copy the client ID and secret** to your config
+3. **Copy the client ID and default secret** to your config
 4. **Use the issuer URL** (usually ends with `/realms/...` or `/oauth2/...`)
 
 The implementation supports **OIDC Discovery** - if you provide the `issuer` URL, it will automatically discover the authorization, token, and userinfo endpoints.
+
+### Role Mapping
+
+You can map roles from your SSO provider to Crossview roles using **JMESPath** expressions in the `roleAttributePath` config.
+
+- This checks attributes from the UserInfo response.
+- If the expression returns `'admin'`, the user gets admin access.
+- Any other value (or if empty) defaults to `'user'`.
+- If NO role mapping is configured, the **first user created** becomes an admin.
+
+> [NOTE]
+> Role mapping is currently supported only for OIDC and is applied only during initial user creation. After a user is created, their role can be managed via the User Management page and will not be overwritten by subsequent logins.
+
+**Examples:**
+- `email == 'superuser@company.com' && 'admin' || 'user'`
+- `contains(['admin1@co.com', 'admin2@co.com'], email) && 'admin' || 'user'`
+- `contains(groups, 'CrossviewAdmin') && 'admin' || 'user'`
 
 ## SAML Configuration
 
@@ -118,6 +143,8 @@ oidc:
 ```
 
 ## Keycloak (Optional Example)
+    
+*Note: Keycloak has been removed from the default `docker-compose.yml` to streamline the setup. You can still run it separately if needed.*
 
 If you want to use Keycloak, see `keycloak/README.md` for Keycloak-specific setup instructions. The code itself is provider-agnostic.
 
@@ -125,7 +152,8 @@ If you want to use Keycloak, see `keycloak/README.md` for Keycloak-specific setu
 
 When a user logs in via SSO for the first time:
 - A user account is **automatically created** in Crossview
-- The **first SSO user becomes an admin**
+- If `roleAttributePath` matches 'admin', they become an admin
+- If no role mapping is used, the **first SSO user becomes an admin**
 - Subsequent SSO users are created as regular users
 - User attributes (email, name) are synced from the SSO provider
 
