@@ -114,8 +114,8 @@ The following table lists the configurable parameters and their default values:
 | `secrets.existingSecret` | Reference to existing Secret (if set, Secret creation is skipped) | `""` |
 | `resources.requests.memory` | Memory request | `256Mi` |
 | `resources.requests.cpu` | CPU request | `250m` |
-| `resources.limits.memory` | Memory limit | `512Mi` |
-| `resources.limits.cpu` | CPU limit | `500m` |
+| `resources.limits.memory` | Memory limit | `1Gi` |
+| `resources.limits.cpu` | CPU limit | `1000m` |
 
 ## Upgrading
 
