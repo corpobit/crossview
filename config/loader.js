@@ -20,7 +20,7 @@ export const loadConfig = (configPath = null) => {
   }
 
   let fileConfig = {};
-  
+
   try {
     const configFilePath = configPath || join(__dirname, 'config.yaml');
     if (existsSync(configFilePath)) {
@@ -59,6 +59,7 @@ export const loadConfig = (configPath = null) => {
     },
     sso: {
       enabled: process.env.SSO_ENABLED === 'true' || fileConfig.sso?.enabled === true,
+      initialAdminUserEmails: process.env.SSO_INITIAL_ADMIN_USER_EMAILS || fileConfig.sso?.initialAdminUserEmails || [],
       oidc: {
         enabled: process.env.OIDC_ENABLED === 'true' || fileConfig.sso?.oidc?.enabled === true,
         issuer: process.env.OIDC_ISSUER || fileConfig.sso?.oidc?.issuer || 'http://localhost:8080/realms/crossview',
@@ -130,14 +131,14 @@ export const getConfig = (section = null) => {
 export const updateConfig = (section, sectionConfig) => {
   const fullConfig = loadConfig();
   fullConfig[section] = { ...fullConfig[section], ...sectionConfig };
-  
+
   const configFilePath = join(__dirname, 'config.yaml');
   const yamlContent = yaml.dump(fullConfig, {
     indent: 2,
     lineWidth: -1,
     quotingType: '"',
   });
-  
+
   writeFileSync(configFilePath, yamlContent, 'utf8');
   config = fullConfig; // Update cache
 };
