@@ -32,6 +32,7 @@ data:
   OIDC_EMAIL_ATTRIBUTE: {{ .Values.config.sso.oidc.emailAttribute | default "email" | quote }}
   OIDC_FIRSTNAME_ATTRIBUTE: {{ .Values.config.sso.oidc.firstNameAttribute | default "given_name" | quote }}
   OIDC_LASTNAME_ATTRIBUTE: {{ .Values.config.sso.oidc.lastNameAttribute | default "family_name" | quote }}
+  OIDC_ROLE_ATTRIBUTE_PATH: {{ .Values.config.sso.oidc.roleAttributePath | default "" | quote }}
   SAML_ENABLED: {{ .Values.config.sso.saml.enabled | default false | quote }}
   SAML_ENTRY_POINT: {{ .Values.config.sso.saml.entryPoint | default "http://localhost:8080/realms/crossview/protocol/saml" | quote }}
   SAML_ISSUER: {{ .Values.config.sso.saml.issuer | default "crossview" | quote }}

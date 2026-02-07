@@ -186,6 +186,7 @@ config:
       emailAttribute: email
       firstNameAttribute: given_name
       lastNameAttribute: family_name
+      roleAttributePath: ""
     saml:
       enabled: false
       entryPoint: http://localhost:8080/realms/crossview/protocol/saml

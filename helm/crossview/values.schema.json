@@ -27,7 +27,11 @@
         "pullPolicy": {
           "type": "string",
           "description": "Image pull policy",
-          "enum": ["Always", "IfNotPresent", "Never"],
+          "enum": [
+            "Always",
+            "IfNotPresent",
+            "Never"
+          ],
           "default": "Always"
         },
         "tag": {
@@ -36,7 +40,10 @@
           "default": ""
         }
       },
-      "required": ["repository", "pullPolicy"]
+      "required": [
+        "repository",
+        "pullPolicy"
+      ]
     },
     "app": {
       "type": "object",
@@ -61,7 +68,11 @@
           "default": 3
         }
       },
-      "required": ["name", "port", "replicas"]
+      "required": [
+        "name",
+        "port",
+        "replicas"
+      ]
     },
     "deployment": {
       "type": "object",
@@ -72,19 +83,28 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": ["RollingUpdate", "Recreate"],
+              "enum": [
+                "RollingUpdate",
+                "Recreate"
+              ],
               "default": "RollingUpdate"
             },
             "rollingUpdate": {
               "type": "object",
               "properties": {
                 "maxSurge": {
-                  "type": ["string", "integer"],
+                  "type": [
+                    "string",
+                    "integer"
+                  ],
                   "description": "Maximum number of pods that can be created over the desired number",
                   "default": 1
                 },
                 "maxUnavailable": {
-                  "type": ["string", "integer"],
+                  "type": [
+                    "string",
+                    "integer"
+                  ],
                   "description": "Maximum number of pods that can be unavailable during update",
                   "default": 0
                 }
@@ -150,7 +170,12 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"],
+          "enum": [
+            "ClusterIP",
+            "NodePort",
+            "LoadBalancer",
+            "ExternalName"
+          ],
           "default": "ClusterIP"
         },
         "port": {
@@ -161,13 +186,19 @@
           "default": 80
         },
         "targetPort": {
-          "type": ["integer", "string"],
+          "type": [
+            "integer",
+            "string"
+          ],
           "description": "Target port",
           "default": 3001
         },
         "sessionAffinity": {
           "type": "string",
-          "enum": ["None", "ClientIP"],
+          "enum": [
+            "None",
+            "ClientIP"
+          ],
           "default": "ClientIP"
         },
         "sessionAffinityTimeout": {
@@ -218,7 +249,11 @@
                     },
                     "pathType": {
                       "type": "string",
-                      "enum": ["Exact", "Prefix", "ImplementationSpecific"]
+                      "enum": [
+                        "Exact",
+                        "Prefix",
+                        "ImplementationSpecific"
+                      ]
                     }
                   }
                 }
@@ -312,7 +347,11 @@
             },
             "accessMode": {
               "type": "string",
-              "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany"],
+              "enum": [
+                "ReadWriteOnce",
+                "ReadOnlyMany",
+                "ReadWriteMany"
+              ],
               "default": "ReadWriteOnce"
             },
             "storageClass": {
@@ -364,7 +403,14 @@
               "properties": {
                 "level": {
                   "type": "string",
-                  "enum": ["debug", "info", "warn", "error", "fatal", "panic"],
+                  "enum": [
+                    "debug",
+                    "info",
+                    "warn",
+                    "error",
+                    "fatal",
+                    "panic"
+                  ],
                   "default": "info"
                 }
               }
@@ -455,6 +501,9 @@
                 },
                 "lastNameAttribute": {
                   "type": "string"
+                },
+                "roleAttributePath": {
+                  "type": "string"
                 }
               }
             },
@@ -472,7 +521,10 @@
                   "type": "string"
                 },
                 "cert": {
-                  "type": ["string", "null"]
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "callbackURL": {
                   "type": "string"
@@ -537,18 +589,32 @@
                 "secretKeyRef": {
                   "type": "object",
                   "properties": {
-                    "name": {"type": "string"},
-                    "key": {"type": "string"}
+                    "name": {
+                      "type": "string"
+                    },
+                    "key": {
+                      "type": "string"
+                    }
                   },
-                  "required": ["name", "key"]
+                  "required": [
+                    "name",
+                    "key"
+                  ]
                 },
                 "configMapKeyRef": {
                   "type": "object",
                   "properties": {
-                    "name": {"type": "string"},
-                    "key": {"type": "string"}
+                    "name": {
+                      "type": "string"
+                    },
+                    "key": {
+                      "type": "string"
+                    }
                   },
-                  "required": ["name", "key"]
+                  "required": [
+                    "name",
+                    "key"
+                  ]
                 }
               }
             }
@@ -566,18 +632,32 @@
                 "secretKeyRef": {
                   "type": "object",
                   "properties": {
-                    "name": {"type": "string"},
-                    "key": {"type": "string"}
+                    "name": {
+                      "type": "string"
+                    },
+                    "key": {
+                      "type": "string"
+                    }
                   },
-                  "required": ["name", "key"]
+                  "required": [
+                    "name",
+                    "key"
+                  ]
                 },
                 "configMapKeyRef": {
                   "type": "object",
                   "properties": {
-                    "name": {"type": "string"},
-                    "key": {"type": "string"}
+                    "name": {
+                      "type": "string"
+                    },
+                    "key": {
+                      "type": "string"
+                    }
                   },
-                  "required": ["name", "key"]
+                  "required": [
+                    "name",
+                    "key"
+                  ]
                 }
               }
             }
@@ -591,8 +671,12 @@
           "type": "object",
           "description": "DEPRECATED: Keys in existing secret",
           "properties": {
-            "dbPassword": {"type": "string"},
-            "sessionSecret": {"type": "string"}
+            "dbPassword": {
+              "type": "string"
+            },
+            "sessionSecret": {
+              "type": "string"
+            }
           }
         }
       }
@@ -683,4 +767,3 @@
     }
   }
 }
-
