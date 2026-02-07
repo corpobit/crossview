@@ -10,6 +10,7 @@ import (
 
 	"crossview-go-server/lib"
 	"crossview-go-server/models"
+
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -85,8 +86,8 @@ func TestSSOService_InitiateOIDC_WithIssuer(t *testing.T) {
 		if r.URL.Path == "/.well-known/openid-configuration" {
 			discovery := map[string]string{
 				"authorization_endpoint": authEndpoint,
-				"token_endpoint":          "http://test-auth.example.com/token",
-				"userinfo_endpoint":       "http://test-auth.example.com/userinfo",
+				"token_endpoint":         "http://test-auth.example.com/token",
+				"userinfo_endpoint":      "http://test-auth.example.com/userinfo",
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(discovery)
@@ -208,33 +209,33 @@ func TestSSOService_HandleOIDCCallback_NotEnabled(t *testing.T) {
 func TestSSOService_HandleOIDCCallback_Success(t *testing.T) {
 	tokenServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		
+
 		if r.Method != "POST" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			json.NewEncoder(w).Encode(map[string]string{"error": "method_not_allowed"})
 			return
 		}
-		
+
 		if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
 			r.ParseMultipartForm(10 << 20)
 		} else {
 			r.ParseForm()
 		}
-		
+
 		grantType := r.FormValue("grant_type")
 		if grantType != "authorization_code" {
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(map[string]string{"error": "invalid_grant"})
 			return
 		}
-		
+
 		code := r.FormValue("code")
 		if code == "" {
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(map[string]string{"error": "invalid_request", "error_description": "code is required"})
 			return
 		}
-		
+
 		tokenResponse := map[string]string{
 			"access_token": "test-access-token",
 		}
@@ -473,7 +474,7 @@ func TestSSOService_InitiateSAML_NoEntryPoint(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error when entry point is not configured")
 	}
-	
+
 	if err.Error() != "SAML entry point not configured" {
 		t.Errorf("Expected error message 'SAML entry point not configured', got '%s'", err.Error())
 	}
@@ -502,7 +503,6 @@ func TestSSOService_HandleSAMLCallback_NotEnabled(t *testing.T) {
 	}
 }
 
-
 func TestSSOService_HandleSAMLCallback_NotImplemented(t *testing.T) {
 	db := setupTestDB(t)
 	logger := setupTestLogger()
@@ -523,3 +523,122 @@ func TestSSOService_HandleSAMLCallback_NotImplemented(t *testing.T) {
 	}
 }
 
+func TestSSOService_HandleOIDCCallback_RoleMapping(t *testing.T) {
+	tests := []struct {
+		name              string
+		roleAttributePath string
+		userInfo          map[string]interface{}
+		expectedRole      string
+	}{
+		{
+			name:              "Simple attribute mapping",
+			roleAttributePath: "role",
+			userInfo: map[string]interface{}{
+				"sub":   "user-1",
+				"email": "user@example.com",
+				"role":  "admin",
+			},
+			expectedRole: "admin",
+		},
+		{
+			name:              "Nested attribute mapping",
+			roleAttributePath: "custom.role",
+			userInfo: map[string]interface{}{
+				"sub":   "user-2",
+				"email": "user@example.com",
+				"custom": map[string]interface{}{
+					"role": "editor",
+				},
+			},
+			expectedRole: "editor",
+		},
+		{
+			name:              "Condition: custom:team == editor",
+			roleAttributePath: "\"custom:team\" == 'editor' && 'editor' || 'user'",
+			userInfo: map[string]interface{}{
+				"sub":         "user-3",
+				"email":       "user@example.com",
+				"custom:team": "editor",
+			},
+			expectedRole: "editor",
+		},
+		{
+			name:              "Condition: custom:team != editor",
+			roleAttributePath: "\"custom:team\" == 'editor' && 'editor' || 'user'",
+			userInfo: map[string]interface{}{
+				"sub":         "user-4",
+				"email":       "user@example.com",
+				"custom:team": "viewer",
+			},
+			expectedRole: "user",
+		},
+		{
+			name:              "Condition: missing custom:team attribute",
+			roleAttributePath: "\"custom:team\" == 'editor' && 'editor' || 'user'",
+			userInfo: map[string]interface{}{
+				"sub":   "user-5",
+				"email": "user@example.com",
+			},
+			expectedRole: "user",
+		},
+		{
+			name:              "Complex Condition: email list or custom attribute",
+			roleAttributePath: "(contains(['admin@example.com'], email) || \"custom:team\" == 'admin') && 'admin' || 'user'",
+			userInfo: map[string]interface{}{
+				"sub":         "user-6",
+				"email":       "user@example.com",
+				"custom:team": "admin",
+			},
+			expectedRole: "admin",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tokenServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				tokenResponse := map[string]string{
+					"access_token": "test-access-token",
+				}
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(tokenResponse)
+			}))
+			defer tokenServer.Close()
+
+			userInfoServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(tt.userInfo)
+			}))
+			defer userInfoServer.Close()
+
+			db := setupTestDB(t)
+			logger := setupTestLogger()
+			env := setupTestEnv()
+
+			service := SSOService{
+				logger:    logger,
+				env:       env,
+				ssoConfig: lib.GetSSOConfig(env),
+				userRepo:  models.NewUserRepository(db),
+			}
+			service.ssoConfig.Enabled = true
+			service.ssoConfig.OIDC.Enabled = true
+			service.ssoConfig.OIDC.ClientId = "test-client"
+			service.ssoConfig.OIDC.ClientSecret = "test-secret"
+			service.ssoConfig.OIDC.CallbackURL = "http://localhost:3001/api/auth/oidc/callback"
+			service.ssoConfig.OIDC.Issuer = ""
+			service.ssoConfig.OIDC.AuthorizationURL = ""
+			service.ssoConfig.OIDC.TokenURL = tokenServer.URL
+			service.ssoConfig.OIDC.UserInfoURL = userInfoServer.URL
+			service.ssoConfig.OIDC.RoleAttributePath = tt.roleAttributePath
+
+			user, err := service.HandleOIDCCallback(context.Background(), "test-code", "test-state", "http://localhost:3001/api/auth/oidc/callback")
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+
+			if user.Role != tt.expectedRole {
+				t.Errorf("Expected role '%s', got '%s'", tt.expectedRole, user.Role)
+			}
+		})
+	}
+}
