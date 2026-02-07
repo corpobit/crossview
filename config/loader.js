@@ -20,7 +20,7 @@ export const loadConfig = (configPath = null) => {
   }
 
   let fileConfig = {};
-  
+
   try {
     const configFilePath = configPath || join(__dirname, 'config.yaml');
     if (existsSync(configFilePath)) {
@@ -73,6 +73,7 @@ export const loadConfig = (configPath = null) => {
         emailAttribute: process.env.OIDC_EMAIL_ATTRIBUTE || fileConfig.sso?.oidc?.emailAttribute || 'email',
         firstNameAttribute: process.env.OIDC_FIRSTNAME_ATTRIBUTE || fileConfig.sso?.oidc?.firstNameAttribute || 'given_name',
         lastNameAttribute: process.env.OIDC_LASTNAME_ATTRIBUTE || fileConfig.sso?.oidc?.lastNameAttribute || 'family_name',
+        roleAttributePath: process.env.OIDC_ROLE_ATTRIBUTE_PATH || fileConfig.sso?.oidc?.roleAttributePath || '',
       },
       saml: {
         enabled: process.env.SAML_ENABLED === 'true' || fileConfig.sso?.saml?.enabled === true,
@@ -130,14 +131,14 @@ export const getConfig = (section = null) => {
 export const updateConfig = (section, sectionConfig) => {
   const fullConfig = loadConfig();
   fullConfig[section] = { ...fullConfig[section], ...sectionConfig };
-  
+
   const configFilePath = join(__dirname, 'config.yaml');
   const yamlContent = yaml.dump(fullConfig, {
     indent: 2,
     lineWidth: -1,
     quotingType: '"',
   });
-  
+
   writeFileSync(configFilePath, yamlContent, 'utf8');
   config = fullConfig; // Update cache
 };
