@@ -113,24 +113,20 @@ func (r *UserRepository) AutoMigrate() error {
 	if err != nil {
 		return fmt.Errorf("failed to get underlying SQL DB: %w", err)
 	}
-
 	if err := sqlDB.Ping(); err != nil {
 		return fmt.Errorf("database ping failed: %w", err)
 	}
-
 	var tableExists bool
 	err = r.db.Raw("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users')").Scan(&tableExists).Error
 	if err != nil {
 		return fmt.Errorf("failed to check if users table exists: %w", err)
 	}
-
 	if !tableExists {
 		if err := r.db.AutoMigrate(&User{}); err != nil {
 			return fmt.Errorf("auto migrate failed: %w", err)
 		}
 		return nil
 	}
-
 	migrator := r.db.Migrator()
 	if err := migrator.AutoMigrate(&User{}); err != nil {
 		errStr := err.Error()
@@ -139,46 +135,37 @@ func (r *UserRepository) AutoMigrate() error {
 		}
 		return fmt.Errorf("auto migrate failed: %w", err)
 	}
-
 	return nil
 }
 
-func (r *UserRepository) FindOrCreateSSOUser(username, email, firstName, lastName, extractedRole string, roleAttributePathProvided bool) (*User, error) {
+func (r *UserRepository) FindOrCreateSSOUser(username, email, firstName, lastName, extractedRole string) (*User, error) {
 	if username == "" && email == "" {
 		return nil, fmt.Errorf("username or email is required from SSO provider")
 	}
-
 	var user *User
 	var err error
-
 	if email != "" {
 		user, err = r.FindByEmail(email)
 		if err == nil && user != nil {
 			return r.updateSSOUserInfo(user, email, firstName, lastName)
 		}
 	}
-
 	if user == nil && username != "" {
 		user, err = r.FindByUsername(username)
 		if err == nil && user != nil {
 			return r.updateSSOUserInfo(user, email, firstName, lastName)
 		}
 	}
-
 	if user != nil {
 		return user, nil
 	}
-
 	hasUsers, _ := r.Count()
 	role := "user"
-	if roleAttributePathProvided {
-		if extractedRole != "" {
-			role = extractedRole
-		}
+	if extractedRole != "" {
+		role = extractedRole
 	} else if hasUsers == 0 {
 		role = "admin"
 	}
-
 	if username == "" {
 		if email != "" {
 			if idx := strings.Index(email, "@"); idx > 0 {
@@ -193,7 +180,6 @@ func (r *UserRepository) FindOrCreateSSOUser(username, email, firstName, lastNam
 	if email == "" {
 		email = fmt.Sprintf("%s@sso.local", username)
 	}
-
 	user = &User{
 		Username:  username,
 		Email:     email,
@@ -201,22 +187,18 @@ func (r *UserRepository) FindOrCreateSSOUser(username, email, firstName, lastNam
 		FirstName: stringPtr(firstName),
 		LastName:  stringPtr(lastName),
 	}
-
 	randomPassword := generateRandomPassword()
 	if err := user.SetPassword(randomPassword); err != nil {
 		return nil, err
 	}
-
 	if err := r.Create(user); err != nil {
 		return nil, err
 	}
-
 	return user, nil
 }
 
 func (r *UserRepository) updateSSOUserInfo(user *User, email, firstName, lastName string) (*User, error) {
 	updated := false
-
 	if email != "" && user.Email != email {
 		user.Email = email
 		updated = true
@@ -229,13 +211,11 @@ func (r *UserRepository) updateSSOUserInfo(user *User, email, firstName, lastNam
 		user.LastName = stringPtr(lastName)
 		updated = true
 	}
-
 	if updated {
 		if err := r.Update(user); err != nil {
 			return nil, err
 		}
 	}
-
 	return user, nil
 }
 

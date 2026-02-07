@@ -20,7 +20,6 @@ export const loadConfig = (configPath = null) => {
   }
 
   let fileConfig = {};
-
   try {
     const configFilePath = configPath || join(__dirname, 'config.yaml');
     if (existsSync(configFilePath)) {
@@ -131,14 +130,12 @@ export const getConfig = (section = null) => {
 export const updateConfig = (section, sectionConfig) => {
   const fullConfig = loadConfig();
   fullConfig[section] = { ...fullConfig[section], ...sectionConfig };
-
   const configFilePath = join(__dirname, 'config.yaml');
   const yamlContent = yaml.dump(fullConfig, {
     indent: 2,
     lineWidth: -1,
     quotingType: '"',
   });
-
   writeFileSync(configFilePath, yamlContent, 'utf8');
   config = fullConfig; // Update cache
 };

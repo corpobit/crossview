@@ -143,8 +143,6 @@ oidc:
 ```
 
 ## Keycloak (Optional Example)
-    
-*Note: Keycloak has been removed from the default `docker-compose.yml` to streamline the setup. You can still run it separately if needed.*
 
 If you want to use Keycloak, see `keycloak/README.md` for Keycloak-specific setup instructions. The code itself is provider-agnostic.
 

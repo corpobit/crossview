@@ -51,9 +51,7 @@ func GetSSOConfig(env Env) SSOConfig {
 			ssoEnabled = "false"
 		}
 	}
-
 	enabled := ssoEnabled == "true"
-
 	return SSOConfig{
 		Enabled: enabled,
 		OIDC:    getOIDCConfig(env),
@@ -70,7 +68,6 @@ func getOIDCConfig(env Env) OIDCConfig {
 			oidcEnabled = "false"
 		}
 	}
-
 	return OIDCConfig{
 		Enabled:            oidcEnabled == "true",
 		Issuer:             getEnvOrDefault("OIDC_ISSUER", getConfigValue("sso.oidc.issuer", "", "http://localhost:8080/realms/crossview")),
@@ -107,7 +104,6 @@ func getSAMLConfig(env Env) SAMLConfig {
 			}
 		}
 	}
-
 	return SAMLConfig{
 		Enabled:            samlEnabled == "true",
 		EntryPoint:         getEnvOrDefault("SAML_ENTRY_POINT", getConfigValue("sso.saml.entryPoint", "", "http://localhost:8080/realms/crossview/protocol/saml")),
