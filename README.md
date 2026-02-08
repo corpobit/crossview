@@ -4,7 +4,12 @@
 # Crossview - Crossplane Dashboard
   
   A modern React-based dashboard for managing and monitoring Crossplane resources in Kubernetes. Visualize, search, and manage your infrastructure-as-code with ease.
+<br><br>
 
+  <a href="https://join.slack.com/t/crossviewtalk/shared_invite/zt-3px5umxyo-G_tgt_3Eyt84nE1c1ykNTw">
+    <img src="https://img.shields.io/badge/Join%20Crossview%20on%20Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white" alt="Join on Slack"/>
+  </a>
+  
 [![GitHub stars](https://img.shields.io/github/stars/corpobit/crossview?style=social)](https://github.com/corpobit/crossview)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
   [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/crossview)](https://artifacthub.io/packages/search?repo=crossview)
