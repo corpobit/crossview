@@ -7,10 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"crossview-go-server/lib"
-
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"crossview-go-server/lib"
 )
 
 func TestAuthController_Check_NotAuthenticated(t *testing.T) {
@@ -21,7 +20,7 @@ func TestAuthController_Check_NotAuthenticated(t *testing.T) {
 	db := setupTestDB(t)
 	logger := setupTestLogger()
 
-	controller := NewAuthController(logger, lib.Database{DB: db}, setupTestEnv())
+	controller := NewAuthController(logger, lib.Database{DB: db})
 
 	router.GET("/api/auth/check", controller.Check)
 
@@ -53,7 +52,7 @@ func TestAuthController_Check_Authenticated(t *testing.T) {
 
 	user := createTestUser(t, db, "testuser", "test@example.com", "password123", "user")
 
-	controller := NewAuthController(logger, lib.Database{DB: db}, setupTestEnv())
+	controller := NewAuthController(logger, lib.Database{DB: db})
 
 	router.GET("/api/auth/check", func(c *gin.Context) {
 		session := sessions.Default(c)
@@ -98,7 +97,7 @@ func TestAuthController_Check_InvalidSession(t *testing.T) {
 	db := setupTestDB(t)
 	logger := setupTestLogger()
 
-	controller := NewAuthController(logger, lib.Database{DB: db}, setupTestEnv())
+	controller := NewAuthController(logger, lib.Database{DB: db})
 
 	router.GET("/api/auth/check", func(c *gin.Context) {
 		session := sessions.Default(c)
@@ -135,7 +134,7 @@ func TestAuthController_Login_Success(t *testing.T) {
 
 	createTestUser(t, db, "testuser", "test@example.com", "password123", "user")
 
-	controller := NewAuthController(logger, lib.Database{DB: db}, setupTestEnv())
+	controller := NewAuthController(logger, lib.Database{DB: db})
 
 	router.POST("/api/auth/login", controller.Login)
 
@@ -179,7 +178,7 @@ func TestAuthController_Login_InvalidCredentials(t *testing.T) {
 
 	createTestUser(t, db, "testuser", "test@example.com", "password123", "user")
 
-	controller := NewAuthController(logger, lib.Database{DB: db}, setupTestEnv())
+	controller := NewAuthController(logger, lib.Database{DB: db})
 
 	router.POST("/api/auth/login", controller.Login)
 
@@ -207,7 +206,7 @@ func TestAuthController_Login_MissingFields(t *testing.T) {
 	db := setupTestDB(t)
 	logger := setupTestLogger()
 
-	controller := NewAuthController(logger, lib.Database{DB: db}, setupTestEnv())
+	controller := NewAuthController(logger, lib.Database{DB: db})
 
 	router.POST("/api/auth/login", controller.Login)
 
@@ -234,7 +233,7 @@ func TestAuthController_Login_UserNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	logger := setupTestLogger()
 
-	controller := NewAuthController(logger, lib.Database{DB: db}, setupTestEnv())
+	controller := NewAuthController(logger, lib.Database{DB: db})
 
 	router.POST("/api/auth/login", controller.Login)
 
@@ -262,7 +261,7 @@ func TestAuthController_Logout_Success(t *testing.T) {
 	db := setupTestDB(t)
 	logger := setupTestLogger()
 
-	controller := NewAuthController(logger, lib.Database{DB: db}, setupTestEnv())
+	controller := NewAuthController(logger, lib.Database{DB: db})
 
 	router.POST("/api/auth/logout", controller.Logout)
 
@@ -292,7 +291,7 @@ func TestAuthController_Register_Success(t *testing.T) {
 	db := setupTestDB(t)
 	logger := setupTestLogger()
 
-	controller := NewAuthController(logger, lib.Database{DB: db}, setupTestEnv())
+	controller := NewAuthController(logger, lib.Database{DB: db})
 
 	router.POST("/api/auth/register", controller.Register)
 
@@ -341,7 +340,7 @@ func TestAuthController_Register_RegistrationDisabled(t *testing.T) {
 
 	createTestUser(t, db, "existinguser", "existing@example.com", "password123", "user")
 
-	controller := NewAuthController(logger, lib.Database{DB: db}, setupTestEnv())
+	controller := NewAuthController(logger, lib.Database{DB: db})
 
 	router.POST("/api/auth/register", controller.Register)
 
@@ -370,7 +369,7 @@ func TestAuthController_Register_DuplicateUsername(t *testing.T) {
 	db := setupTestDB(t)
 	logger := setupTestLogger()
 
-	controller := NewAuthController(logger, lib.Database{DB: db}, setupTestEnv())
+	controller := NewAuthController(logger, lib.Database{DB: db})
 
 	router.POST("/api/auth/register", controller.Register)
 
@@ -415,7 +414,7 @@ func TestAuthController_Register_DuplicateEmail(t *testing.T) {
 	db := setupTestDB(t)
 	logger := setupTestLogger()
 
-	controller := NewAuthController(logger, lib.Database{DB: db}, setupTestEnv())
+	controller := NewAuthController(logger, lib.Database{DB: db})
 
 	router.POST("/api/auth/register", controller.Register)
 
@@ -460,7 +459,7 @@ func TestAuthController_Register_MissingFields(t *testing.T) {
 	db := setupTestDB(t)
 	logger := setupTestLogger()
 
-	controller := NewAuthController(logger, lib.Database{DB: db}, setupTestEnv())
+	controller := NewAuthController(logger, lib.Database{DB: db})
 
 	router.POST("/api/auth/register", controller.Register)
 
@@ -478,3 +477,4 @@ func TestAuthController_Register_MissingFields(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
 	}
 }
+

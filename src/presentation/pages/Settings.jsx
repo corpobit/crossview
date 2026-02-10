@@ -14,7 +14,8 @@ import { useAppContext } from '../providers/AppProvider.jsx';
 export const Settings = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isInClusterMode, authMode } = useAppContext();
+  const { isInClusterMode } = useAppContext();
+
   const isUserManagement = location.pathname.includes('/user-management');
   const isAppearance = location.pathname.includes('/appearance');
   const isContextManagement = location.pathname.includes('/context-management');
@@ -45,7 +46,6 @@ export const Settings = () => {
         >
           Appearance
         </Button>
-        {authMode === 'session' && (
         <Button
           variant={isUserManagement ? 'solid' : 'ghost'}
           onClick={() => navigate('/settings/user-management')}
@@ -57,7 +57,6 @@ export const Settings = () => {
         >
           User Management
         </Button>
-        )}
         {!isInClusterMode && (
           <Button
             variant={isContextManagement ? 'solid' : 'ghost'}
