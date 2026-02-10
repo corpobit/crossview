@@ -23,7 +23,8 @@ export const Sidebar = ({ onToggle, onResize }) => {
   const sidebarRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { kubernetesRepository, selectedContext, colorMode, selectedContextError, isInClusterMode, authMode } = useAppContext();
+  const { kubernetesRepository, selectedContext, colorMode, selectedContextError, isInClusterMode } = useAppContext();
+
   useEffect(() => {
     if (isInClusterMode) {
       setContextSidebarWidth(0);
@@ -169,7 +170,7 @@ export const Sidebar = ({ onToggle, onResize }) => {
       hasSubMenu: true,
       subMenuItems: [
         { id: 'settings-appearance', label: 'Appearance', icon: FiSliders, path: '/settings/appearance' },
-        ...(authMode === 'session' ? [{ id: 'settings-users', label: 'User Management', icon: FiUsers, path: '/settings/user-management' }] : []),
+        { id: 'settings-users', label: 'User Management', icon: FiUsers, path: '/settings/user-management' },
         ...(isInClusterMode ? [] : [{ id: 'settings-contexts', label: 'Contexts', icon: FiDatabase, path: '/settings/context-management' }]),
       ]
     },

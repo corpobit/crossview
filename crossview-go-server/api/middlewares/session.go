@@ -6,10 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"crossview-go-server/lib"
-
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
+	"crossview-go-server/lib"
 )
 
 type filteredWriter struct {
@@ -39,18 +38,14 @@ func NewSessionMiddleware(handler lib.RequestHandler, logger lib.Logger, env lib
 }
 
 func (m SessionMiddleware) Setup() {
-	if m.env.AuthMode != "session" {
-		m.logger.Info("Skipping session middleware because auth mode is not session")
-		return
-	}
 	m.logger.Info("Setting up session middleware")
-
+	
 	filteredLog := &filteredWriter{writer: os.Stderr}
 	log.SetOutput(filteredLog)
 	log.SetPrefix("")
-
+	
 	store := cookie.NewStore([]byte(m.env.SessionSecret))
-
+	
 	store.Options(sessions.Options{
 		Path:     "/",
 		MaxAge:   86400,
@@ -58,6 +53,7 @@ func (m SessionMiddleware) Setup() {
 		Secure:   m.env.Environment == "production",
 		SameSite: 1,
 	})
-
+	
 	m.handler.Gin.Use(sessions.Sessions("session", store))
 }
+

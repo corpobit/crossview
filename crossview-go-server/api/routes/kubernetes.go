@@ -6,12 +6,12 @@ import (
 	"crossview-go-server/lib"
 )
 
-type KubernetesRoutes struct {
-	logger          lib.Logger
-	handler         lib.RequestHandler
-	controller      kubernetes.KubernetesController
+type KubernetesRoutes struct{
+	logger lib.Logger
+	handler lib.RequestHandler
+	controller kubernetes.KubernetesController
 	watchController *kubernetes.WatchController
-	authMiddleware  middlewares.AuthMiddleware
+	authMiddleware middlewares.SessionAuthMiddleware
 }
 
 func NewKubernetesRoutes(
@@ -19,18 +19,18 @@ func NewKubernetesRoutes(
 	handler lib.RequestHandler,
 	controller kubernetes.KubernetesController,
 	watchController *kubernetes.WatchController,
-	authMiddleware middlewares.AuthMiddleware,
-) KubernetesRoutes {
+	authMiddleware middlewares.SessionAuthMiddleware,
+) KubernetesRoutes{
 	return KubernetesRoutes{
-		logger:          logger,
-		handler:         handler,
-		controller:      controller,
+		logger: logger,
+		handler: handler,
+		controller: controller,
 		watchController: watchController,
-		authMiddleware:  authMiddleware,
+		authMiddleware: authMiddleware,
 	}
 }
 
-func (r KubernetesRoutes) Setup() {
+func (r KubernetesRoutes) Setup(){
 	r.logger.Info("Setting up Kubernetes routes")
 	api := r.handler.Gin.Group("/api")
 	{
@@ -41,11 +41,13 @@ func (r KubernetesRoutes) Setup() {
 		api.GET("/kubernetes/contexts", r.authMiddleware.Handler(), r.controller.GetContexts)
 		api.GET("/kubernetes/connection", r.authMiddleware.Handler(), r.controller.CheckConnection)
 		api.POST("/kubernetes/kubeconfig", r.authMiddleware.Handler(), r.controller.AddKubeConfig)
+		
 		api.GET("/contexts", r.authMiddleware.Handler(), r.controller.GetContexts)
 		api.GET("/contexts/current", r.authMiddleware.Handler(), r.controller.GetCurrentContext)
 		api.POST("/contexts/current", r.authMiddleware.Handler(), r.controller.SetContext)
 		api.POST("/contexts/add", r.authMiddleware.Handler(), r.controller.AddKubeConfig)
 		api.DELETE("/contexts", r.authMiddleware.Handler(), r.controller.RemoveContext)
+		
 		api.GET("/resources", r.authMiddleware.Handler(), r.controller.GetResources)
 		api.GET("/resource", r.authMiddleware.Handler(), r.controller.GetResource)
 		api.GET("/events", r.authMiddleware.Handler(), r.controller.GetEvents)
