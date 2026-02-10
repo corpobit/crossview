@@ -135,6 +135,26 @@ spec:
                 configMapKeyRef:
                   name: {{ include "crossview.configMapName" . }}
                   key: CORS_ORIGIN
+            - name: AUTH_MODE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: AUTH_MODE
+            - name: AUTH_TRUSTED_HEADER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: AUTH_TRUSTED_HEADER
+            - name: AUTH_CREATE_USERS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: AUTH_CREATE_USERS
+            - name: AUTH_DEFAULT_ROLE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "crossview.configMapName" . }}
+                  key: AUTH_DEFAULT_ROLE
             - name: SSO_ENABLED
               valueFrom:
                 configMapKeyRef:

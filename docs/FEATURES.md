@@ -28,8 +28,10 @@
 
 ### 🔐 Security & Access
 - **User Authentication** - Secure login system
-- **Session Management** - PostgreSQL-backed sessions
-- **SSO Support** - Single Sign-On via OIDC or SAML
+- **Authentication Modes** - Session (default), header (trust proxy identity), or none (development)
+- **Session Management** - PostgreSQL-backed sessions (session mode only)
+- **SSO Support** - Single Sign-On via OIDC or SAML (session mode)
+- **Header Auth** - Integrate with OAuth2 Proxy, Ingress auth, or other proxies that set identity headers
 - **RBAC Integration** - Uses Kubernetes RBAC for resource access
 
 ### 🎨 User Experience

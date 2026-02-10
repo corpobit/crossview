@@ -13,6 +13,10 @@ type Database struct {
 }
 
 func NewDatabase(env Env, logger Logger) Database {
+	if env.AuthMode == "header" || env.AuthMode == "none" {
+		logger.Info("Skipping database connection (auth mode is " + env.AuthMode + ")")
+		return Database{DB: nil}
+	}
 	username := env.DBUsername
 	password := env.DBPassword
 	host := env.DBHost
@@ -60,6 +64,9 @@ func NewDatabase(env Env, logger Logger) Database {
 }
 
 func (d Database) Close() error {
+	if d.DB == nil {
+		return nil
+	}
 	sqlDB, err := d.DB.DB()
 	if err != nil {
 		return err
