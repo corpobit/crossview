@@ -382,33 +382,6 @@
                 }
               }
             },
-            "auth": {
-              "type": "object",
-              "properties": {
-                "mode": {
-                  "type": "string",
-                  "enum": ["none", "session", "header"],
-                  "default": "none"
-                },
-                "header": {
-                  "type": "object",
-                  "properties": {
-                    "trustedHeader": {
-                      "type": "string",
-                      "default": "X-Auth-User"
-                    },
-                    "createUsers": {
-                      "type": "boolean",
-                      "default": true
-                    },
-                    "defaultRole": {
-                      "type": "string",
-                      "default": "viewer"
-                    }
-                  }
-                }
-              }
-            },
             "session": {
               "type": "object",
               "properties": {
