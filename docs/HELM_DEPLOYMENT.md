@@ -91,11 +91,26 @@ helm install crossview crossview/crossview \
   --namespace crossview \
   --create-namespace \
   --set database.enabled=false \
-  --set env.DB_HOST=your-db-host \
-  --set env.DB_PORT=5432 \
+  --set config.database.host=your-db-host \
+  --set config.database.port=5432 \
   --set secrets.dbPassword=your-password \
   --set secrets.sessionSecret=$(openssl rand -base64 32)
 ```
+
+### With header auth (no database)
+
+When Crossview is behind an authenticating proxy (OAuth2 Proxy, Ingress with auth) that sets the user in a header, use header auth and disable the database:
+
+```bash
+helm install crossview crossview/crossview \
+  --namespace crossview \
+  --create-namespace \
+  --set config.server.auth.mode=header \
+  --set config.server.auth.header.trustedHeader=X-Auth-User \
+  --set database.enabled=false
+```
+
+No database or session secret is required. The proxy must set the configured header on every request.
 
 ### High Availability
 
@@ -112,8 +127,8 @@ helm install crossview crossview/crossview \
 
 ### Required Values
 
-- `secrets.dbPassword` - Database password
-- `secrets.sessionSecret` - Session encryption key (generate with `openssl rand -base64 32`)
+- For **session** auth (default): `secrets.dbPassword` and `secrets.sessionSecret` (generate with `openssl rand -base64 32`)
+- For **header** or **none** auth: set `config.server.auth.mode` to `header` or `none`; you can set `database.enabled: false` and omit secrets
 
 ### Common Values
 

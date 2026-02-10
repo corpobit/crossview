@@ -27,42 +27,39 @@ func (s *ServeCommand) Run() lib.CommandRunner {
 		database lib.Database,
 	) {
 		logger.Info("Starting server initialization...")
-		
-		sqlDB, err := database.DB.DB()
-		if err != nil {
-			logger.Errorf("Failed to get underlying SQL DB: %v", err)
-			logger.Panicf("Failed to get underlying SQL DB: %v", err)
-		}
-		
-		logger.Info("Pinging database...")
-		if err := sqlDB.Ping(); err != nil {
-			logger.Errorf("Failed to ping database: %v", err)
-			logger.Panicf("Failed to ping database: %v", err)
-		}
-		logger.Info("Database ping successful")
-		
-		logger.Info("Running database migrations...")
-		
-		userRepo := models.NewUserRepository(database.DB)
-		if err := userRepo.AutoMigrate(); err != nil {
-			logger.Errorf("Migration error details: %+v", err)
-			logger.Errorf("Migration error type: %T", err)
-			logger.Errorf("Migration error string: %s", err.Error())
-			logger.Errorf("Migration error wrapped: %#v", err)
-			
-			sqlDB, pingErr := database.DB.DB()
-			if pingErr == nil {
-				if pingErr := sqlDB.Ping(); pingErr != nil {
-					logger.Errorf("Database connection is broken after migration error: %v", pingErr)
-				} else {
-					logger.Info("Database connection is still valid after migration error")
-				}
+
+		if database.DB != nil {
+			sqlDB, err := database.DB.DB()
+			if err != nil {
+				logger.Errorf("Failed to get underlying SQL DB: %v", err)
+				logger.Panicf("Failed to get underlying SQL DB: %v", err)
 			}
-			
-			logger.Panicf("Failed to run database migrations: %v", err)
+			logger.Info("Pinging database...")
+			if err := sqlDB.Ping(); err != nil {
+				logger.Errorf("Failed to ping database: %v", err)
+				logger.Panicf("Failed to ping database: %v", err)
+			}
+			logger.Info("Database ping successful")
+			logger.Info("Running database migrations...")
+			userRepo := models.NewUserRepository(database.DB)
+			if err := userRepo.AutoMigrate(); err != nil {
+				logger.Errorf("Migration error details: %+v", err)
+				logger.Errorf("Migration error type: %T", err)
+				logger.Errorf("Migration error string: %s", err.Error())
+				logger.Errorf("Migration error wrapped: %#v", err)
+				sqlDB, pingErr := database.DB.DB()
+				if pingErr == nil {
+					if pingErr := sqlDB.Ping(); pingErr != nil {
+						logger.Errorf("Database connection is broken after migration error: %v", pingErr)
+					} else {
+						logger.Info("Database connection is still valid after migration error")
+					}
+				}
+				logger.Panicf("Failed to run database migrations: %v", err)
+			}
+			logger.Info("Database migrations completed successfully")
 		}
-		logger.Info("Database migrations completed successfully")
-		
+
 		middleware.Setup()
 		route.Setup()
 
