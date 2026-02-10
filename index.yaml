@@ -4,12 +4,40 @@ entries:
   - annotations:
       artifacthub.io/images: |
         - name: crossview
+          image: ghcr.io/corpobit/crossview:v3.5.0
+        - name: postgres
+          image: postgres:latest
+    apiVersion: v2
+    appVersion: v3.5.0
+    created: "2026-02-10T18:28:25.701029782Z"
+    description: A Helm chart for Crossview - Crossplane resource visualization and
+      management platform
+    digest: 1d0df775cb25687cd0a29d29111ca425b9cff6e21311ca65e581a698af9a5712
+    home: https://github.com/corpobit/crossview
+    icon: https://corpobit.github.io/crossview/images/helm-logo.svg
+    keywords:
+    - kubernetes
+    - crossplane
+    - visualization
+    - management
+    maintainers:
+    - name: Crossview Team
+    name: crossview
+    sources:
+    - https://github.com/corpobit/crossview
+    type: application
+    urls:
+    - https://corpobit.github.io/crossview/charts/crossview-3.5.0.tgz
+    version: 3.5.0
+  - annotations:
+      artifacthub.io/images: |
+        - name: crossview
           image: ghcr.io/corpobit/crossview:v3.4.0
         - name: postgres
           image: postgres:latest
     apiVersion: v2
     appVersion: v3.4.0
-    created: "2026-01-29T18:40:07.604799735Z"
+    created: "2026-02-10T18:28:25.699975217Z"
     description: A Helm chart for Crossview - Crossplane resource visualization and
       management platform
     digest: bdb892862e3d19cf080a3e071957dee26743edd5a3a94f8a34e8ef67435908b2
@@ -37,7 +65,7 @@ entries:
           image: postgres:latest
     apiVersion: v2
     appVersion: 3.3.0
-    created: "2026-01-29T18:40:07.603524801Z"
+    created: "2026-02-10T18:28:25.69890344Z"
     description: A Helm chart for Crossview - Crossplane resource visualization and
       management platform
     digest: 6759fbbd5aef008f9c972d61a617b7344873a4cdf6dfe9b594d76ffe5e43103f
@@ -65,7 +93,7 @@ entries:
           image: postgres:latest
     apiVersion: v2
     appVersion: 3.2.0
-    created: "2026-01-29T18:40:07.602313466Z"
+    created: "2026-02-10T18:28:25.697859534Z"
     description: A Helm chart for Crossview - Crossplane resource visualization and
       management platform
     digest: 52b2c804aa0abc60d0017a36c5f11af2c67da7b034525621f41fa893b88bd996
@@ -93,7 +121,7 @@ entries:
           image: postgres:latest
     apiVersion: v2
     appVersion: 3.1.0
-    created: "2026-01-29T18:40:07.600016279Z"
+    created: "2026-02-10T18:28:25.696010949Z"
     description: A Helm chart for Crossview - Crossplane resource visualization and
       management platform
     digest: 52a7d6f398a4b9343878c82d1eb124a09298257a5237d3ae8901dfcc37e2b8d2
@@ -121,7 +149,7 @@ entries:
           image: postgres:latest
     apiVersion: v2
     appVersion: 3.0.0
-    created: "2026-01-29T18:40:07.598952306Z"
+    created: "2026-02-10T18:28:25.694806835Z"
     description: A Helm chart for Crossview - Crossplane resource visualization and
       management platform
     digest: 112bc98633bbd228b56ea058b37575c4732e10d9bfd67a0292f9158eb2fc461c
@@ -149,7 +177,7 @@ entries:
           image: postgres:latest
     apiVersion: v2
     appVersion: 2.9.0
-    created: "2026-01-29T18:40:07.59787521Z"
+    created: "2026-02-10T18:28:25.693821889Z"
     description: A Helm chart for Crossview - Crossplane resource visualization and
       management platform
     digest: 96ce885860550b16ba129671bfc228dd2388be755abcd6e87781668ff4cab0bb
@@ -177,7 +205,7 @@ entries:
           image: postgres:latest
     apiVersion: v2
     appVersion: 2.8.0
-    created: "2026-01-29T18:40:07.597044851Z"
+    created: "2026-02-10T18:28:25.693083042Z"
     description: A Helm chart for Crossview - Crossplane resource visualization and
       management platform
     digest: 020d417af2f4b4f7a2fe43200d1478ec4cd8ca569c1bdde07c9d42afc0fa9e23
@@ -205,7 +233,7 @@ entries:
           image: postgres:16.3-alpine
     apiVersion: v2
     appVersion: 2.7.0
-    created: "2026-01-29T18:40:07.596215263Z"
+    created: "2026-02-10T18:28:25.692289433Z"
     description: A Helm chart for Crossview - Crossplane resource visualization and
       management platform
     digest: fd0290b92896559bfeb24c5d46805ca1c9ccde793533314ea1f30a740d053bbc
@@ -233,7 +261,7 @@ entries:
           image: postgres:16.3-alpine
     apiVersion: v2
     appVersion: 2.6.0
-    created: "2026-01-29T18:40:07.595297322Z"
+    created: "2026-02-10T18:28:25.691481067Z"
     description: A Helm chart for Crossview - Crossplane resource visualization and
       management platform
     digest: f5af8a15f238b295206b6e530442f70254a810a284e6bf7847a8c19ed10bd6ac
@@ -253,4 +281,4 @@ entries:
     urls:
     - https://corpobit.github.io/crossview/charts/crossview-2.6.0.tgz
     version: 2.6.0
-generated: "2026-01-29T18:40:07.592476981Z"
+generated: "2026-02-10T18:28:25.690488497Z"
