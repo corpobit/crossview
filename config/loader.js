@@ -20,7 +20,7 @@ export const loadConfig = (configPath = null) => {
   }
 
   let fileConfig = {};
-  
+
   try {
     const configFilePath = configPath || join(__dirname, 'config.yaml');
     if (existsSync(configFilePath)) {
@@ -54,6 +54,14 @@ export const loadConfig = (configPath = null) => {
           secure: process.env.SESSION_SECURE === 'true' || fileConfig.server?.session?.cookie?.secure === true,
           httpOnly: process.env.SESSION_HTTP_ONLY !== 'false' && (fileConfig.server?.session?.cookie?.httpOnly !== false),
           maxAge: parseInt(process.env.SESSION_MAX_AGE || fileConfig.server?.session?.cookie?.maxAge || '86400000', 10),
+        },
+      },
+      auth: {
+        mode: process.env.AUTH_MODE || fileConfig.server?.auth?.mode || 'session',
+        header: {
+          trustedHeader: process.env.AUTH_TRUSTED_HEADER || fileConfig.server?.auth?.header?.trustedHeader || 'X-Auth-User',
+          createUsers: process.env.AUTH_CREATE_USERS !== 'false' && (fileConfig.server?.auth?.header?.createUsers !== false),
+          defaultRole: process.env.AUTH_DEFAULT_ROLE || fileConfig.server?.auth?.header?.defaultRole || 'viewer',
         },
       },
     },
@@ -130,14 +138,14 @@ export const getConfig = (section = null) => {
 export const updateConfig = (section, sectionConfig) => {
   const fullConfig = loadConfig();
   fullConfig[section] = { ...fullConfig[section], ...sectionConfig };
-  
+
   const configFilePath = join(__dirname, 'config.yaml');
   const yamlContent = yaml.dump(fullConfig, {
     indent: 2,
     lineWidth: -1,
     quotingType: '"',
   });
-  
+
   writeFileSync(configFilePath, yamlContent, 'utf8');
   config = fullConfig; // Update cache
 };

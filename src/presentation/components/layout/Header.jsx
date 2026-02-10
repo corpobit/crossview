@@ -18,7 +18,8 @@ export const Header = ({ sidebarWidth }) => {
     selectedContext, 
     selectedContextError, 
     user, 
-    logout, 
+    logout,
+    authMode,
     colorMode, 
     setColorMode,
     isInClusterMode 
@@ -185,6 +186,7 @@ export const Header = ({ sidebarWidth }) => {
                       <FiSettings size={16} />
                       <Text fontSize="sm">Settings</Text>
                     </Box>
+                    {authMode === 'session' && (
                     <Box
                       as="button"
                       w="100%"
@@ -206,6 +208,7 @@ export const Header = ({ sidebarWidth }) => {
                       <FiLogOut size={16} />
                       <Text fontSize="sm">Logout</Text>
                     </Box>
+                    )}
                   </VStack>
                 </Box>
               )}

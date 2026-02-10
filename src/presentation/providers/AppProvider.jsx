@@ -35,6 +35,7 @@ export const AppProvider = ({ children }) => {
   const [contexts, setContexts] = useState([]);
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [authMode, setAuthMode] = useState(null);
   const [serverError, setServerError] = useState(null);
   const [contextErrors, setContextErrors] = useState({});
   const [workingContexts, setWorkingContexts] = useState(() => {
@@ -71,6 +72,9 @@ export const AppProvider = ({ children }) => {
         const authState = await authService.checkAuth();
         if (authState.authenticated) {
           setUser(authState.user);
+        }
+        if (authState.authMode != null) {
+          setAuthMode(authState.authMode);
         }
       } catch (error) {
         console.warn('Failed to check auth:', error);
@@ -382,6 +386,7 @@ export const AppProvider = ({ children }) => {
     userService,
     selectedContext,
     contexts,
+    authMode,
     setSelectedContext: handleContextChange,
     user,
     authChecked,
@@ -399,7 +404,7 @@ export const AppProvider = ({ children }) => {
     deleteSearch: handleDeleteSearch,
     isInClusterMode,
     };
-  }, [kubernetesRepository, getDashboardDataUseCase, getKubernetesContextsUseCase, authService, userService, selectedContext, contexts, user, authChecked, serverError, contextErrors, colorMode, savedSearches, isInClusterMode]);
+  }, [kubernetesRepository, getDashboardDataUseCase, getKubernetesContextsUseCase, authService, userService, selectedContext, contexts, user, authChecked, serverError, contextErrors, colorMode, savedSearches, isInClusterMode,authMode]);
 
   return (
     <ChakraProvider value={defaultSystem}>
