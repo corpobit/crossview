@@ -1,0 +1,29 @@
+
+database:
+  host: localhost
+  port: 8920
+  database: crossview
+  username: postgres
+  password: password
+
+server:
+  port: 3001
+  auth:
+    mode: "header"
+    header:
+      trustedHeader: "X-Auth-User"
+      createUsers: true
+      defaultRole: "viewer"
+  log:
+    level: info
+  cors:
+    origin: http://localhost:3001
+    credentials: true
+    
+vite:
+  server:
+    proxy:
+      api:
+        target: http://localhost:3001
+        changeOrigin: true
+

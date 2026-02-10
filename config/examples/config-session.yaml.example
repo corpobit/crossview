@@ -1,0 +1,34 @@
+
+database:
+  host: localhost
+  port: 8920
+  database: crossview
+  username: postgres
+  password: password
+
+server:
+  port: 3001
+  auth:
+    mode: "session"
+  log:
+    level: info
+  cors:
+    origin: http://localhost:3001
+    credentials: true
+  session:
+    secret: crossview-secret-key-change-in-production
+    cookie:
+      secure: false
+      httpOnly: true
+      maxAge: 86400000
+
+sso:
+  enabled: false
+    
+vite:
+  server:
+    proxy:
+      api:
+        target: http://localhost:3001
+        changeOrigin: true
+

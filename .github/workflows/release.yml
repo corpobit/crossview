@@ -348,42 +348,7 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: Release ${{ steps.version.outputs.tag }}
-          body: |
-            Automated release ${{ steps.version.outputs.tag }}
-            
-            ## Changes
-            - Built from commit ${{ github.sha }}
-            - Docker image (GHCR): ghcr.io/${{ github.repository_owner }}/crossview:${{ steps.version.outputs.tag }}
-            - Docker image (Docker Hub): ${{ secrets.DOCKERHUB_USERNAME }}/crossview:${{ steps.version.outputs.tag }}
-            - Helm chart version: ${{ steps.version.outputs.version }}
-            
-            ## Installation Options
-            
-            ### OCI Registry (Recommended - GHCR)
-            ```bash
-            helm install crossview oci://ghcr.io/${{ github.repository_owner }}/crossview-chart \
-              --version ${{ steps.version.outputs.tag }} \
-              --namespace crossview \
-              --create-namespace
-            ```
-            
-            ### OCI Registry (Docker Hub - Fallback)
-            ```bash
-            helm install crossview oci://docker.io/${{ secrets.DOCKERHUB_USERNAME }}/crossview-chart \
-              --version ${{ steps.version.outputs.tag }} \
-              --namespace crossview \
-              --create-namespace
-            ```
-            
-            ### Helm Repository
-            ```bash
-            helm repo add crossview https://corpobit.github.io/crossview
-            helm repo update
-            helm install crossview crossview/crossview \
-              --version ${{ steps.version.outputs.version }} \
-              --namespace crossview \
-              --create-namespace
-            ```
+          body_path: CHANGELOG.md
           draft: false
           prerelease: false
           fail_on_unmatched_files: true
