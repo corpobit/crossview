@@ -35,7 +35,7 @@ database:
 
 ### Database Setup
 
-Crossview requires PostgreSQL for session storage. You can:
+Crossview uses PostgreSQL for session storage when `server.auth.mode` is `session`. When `server.auth.mode` is `header` or `none`, the database is not used. You can:
 
 1. **Use Included PostgreSQL** (Helm/Kubernetes)
    - Automatically deployed with the application
@@ -76,9 +76,29 @@ PORT=3001                  # Server port
 SESSION_SECRET=your-secret # Session encryption key (generate with: openssl rand -base64 32)
 ```
 
+### Authentication Modes
+
+Crossview supports three authentication modes via `server.auth.mode` (or `AUTH_MODE`):
+
+| Mode     | Description | Database required |
+|----------|-------------|-------------------|
+| `session` | Default. Username/password or SSO; identity stored in session (PostgreSQL). | Yes |
+| `header`  | Trust identity from an HTTP header set by an upstream proxy (e.g. OAuth2 Proxy, Ingress auth). No login form. | No |
+| `none`    | No authentication (development or trusted networks). All requests are treated as an anonymous user. | No |
+
+For **header** mode, configure:
+
+- `server.auth.header.trustedHeader` – Header name (default: `X-Auth-User`).
+- `server.auth.header.createUsers` – If `true`, create a user record from the header value when missing (only when database is used; if no database, a synthetic user is used).
+- `server.auth.header.defaultRole` – Default role for header-authenticated users (default: `viewer`).
+
+Use header mode only when Crossview is behind a trusted proxy that sets the header. For **none** mode, use only in trusted or development environments.
+
+When `mode` is `header` or `none`, the application does not connect to the database; you can disable the database in Helm with `database.enabled: false`.
+
 ### Session Configuration
 
-Sessions are stored in PostgreSQL. Configuration:
+Sessions are used only when `server.auth.mode` is `session`. Session data is stored in PostgreSQL. Configuration:
 
 ```yaml
 session:

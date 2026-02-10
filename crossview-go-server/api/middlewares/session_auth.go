@@ -3,10 +3,11 @@ package middlewares
 import (
 	"net/http"
 
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-gonic/gin"
 	"crossview-go-server/lib"
 	"crossview-go-server/models"
+
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-gonic/gin"
 )
 
 type SessionAuthMiddleware struct {
@@ -31,13 +32,13 @@ func (m SessionAuthMiddleware) Handler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
 		userID := session.Get("userId")
-		
+
 		if userID == nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 			c.Abort()
 			return
 		}
-		
+
 		c.Set("userId", userID)
 		c.Next()
 	}
@@ -45,24 +46,37 @@ func (m SessionAuthMiddleware) Handler() gin.HandlerFunc {
 
 func RequireAdmin(userRepo *models.UserRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		session := sessions.Default(c)
-		userID := session.Get("userId")
-		
-		if userID == nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		var userID uint
+		if id, exists := c.Get("userId"); exists && id != nil {
+			switch v := id.(type) {
+			case uint:
+				userID = v
+			case int:
+				userID = uint(v)
+			case float64:
+				userID = uint(v)
+			default:
+				userID = 0
+			}
+		}
+		if userID == 0 {
+			session := sessions.Default(c)
+			if sid := session.Get("userId"); sid != nil {
+				userID = sid.(uint)
+			}
+		}
+		if userID == 0 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
 			c.Abort()
 			return
 		}
-		
-		user, err := userRepo.FindByID(userID.(uint))
+		user, err := userRepo.FindByID(userID)
 		if err != nil || user == nil || user.Role != "admin" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
 			c.Abort()
 			return
 		}
-		
 		c.Set("userId", userID)
 		c.Next()
 	}
 }
-

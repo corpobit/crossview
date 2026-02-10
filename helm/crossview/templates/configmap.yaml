@@ -16,6 +16,12 @@ data:
   DB_NAME: {{ .Values.config.database.database | default "crossview" | quote }}
   DB_USER: {{ .Values.config.database.username | default "postgres" | quote }}
   PORT: {{ .Values.config.server.port | default 3001 | quote }}
+{{- $auth := .Values.config.server.auth | default dict }}
+{{- $authHeader := $auth.header | default dict }}
+  AUTH_MODE: {{ $auth.mode | default "none" | quote }}
+  AUTH_TRUSTED_HEADER: {{ $authHeader.trustedHeader | default "X-Auth-User" | quote }}
+  AUTH_CREATE_USERS: {{ $authHeader.createUsers | default true | quote }}
+  AUTH_DEFAULT_ROLE: {{ $authHeader.defaultRole | default "viewer" | quote }}
   LOG_LEVEL: {{ .Values.config.server.log.level | default "info" | quote }}
   CORS_ORIGIN: {{ .Values.config.server.cors.origin | default "http://localhost:5173" | quote }}
   SSO_ENABLED: {{ .Values.config.sso.enabled | default false | quote }}
