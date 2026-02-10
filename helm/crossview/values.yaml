@@ -160,6 +160,12 @@ config:
   
   server:
     port: 3001
+    auth:
+      mode: none  # none | session | header (header/none: no database required)
+      header:
+        trustedHeader: X-Auth-User
+        createUsers: true
+        defaultRole: viewer
     log:
       level: info  # Options: debug, info, warn, error, fatal, panic
     cors:

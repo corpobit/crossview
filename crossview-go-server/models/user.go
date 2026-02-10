@@ -48,10 +48,16 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 }
 
 func (r *UserRepository) Create(user *User) error {
+	if r.db == nil {
+		return nil
+	}
 	return r.db.Create(user).Error
 }
 
 func (r *UserRepository) FindByID(id uint) (*User, error) {
+	if r.db == nil {
+		return nil, nil
+	}
 	var user User
 	err := r.db.Where("id = ?", id).First(&user).Error
 	if err != nil {
@@ -61,6 +67,9 @@ func (r *UserRepository) FindByID(id uint) (*User, error) {
 }
 
 func (r *UserRepository) FindByUsername(username string) (*User, error) {
+	if r.db == nil {
+		return nil, nil
+	}
 	var user User
 	err := r.db.Where("username = ?", username).First(&user).Error
 	if err != nil {
@@ -70,6 +79,9 @@ func (r *UserRepository) FindByUsername(username string) (*User, error) {
 }
 
 func (r *UserRepository) FindByEmail(email string) (*User, error) {
+	if r.db == nil {
+		return nil, nil
+	}
 	var user User
 	err := r.db.Where("email = ?", email).First(&user).Error
 	if err != nil {
@@ -79,12 +91,18 @@ func (r *UserRepository) FindByEmail(email string) (*User, error) {
 }
 
 func (r *UserRepository) Count() (int64, error) {
+	if r.db == nil {
+		return 0, nil
+	}
 	var count int64
 	err := r.db.Model(&User{}).Count(&count).Error
 	return count, err
 }
 
 func (r *UserRepository) HasAdmin() (bool, error) {
+	if r.db == nil {
+		return false, nil
+	}
 	var count int64
 	err := r.db.Model(&User{}).Where("role = ?", "admin").Count(&count).Error
 	if err != nil {
@@ -94,20 +112,32 @@ func (r *UserRepository) HasAdmin() (bool, error) {
 }
 
 func (r *UserRepository) FindAll() ([]User, error) {
+	if r.db == nil {
+		return nil, nil
+	}
 	var users []User
 	err := r.db.Order("created_at DESC").Find(&users).Error
 	return users, err
 }
 
 func (r *UserRepository) Update(user *User) error {
+	if r.db == nil {
+		return nil
+	}
 	return r.db.Save(user).Error
 }
 
 func (r *UserRepository) Delete(id uint) error {
+	if r.db == nil {
+		return nil
+	}
 	return r.db.Delete(&User{}, id).Error
 }
 
 func (r *UserRepository) AutoMigrate() error {
+	if r.db == nil {
+		return nil
+	}
 	sqlDB, err := r.db.DB()
 	if err != nil {
 		return fmt.Errorf("failed to get underlying SQL DB: %w", err)
@@ -143,6 +173,9 @@ func (r *UserRepository) AutoMigrate() error {
 }
 
 func (r *UserRepository) FindOrCreateSSOUser(username, email, firstName, lastName string) (*User, error) {
+	if r.db == nil {
+		return nil, fmt.Errorf("database not available")
+	}
 	if username == "" && email == "" {
 		return nil, fmt.Errorf("username or email is required from SSO provider")
 	}

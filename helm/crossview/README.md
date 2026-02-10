@@ -100,7 +100,11 @@ The following table lists the configurable parameters and their default values:
 | `ingress.className` | Ingress class name | `nginx` |
 | `config.ref` | Reference to existing ConfigMap with environment variables (if set, ConfigMap creation is skipped) | `""` |
 | `config.database` | Database configuration (host, port, database, username) | See values.yaml |
-| `config.server` | Server configuration (port, log, cors, session) | See values.yaml |
+| `config.server` | Server configuration (port, log, cors, auth, session) | See values.yaml |
+| `config.server.auth.mode` | Authentication mode: `session`, `header`, or `none` | `session` |
+| `config.server.auth.header.trustedHeader` | Header name for header auth (e.g. `X-Auth-User`) | `X-Auth-User` |
+| `config.server.auth.header.createUsers` | Create users from header when missing (header mode) | `true` |
+| `config.server.auth.header.defaultRole` | Default role for header-authenticated users | `viewer` |
 | `config.sso` | SSO configuration (OIDC, SAML) | See values.yaml |
 | `config.vite` | Vite/development server configuration | See values.yaml |
 | `database.enabled` | Enable PostgreSQL database | `true` |
@@ -246,8 +250,24 @@ helm install crossview crossview/crossview \
 ## Notes
 
 - The chart automatically creates a namespace if it doesn't exist (when using `--create-namespace`)
-- Database password and session secret are required for installation
-- The session secret should be a secure random string (use `openssl rand -base64 32`)
+- For `config.server.auth.mode: session`, database password and session secret are required
+- For `config.server.auth.mode: header` or `none`, the app does not use the database; you can set `database.enabled: false` and omit `secrets.dbPassword` (session secret is ignored when not in session mode)
+- The session secret should be a secure random string (use `openssl rand -base64 32`) when using session mode
+
+### Header auth (behind a proxy)
+
+When Crossview is behind an authenticating reverse proxy (OAuth2 Proxy, Ingress with auth annotations, etc.) that sets the user identity in a header:
+
+```bash
+helm install crossview ./helm/crossview \
+  --namespace crossview \
+  --create-namespace \
+  --set config.server.auth.mode=header \
+  --set config.server.auth.header.trustedHeader=X-Auth-User \
+  --set database.enabled=false
+```
+
+No database or session secret is required. Ensure the proxy sets the configured header (e.g. `X-Auth-User`) on every request.
 - RBAC resources (ClusterRole and ClusterRoleBinding) are created automatically
 - The service account is created with the necessary permissions to read Kubernetes resources
 - PostgreSQL 18 compatibility: The chart uses the latest PostgreSQL image with updated volume mount paths for PostgreSQL 18
