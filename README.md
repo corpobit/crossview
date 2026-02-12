@@ -21,6 +21,29 @@
 
 📹 [Watch Demo Video](https://github.com/corpobit/crossview/raw/main/public/images/demo-video.mov)
 
+## Table of Contents
+
+- [Features](#features)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Install Dependencies](#install-dependencies)
+  - [Configuration](#configuration)
+  - [Development](#development)
+  - [Build](#build)
+  - [Production Mode](#production-mode)
+- [Backend API](#backend-api)
+- [Helm Chart](#helm-chart)
+  - [Add the Helm Repository](#add-the-helm-repository)
+  - [Install with Helm](#install-with-helm)
+- [Docker](#docker)
+  - [Build the Docker Image](#build-the-docker-image)
+  - [Run with Environment Variables](#run-with-environment-variables-recommended)
+  - [Run with Docker Compose](#run-with-docker-compose)
+- [Documentation](#documentation)
+- [Tech Stack](#tech-stack)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Features
 
 - **Real-Time Resource Watching**: Monitor any Kubernetes resource in real-time with event-driven updates using Kubernetes Informers
@@ -289,6 +312,13 @@ The application loads configuration in this order (highest to lowest priority):
 - [Kubernetes Manifests](k8s/README.md) - Reference for Kubernetes manifests
 - [Keycloak Setup](keycloak/README.md) - Keycloak integration guide
 
+### Community
+- [Contributing Guide](docs/CONTRIBUTING.md) - How to contribute code, report issues, and open PRs
+- [Maintainers](docs/MAINTAINERS.md) - Who maintains the project and how to reach them
+- [Security Policy](.github/SECURITY.md) - How to report vulnerabilities
+- [Code of Conduct](docs/CODE_OF_CONDUCT.md) - Community standards and reporting
+- [Roadmap](docs/ROADMAP.md) - Planned direction and how to influence it
+
 ## Tech Stack
 
 ### Frontend
@@ -307,35 +337,7 @@ The application loads configuration in this order (highest to lowest priority):
 
 ## Contributing
 
-Contributions are welcome! Here are some guidelines to help you get started:
-
-### Getting Started
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Commit your changes (`git commit -m 'Add some amazing feature'`)
-5. Push to the branch (`git push origin feature/amazing-feature`)
-6. Open a Pull Request
-
-### Code Style
-- Follow the existing code style and architecture patterns
-- Keep functions focused and maintainable
-- Add comments for complex logic
-- Ensure your code passes linting (`npm run lint`)
-
-### Pull Requests
-- Keep PRs focused on a single feature or fix
-- Include a clear description of what the PR does
-- Test your changes before submitting
-- Make sure all existing tests pass
-
-### Reporting Issues
-- Use the GitHub issue tracker
-- Provide clear steps to reproduce bugs
-- Include relevant environment details (OS, Node version, etc.)
-
-### Questions?
-Feel free to open an issue for questions or discussions about the project.
+Contributions are welcome. Please read the [Contributing Guide](docs/CONTRIBUTING.md) for development setup, PR guidelines, and how to report issues. By participating, you agree to our [Code of Conduct](docs/CODE_OF_CONDUCT.md). To see where the project is headed, check the [Roadmap](docs/ROADMAP.md).
 
 ## License
 
